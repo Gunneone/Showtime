@@ -61,6 +61,18 @@ const App = {
             }
         });
 
+        // Add Enter key functionality for manual search trigger
+        this.elements.searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const query = this.elements.searchInput.value.trim();
+                if (query.length >= 1) {
+                    clearTimeout(searchTimeout);
+                    this.performSearch(true);
+                }
+            }
+        });
+
         // Close search results when clicking outside
         document.addEventListener('click', (e) => {
             if (!this.elements.searchInput.contains(e.target) && 
