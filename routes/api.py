@@ -72,6 +72,14 @@ def add_watched():
             existing_show['seasons_watched'] = data.get('seasons_watched', existing_show['seasons_watched'])
         else:
             # Add new show
+            episode_runtime = 45  # default
+            if show_details.get('episode_run_time'):
+                runtime_data = show_details['episode_run_time']
+                if isinstance(runtime_data, list) and len(runtime_data) > 0:
+                    episode_runtime = runtime_data[0]
+                elif isinstance(runtime_data, int):
+                    episode_runtime = runtime_data
+            
             new_show = {
                 'id': show_details['id'],
                 'name': show_details['name'],
@@ -79,7 +87,7 @@ def add_watched():
                 'first_air_date': show_details.get('first_air_date'),
                 'seasons_watched': data.get('seasons_watched', 1),
                 'total_seasons': show_details.get('number_of_seasons', 1),
-                'episode_run_time': show_details.get('episode_run_time', [45])[0] if show_details.get('episode_run_time') else 45
+                'episode_run_time': episode_runtime
             }
             watched_shows.append(new_show)
         
