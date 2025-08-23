@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Days Watched - Track Your TV Time{% endblock %}
+
+{% block content %}
+<!-- Watch Time Display -->
+<section class="watch-time-section">
+    <div class="watch-time-card">
+        <h2 class="watch-time-title">Total Time Watched</h2>
+        <div class="watch-time-display" id="totalWatchTime">
+            <span class="time-value">Loading...</span>
+        </div>
+        <p class="watch-time-subtitle">Time well spent! 🎬</p>
+    </div>
+</section>
+
+<!-- Search Section -->
+<section class="search-section">
+    <div class="search-container">
+        <h3>Add a TV Show</h3>
+        <div class="search-form">
+            <input 
+                type="text" 
+                id="searchInput" 
+                placeholder="Search for a TV show..." 
+                class="search-input"
+            >
+            <button type="button" id="searchBtn" class="search-btn">Search</button>
+        </div>
+        
+        <!-- Search Results -->
+        <div id="searchResults" class="search-results hidden"></div>
+    </div>
+</section>
+
+<!-- Watched Shows Section -->
+<section class="watched-section">
+    <div class="watched-container">
+        <h3>Your Watched Shows</h3>
+        <div id="watchedShows" class="watched-grid">
+            <!-- Watched shows will be populated here by JavaScript -->
+        </div>
+        
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state hidden">
+            <div class="empty-icon">📺</div>
+            <h4>No shows tracked yet!</h4>
+            <p>Start by searching for a TV show above and adding it to your watched list.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Loading Spinner -->
+<div id="loadingSpinner" class="loading-spinner hidden">
+    <div class="spinner"></div>
+    <p>Loading...</p>
+</div>
+
+<!-- Add Show Modal -->
+<div id="addShowModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4 id="modalShowTitle">Add Show</h4>
+            <button type="button" class="modal-close" id="modalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="show-info" id="modalShowInfo">
+                <!-- Show info will be populated here -->
+            </div>
+            <div class="form-group">
+                <label for="seasonsWatched">Seasons Watched:</label>
+                <input 
+                    type="number" 
+                    id="seasonsWatched" 
+                    min="1" 
+                    value="1" 
+                    class="form-input"
+                >
+                <small class="form-help">Enter the number of complete seasons you've watched</small>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="modalCancel">Cancel</button>
+            <button type="button" class="btn btn-primary" id="modalAdd">Add to Watched</button>
+        </div>
+    </div>
+</div>
+
+<!-- Update Show Modal -->
+<div id="updateShowModal" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4 id="updateModalShowTitle">Update Show</h4>
+            <button type="button" class="modal-close" id="updateModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="updateSeasonsWatched">Seasons Watched:</label>
+                <input 
+                    type="number" 
+                    id="updateSeasonsWatched" 
+                    min="0" 
+                    value="1" 
+                    class="form-input"
+                >
+                <small class="form-help">Update the number of complete seasons you've watched</small>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="updateModalCancel">Cancel</button>
+            <button type="button" class="btn btn-primary" id="updateModalSave">Update</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notifications -->
+<div id="toastContainer" class="toast-container"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize the app when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof App !== 'undefined') {
+            App.init();
+        }
+    });
+</script>
+{% endblock %}
