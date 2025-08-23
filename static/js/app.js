@@ -49,7 +49,23 @@ const App = {
 
     // Bind event listeners
     bindEvents() {
-        // Search functionality
+        // Search functionality - instant search with debouncing
+        let searchTimeout;
+        this.elements.searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            const query = this.elements.searchInput.value.trim();
+            
+            if (query.length === 0) {
+                this.elements.searchResults.classList.add('hidden');
+                return;
+            }
+            
+            if (query.length >= 2) {
+                searchTimeout = setTimeout(() => this.performSearch(true), 300);
+            }
+        });
+
+        // Keep original search button for compatibility
         this.elements.searchBtn.addEventListener('click', () => this.performSearch());
         this.elements.searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -96,14 +112,19 @@ const App = {
     },
 
     // Perform search for TV shows
-    async performSearch() {
+    async performSearch(isInstantSearch = false) {
         const query = this.elements.searchInput.value.trim();
         if (!query) {
-            this.showToast('Please enter a search term', 'error');
+            if (!isInstantSearch) {
+                this.showToast('Please enter a search term', 'error');
+            }
             return;
         }
 
-        this.showLoading();
+        // Don't show loading spinner for instant search to avoid flickering
+        if (!isInstantSearch) {
+            this.showLoading();
+        }
         
         try {
             const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
@@ -113,18 +134,24 @@ const App = {
                 throw new Error(data.error || 'Search failed');
             }
 
-            this.displaySearchResults(data.results);
+            // Limit to 5 results for instant search
+            const results = isInstantSearch ? data.results.slice(0, 5) : data.results;
+            this.displaySearchResults(results, isInstantSearch);
             this.state.currentSearch = data;
         } catch (error) {
             console.error('Search error:', error);
-            this.showToast('Search failed. Please try again.', 'error');
+            if (!isInstantSearch) {
+                this.showToast('Search failed. Please try again.', 'error');
+            }
         } finally {
-            this.hideLoading();
+            if (!isInstantSearch) {
+                this.hideLoading();
+            }
         }
     },
 
     // Display search results
-    displaySearchResults(results) {
+    displaySearchResults(results, isInstantSearch = false) {
         this.elements.searchResults.innerHTML = '';
         this.elements.searchResults.classList.remove('hidden');
 
@@ -133,31 +160,53 @@ const App = {
             return;
         }
 
+        // Add a header for instant search to show it's limited
+        if (isInstantSearch && results.length === 5) {
+            const header = document.createElement('p');
+            header.className = 'search-results-header';
+            header.textContent = 'Top 5 results - click to add:';
+            this.elements.searchResults.appendChild(header);
+        }
+
         results.forEach(show => {
-            const resultElement = this.createSearchResultElement(show);
+            const resultElement = this.createSearchResultElement(show, isInstantSearch);
             this.elements.searchResults.appendChild(resultElement);
         });
     },
 
     // Create search result element
-    createSearchResultElement(show) {
+    createSearchResultElement(show, isInstantSearch = false) {
         const div = document.createElement('div');
         div.className = 'search-result';
-        div.addEventListener('click', () => this.showAddModal(show));
+        
+        // For instant search, allow direct add with simple click
+        if (isInstantSearch) {
+            div.addEventListener('click', () => this.addShowDirectly(show));
+        } else {
+            div.addEventListener('click', () => this.showAddModal(show));
+        }
 
-        const posterUrl = show.poster_path || '/static/images/no-poster.png';
+        // Better poster URL handling to prevent console spam
+        let posterUrl = '/static/images/no-poster.png';
+        if (show.poster_path && show.poster_path !== 'null' && show.poster_path !== null) {
+            posterUrl = show.poster_path;
+        }
+
         const year = show.first_air_date ? new Date(show.first_air_date).getFullYear() : 'Unknown';
         const overview = show.overview || 'No description available.';
 
         div.innerHTML = `
             <div class="search-result-content">
                 <div class="search-result-poster">
-                    <img src="${posterUrl}" alt="${show.name}" onerror="this.src='/static/images/no-poster.png'">
+                    <img src="${posterUrl}" alt="${show.name}" 
+                         onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
+                         loading="lazy">
                 </div>
                 <div class="search-result-info">
                     <h4>${show.name}</h4>
                     <div class="search-result-date">${year}</div>
                     <div class="search-result-overview">${overview}</div>
+                    ${isInstantSearch ? '<div class="search-result-hint">👆 Click to add</div>' : ''}
                 </div>
             </div>
         `;
@@ -186,6 +235,41 @@ const App = {
         }
     },
 
+    // Add show directly (for instant search) with default 1 season
+    async addShowDirectly(show) {
+        this.state.selectedShow = show;
+        this.showLoading();
+
+        try {
+            const response = await fetch('/api/watched', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: show.id,
+                    seasons_watched: 1  // Default to 1 season
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to add show');
+            }
+
+            this.showToast(`Added "${show.name}" to your watched list!`);
+            this.loadWatchedShows();
+            this.elements.searchResults.classList.add('hidden');
+            this.elements.searchInput.value = '';
+        } catch (error) {
+            console.error('Error adding show:', error);
+            this.showToast('Failed to add show. Please try again.', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    },
+
     // Populate add show modal
     populateAddModal(show) {
         const modalTitle = document.getElementById('modalShowTitle');
@@ -194,13 +278,20 @@ const App = {
 
         modalTitle.textContent = `Add "${show.name}"`;
         
-        const posterUrl = show.poster_path || '/static/images/no-poster.png';
+        // Better poster URL handling
+        let posterUrl = '/static/images/no-poster.png';
+        if (show.poster_path && show.poster_path !== 'null' && show.poster_path !== null) {
+            posterUrl = show.poster_path;
+        }
+        
         const year = show.first_air_date ? new Date(show.first_air_date).getFullYear() : 'Unknown';
         const overview = show.overview || 'No description available.';
 
         modalInfo.innerHTML = `
             <div class="show-poster">
-                <img src="${posterUrl}" alt="${show.name}" onerror="this.src='/static/images/no-poster.png'">
+                <img src="${posterUrl}" alt="${show.name}" 
+                     onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
+                     loading="lazy">
             </div>
             <div class="show-details">
                 <h5>${show.name}</h5>
