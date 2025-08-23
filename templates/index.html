@@ -10,7 +10,7 @@
         <div class="watch-time-display" id="totalWatchTime">
             <span class="time-value">Loading...</span>
         </div>
-        <p class="watch-time-subtitle">Time well spent! 🎬</p>
+        <p class="watch-time-subtitle">Time well spent! <i class="fas fa-film"></i></p>
     </div>
 </section>
 
@@ -25,7 +25,6 @@
                 placeholder="Search for a TV show..." 
                 class="search-input"
             >
-            <button type="button" id="searchBtn" class="search-btn">Search</button>
         </div>
         
         <!-- Search Results -->
@@ -43,7 +42,7 @@
         
         <!-- Empty State -->
         <div id="emptyState" class="empty-state hidden">
-            <div class="empty-icon">📺</div>
+            <div class="empty-icon"><i class="fas fa-tv"></i></div>
             <h4>No shows tracked yet!</h4>
             <p>Start by searching for a TV show above and adding it to your watched list.</p>
         </div>
@@ -82,33 +81,6 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" id="modalCancel">Cancel</button>
             <button type="button" class="btn btn-primary" id="modalAdd">Add to Watched</button>
-        </div>
-    </div>
-</div>
-
-<!-- Update Show Modal -->
-<div id="updateShowModal" class="modal hidden">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h4 id="updateModalShowTitle">Update Show</h4>
-            <button type="button" class="modal-close" id="updateModalClose">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label for="updateSeasonsWatched">Seasons Watched:</label>
-                <input 
-                    type="number" 
-                    id="updateSeasonsWatched" 
-                    min="0" 
-                    value="1" 
-                    class="form-input"
-                >
-                <small class="form-help">Update the number of complete seasons you've watched</small>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" id="updateModalCancel">Cancel</button>
-            <button type="button" class="btn btn-primary" id="updateModalSave">Update</button>
         </div>
     </div>
 </div>

@@ -14,14 +14,12 @@ const App = {
     // DOM elements
     elements: {
         searchInput: null,
-        searchBtn: null,
         searchResults: null,
         watchedShows: null,
         emptyState: null,
         totalWatchTime: null,
         loadingSpinner: null,
         addShowModal: null,
-        updateShowModal: null,
         toastContainer: null
     },
 
@@ -36,20 +34,18 @@ const App = {
     // Initialize DOM elements
     initElements() {
         this.elements.searchInput = document.getElementById('searchInput');
-        this.elements.searchBtn = document.getElementById('searchBtn');
         this.elements.searchResults = document.getElementById('searchResults');
         this.elements.watchedShows = document.getElementById('watchedShows');
         this.elements.emptyState = document.getElementById('emptyState');
         this.elements.totalWatchTime = document.getElementById('totalWatchTime');
         this.elements.loadingSpinner = document.getElementById('loadingSpinner');
         this.elements.addShowModal = document.getElementById('addShowModal');
-        this.elements.updateShowModal = document.getElementById('updateShowModal');
         this.elements.toastContainer = document.getElementById('toastContainer');
     },
 
     // Bind event listeners
     bindEvents() {
-        // Search functionality - instant search with debouncing
+        // Search functionality - instant search with debouncing only
         let searchTimeout;
         this.elements.searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
@@ -65,11 +61,11 @@ const App = {
             }
         });
 
-        // Keep original search button for compatibility
-        this.elements.searchBtn.addEventListener('click', () => this.performSearch());
-        this.elements.searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.performSearch();
+        // Close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!this.elements.searchInput.contains(e.target) && 
+                !this.elements.searchResults.contains(e.target)) {
+                this.elements.searchResults.classList.add('hidden');
             }
         });
 
@@ -88,44 +84,23 @@ const App = {
         if (modalCancel) modalCancel.addEventListener('click', () => this.hideAddModal());
         if (modalAdd) modalAdd.addEventListener('click', () => this.addShowToWatched());
 
-        // Update show modal
-        const updateModalClose = document.getElementById('updateModalClose');
-        const updateModalCancel = document.getElementById('updateModalCancel');
-        const updateModalSave = document.getElementById('updateModalSave');
-
-        if (updateModalClose) updateModalClose.addEventListener('click', () => this.hideUpdateModal());
-        if (updateModalCancel) updateModalCancel.addEventListener('click', () => this.hideUpdateModal());
-        if (updateModalSave) updateModalSave.addEventListener('click', () => this.updateShow());
-
         // Close modal when clicking outside
-        this.elements.addShowModal.addEventListener('click', (e) => {
-            if (e.target === this.elements.addShowModal) {
-                this.hideAddModal();
-            }
-        });
-
-        this.elements.updateShowModal.addEventListener('click', (e) => {
-            if (e.target === this.elements.updateShowModal) {
-                this.hideUpdateModal();
-            }
-        });
+        if (this.elements.addShowModal) {
+            this.elements.addShowModal.addEventListener('click', (e) => {
+                if (e.target === this.elements.addShowModal) {
+                    this.hideAddModal();
+                }
+            });
+        }
     },
 
     // Perform search for TV shows
-    async performSearch(isInstantSearch = false) {
+    async performSearch(isInstantSearch = true) {
         const query = this.elements.searchInput.value.trim();
         if (!query) {
-            if (!isInstantSearch) {
-                this.showToast('Please enter a search term', 'error');
-            }
             return;
         }
 
-        // Don't show loading spinner for instant search to avoid flickering
-        if (!isInstantSearch) {
-            this.showLoading();
-        }
-        
         try {
             const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
             const data = await response.json();
@@ -135,28 +110,22 @@ const App = {
             }
 
             // Limit to 5 results for instant search
-            const results = isInstantSearch ? data.results.slice(0, 5) : data.results;
+            const results = data.results.slice(0, 5);
             this.displaySearchResults(results, isInstantSearch);
             this.state.currentSearch = data;
         } catch (error) {
             console.error('Search error:', error);
-            if (!isInstantSearch) {
-                this.showToast('Search failed. Please try again.', 'error');
-            }
-        } finally {
-            if (!isInstantSearch) {
-                this.hideLoading();
-            }
+            this.showToast('Search failed. Please try again.', 'error');
         }
     },
 
     // Display search results
-    displaySearchResults(results, isInstantSearch = false) {
+    displaySearchResults(results, isInstantSearch = true) {
         this.elements.searchResults.innerHTML = '';
         this.elements.searchResults.classList.remove('hidden');
 
         if (results.length === 0) {
-            this.elements.searchResults.innerHTML = '<p class="text-center">No shows found. Try a different search term.</p>';
+            this.elements.searchResults.innerHTML = '<p style="text-align: center; padding: 1rem; color: #a0aec0;">No shows found. Try a different search term.</p>';
             return;
         }
 
@@ -164,7 +133,7 @@ const App = {
         if (isInstantSearch && results.length === 5) {
             const header = document.createElement('p');
             header.className = 'search-results-header';
-            header.textContent = 'Top 5 results - click to add:';
+            header.innerHTML = '<i class="fas fa-search"></i> Top 5 results - click to add:';
             this.elements.searchResults.appendChild(header);
         }
 
@@ -175,7 +144,7 @@ const App = {
     },
 
     // Create search result element
-    createSearchResultElement(show, isInstantSearch = false) {
+    createSearchResultElement(show, isInstantSearch = true) {
         const div = document.createElement('div');
         div.className = 'search-result';
         
@@ -206,7 +175,7 @@ const App = {
                     <h4>${show.name}</h4>
                     <div class="search-result-date">${year}</div>
                     <div class="search-result-overview">${overview}</div>
-                    ${isInstantSearch ? '<div class="search-result-hint">👆 Click to add</div>' : ''}
+                    ${isInstantSearch ? '<div class="search-result-hint"><i class="fas fa-plus"></i> Click to add</div>' : ''}
                 </div>
             </div>
         `;
@@ -414,17 +383,26 @@ const App = {
                 <div class="watched-show-info">
                     <h4>${show.name}</h4>
                     <div class="watched-show-seasons">
-                        ${show.seasons_watched} season${show.seasons_watched !== 1 ? 's' : ''} watched
+                        <div class="seasons-display" onclick="App.editSeasons(${show.id})">
+                            <i class="fas fa-eye"></i> ${show.seasons_watched} season${show.seasons_watched !== 1 ? 's' : ''} watched 
+                            <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
+                        </div>
+                        <div class="seasons-edit" id="seasonsEdit-${show.id}">
+                            <input type="number" min="0" value="${show.seasons_watched}" id="seasonsInput-${show.id}">
+                            <button class="seasons-edit-btn seasons-edit-save" onclick="App.saveSeasons(${show.id})">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="seasons-edit-btn seasons-edit-cancel" onclick="App.cancelEditSeasons(${show.id})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="watched-show-time">${watchTime}</div>
+                <div class="watched-show-time"><i class="fas fa-clock"></i> ${watchTime}</div>
             </div>
             <div class="watched-show-actions">
-                <button type="button" class="btn btn-secondary" onclick="App.showUpdateModal(${show.id})">
-                    Update
-                </button>
                 <button type="button" class="btn btn-danger" onclick="App.removeShow(${show.id})">
-                    Remove
+                    <i class="fas fa-trash"></i> Remove
                 </button>
             </div>
         `;
@@ -458,34 +436,35 @@ const App = {
         return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
     },
 
-    // Show update modal for a show
-    showUpdateModal(showId) {
+    // Inline season editing methods
+    editSeasons(showId) {
+        const displayElement = document.querySelector(`#seasonsEdit-${showId}`).previousElementSibling;
+        const editElement = document.getElementById(`seasonsEdit-${showId}`);
+        const inputElement = document.getElementById(`seasonsInput-${showId}`);
+        
+        displayElement.style.display = 'none';
+        editElement.style.display = 'flex';
+        inputElement.focus();
+        inputElement.select();
+    },
+
+    cancelEditSeasons(showId) {
         const show = this.state.watchedShows.find(s => s.id === showId);
-        if (!show) return;
-
-        this.state.selectedShow = show;
+        const displayElement = document.querySelector(`#seasonsEdit-${showId}`).previousElementSibling;
+        const editElement = document.getElementById(`seasonsEdit-${showId}`);
+        const inputElement = document.getElementById(`seasonsInput-${showId}`);
         
-        const modalTitle = document.getElementById('updateModalShowTitle');
-        const seasonsInput = document.getElementById('updateSeasonsWatched');
-
-        modalTitle.textContent = `Update "${show.name}"`;
-        seasonsInput.value = show.seasons_watched;
+        // Reset input to original value
+        inputElement.value = show ? show.seasons_watched : 1;
         
-        this.elements.updateShowModal.classList.remove('hidden');
-        seasonsInput.focus();
+        displayElement.style.display = 'block';
+        editElement.style.display = 'none';
     },
 
-    // Hide update modal
-    hideUpdateModal() {
-        this.elements.updateShowModal.classList.add('hidden');
-        this.state.selectedShow = null;
-    },
-
-    // Update show seasons
-    async updateShow() {
-        if (!this.state.selectedShow) return;
-
-        const seasonsWatched = parseInt(document.getElementById('updateSeasonsWatched').value);
+    async saveSeasons(showId) {
+        const inputElement = document.getElementById(`seasonsInput-${showId}`);
+        const seasonsWatched = parseInt(inputElement.value);
+        
         if (isNaN(seasonsWatched) || seasonsWatched < 0) {
             this.showToast('Please enter a valid number of seasons', 'error');
             return;
@@ -494,7 +473,7 @@ const App = {
         this.showLoading();
 
         try {
-            const response = await fetch(`/api/watched/${this.state.selectedShow.id}`, {
+            const response = await fetch(`/api/watched/${showId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -510,12 +489,13 @@ const App = {
                 throw new Error(data.error || 'Failed to update show');
             }
 
-            this.showToast(`Updated "${this.state.selectedShow.name}"!`);
-            this.hideUpdateModal();
+            const show = this.state.watchedShows.find(s => s.id === showId);
+            this.showToast(`Updated "${show ? show.name : 'show'}"!`);
             this.loadWatchedShows();
         } catch (error) {
             console.error('Error updating show:', error);
             this.showToast('Failed to update show. Please try again.', 'error');
+            this.cancelEditSeasons(showId);
         } finally {
             this.hideLoading();
         }
