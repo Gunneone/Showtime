@@ -1,0 +1,133 @@
+from collections import defaultdict
+from datetime import datetime
+
+class CalculationService:
+    """Service for calculating watch time statistics."""
+    
+    def calculate_show_time(self, show):
+        """Calculate total watch time for a single show."""
+        seasons_watched = show.get('seasons_watched', 0)
+        episode_run_time = show.get('episode_run_time', 45)  # Default 45 minutes
+        
+        # For simplicity, assume average of 20 episodes per season
+        # In a real implementation, we would fetch actual episode counts from TMDB
+        episodes_per_season = 20
+        
+        total_episodes = seasons_watched * episodes_per_season
+        total_time_minutes = total_episodes * episode_run_time
+        
+        return total_time_minutes
+    
+    def calculate_total_time(self, watched_shows):
+        """Calculate total watch time across all shows."""
+        total_minutes = 0
+        
+        for show in watched_shows:
+            total_minutes += self.calculate_show_time(show)
+        
+        return total_minutes
+    
+    def format_time(self, minutes):
+        """Format time in minutes to a human-readable string."""
+        if minutes < 60:
+            return f"{minutes} minutes"
+        
+        hours = minutes // 60
+        remaining_minutes = minutes % 60
+        
+        if hours < 24:
+            if remaining_minutes > 0:
+                return f"{hours}h {remaining_minutes}m"
+            return f"{hours}h"
+        
+        days = hours // 24
+        remaining_hours = hours % 24
+        
+        if days < 365:
+            if remaining_hours > 0:
+                return f"{days}d {remaining_hours}h"
+            return f"{days}d"
+        
+        years = days // 365
+        remaining_days = days % 365
+        
+        if remaining_days > 0:
+            return f"{years}y {remaining_days}d"
+        return f"{years}y"
+    
+    def calculate_stats(self, watched_shows):
+        """Calculate comprehensive viewing statistics."""
+        if not watched_shows:
+            return {
+                'total_shows': 0,
+                'total_seasons': 0,
+                'total_time_minutes': 0,
+                'total_time_formatted': '0 minutes',
+                'average_time_per_show': 0,
+                'genre_breakdown': {},
+                'yearly_breakdown': {},
+                'completion_stats': {
+                    'completed_shows': 0,
+                    'in_progress_shows': 0,
+                    'completion_rate': 0
+                }
+            }
+        
+        total_shows = len(watched_shows)
+        total_seasons = sum(show.get('seasons_watched', 0) for show in watched_shows)
+        total_time_minutes = self.calculate_total_time(watched_shows)
+        average_time_per_show = total_time_minutes // total_shows if total_shows > 0 else 0
+        
+        # Genre breakdown
+        genre_breakdown = defaultdict(int)
+        for show in watched_shows:
+            for genre in show.get('genres', []):
+                genre_name = genre.get('name', 'Unknown') if isinstance(genre, dict) else str(genre)
+                show_time = self.calculate_show_time(show)
+                genre_breakdown[genre_name] += show_time
+        
+        # Yearly breakdown (based on first air date)
+        yearly_breakdown = defaultdict(int)
+        for show in watched_shows:
+            first_air_date = show.get('first_air_date', '')
+            if first_air_date:
+                try:
+                    year = datetime.strptime(first_air_date, '%Y-%m-%d').year
+                    show_time = self.calculate_show_time(show)
+                    yearly_breakdown[str(year)] += show_time
+                except ValueError:
+                    # Handle invalid date formats
+                    yearly_breakdown['Unknown'] += self.calculate_show_time(show)
+            else:
+                yearly_breakdown['Unknown'] += self.calculate_show_time(show)
+        
+        # Completion statistics
+        completed_shows = 0
+        in_progress_shows = 0
+        
+        for show in watched_shows:
+            seasons_watched = show.get('seasons_watched', 0)
+            show_total_seasons = show.get('total_seasons', 1)
+            
+            if seasons_watched >= show_total_seasons:
+                completed_shows += 1
+            else:
+                in_progress_shows += 1
+        
+        completion_rate = (completed_shows / total_shows * 100) if total_shows > 0 else 0
+        
+        return {
+            'total_shows': total_shows,
+            'total_seasons': total_seasons,
+            'total_time_minutes': total_time_minutes,
+            'total_time_formatted': self.format_time(total_time_minutes),
+            'average_time_per_show': average_time_per_show,
+            'average_time_per_show_formatted': self.format_time(average_time_per_show),
+            'genre_breakdown': dict(genre_breakdown),
+            'yearly_breakdown': dict(yearly_breakdown),
+            'completion_stats': {
+                'completed_shows': completed_shows,
+                'in_progress_shows': in_progress_shows,
+                'completion_rate': round(completion_rate, 1)
+            }
+        }

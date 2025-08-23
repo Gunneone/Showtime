@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Statistics - Days Watched{% endblock %}
+
+{% block content %}
+<!-- Statistics Overview -->
+<section class="stats-overview">
+    <h2>Your Viewing Statistics</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📺</div>
+            <div class="stat-content">
+                <h3 id="totalShows">-</h3>
+                <p>Total Shows</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+                <h3 id="totalSeasons">-</h3>
+                <p>Total Seasons</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">⏰</div>
+            <div class="stat-content">
+                <h3 id="totalTime">-</h3>
+                <p>Total Time</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-content">
+                <h3 id="averageTime">-</h3>
+                <p>Average per Show</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Completion Statistics -->
+<section class="completion-stats">
+    <h3>Completion Progress</h3>
+    <div class="completion-grid">
+        <div class="completion-card">
+            <div class="completion-info">
+                <h4 id="completedShows">-</h4>
+                <p>Completed Shows</p>
+            </div>
+        </div>
+        
+        <div class="completion-card">
+            <div class="completion-info">
+                <h4 id="inProgressShows">-</h4>
+                <p>In Progress</p>
+            </div>
+        </div>
+        
+        <div class="completion-card">
+            <div class="completion-info">
+                <h4 id="completionRate">-%</h4>
+                <p>Completion Rate</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Genre Breakdown -->
+<section class="genre-stats">
+    <h3>Time by Genre</h3>
+    <div id="genreBreakdown" class="genre-list">
+        <!-- Genre breakdown will be populated here -->
+    </div>
+</section>
+
+<!-- Yearly Breakdown -->
+<section class="yearly-stats">
+    <h3>Time by Show Release Year</h3>
+    <div id="yearlyBreakdown" class="yearly-list">
+        <!-- Yearly breakdown will be populated here -->
+    </div>
+</section>
+
+<!-- Loading State -->
+<div id="statsLoading" class="loading-stats">
+    <div class="spinner"></div>
+    <p>Loading your statistics...</p>
+</div>
+
+<!-- Empty State -->
+<div id="statsEmpty" class="stats-empty hidden">
+    <div class="empty-icon">📊</div>
+    <h3>No statistics yet!</h3>
+    <p>Start tracking some shows to see your viewing statistics.</p>
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary">Add Your First Show</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize the stats page when it loads
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof StatsApp !== 'undefined') {
+            StatsApp.init();
+        }
+    });
+</script>
+{% endblock %}
