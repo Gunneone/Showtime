@@ -791,23 +791,13 @@ const App = {
                             <div class="season-selector-bars edit-season-bars">
                                 ${editSeasonBars}
                             </div>
-                            <div class="seasons-edit-actions">
-                                <button class="seasons-edit-btn seasons-edit-save" onclick="App.saveSeasons(${show.id})">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button class="seasons-edit-btn seasons-edit-cancel" onclick="App.cancelEditSeasons(${show.id})">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="watched-show-time"><i class="fas fa-clock"></i> ${watchTime}</div>
-            </div>
-            <div class="watched-show-actions">
-                <button type="button" class="btn btn-danger" onclick="App.removeShow(${show.id})">
-                    <i class="fas fa-trash"></i> Remove
-                </button>
+                <div class="watched-show-remove" onclick="App.removeShow(${show.id})" title="Remove show">
+                    <i class="fas fa-times"></i>
+                </div>
             </div>
         `;
 
@@ -854,6 +844,8 @@ const App = {
             editElement.setAttribute('data-selected-seasons', show.seasons_watched);
             // Update bars to show current selection without saving
             this.updateEditSeasonBars(showId, show.seasons_watched);
+            // Setup hover effects for edit season bars
+            this.setupEditSeasonHoverEffects(showId);
         }
     },
 
@@ -892,6 +884,56 @@ const App = {
         
         // Close the editing interface and save the selection
         this.saveSeasons(showId);
+    },
+
+    // Setup hover effects for edit season bars
+    setupEditSeasonHoverEffects(showId) {
+        const container = document.getElementById(`seasonsEdit-${showId}`);
+        const bars = container.querySelectorAll('.edit-season-bar');
+        
+        bars.forEach((bar, index) => {
+            bar.addEventListener('mouseenter', () => {
+                // Reset all bars to base state
+                bars.forEach(b => {
+                    b.classList.remove('highlighted', 'hover-highlighted');
+                });
+                
+                // Highlight all bars up to and including the hovered one with hover class
+                for (let i = 0; i <= index; i++) {
+                    bars[i].classList.add('hover-highlighted');
+                }
+            });
+            
+            bar.addEventListener('mouseleave', () => {
+                // Remove hover highlights and restore current selection state
+                bars.forEach(b => b.classList.remove('hover-highlighted'));
+                
+                // Restore the current selection highlights
+                const currentSeasons = parseInt(container.getAttribute('data-selected-seasons')) || 0;
+                bars.forEach((b, i) => {
+                    if (i + 1 <= currentSeasons) {
+                        b.classList.add('highlighted');
+                    } else {
+                        b.classList.remove('highlighted');
+                    }
+                });
+            });
+        });
+        
+        // Also handle container mouse leave to ensure proper state restoration
+        container.addEventListener('mouseleave', () => {
+            bars.forEach(b => b.classList.remove('hover-highlighted'));
+            
+            // Restore the current selection highlights
+            const currentSeasons = parseInt(container.getAttribute('data-selected-seasons')) || 0;
+            bars.forEach((b, i) => {
+                if (i + 1 <= currentSeasons) {
+                    b.classList.add('highlighted');
+                } else {
+                    b.classList.remove('highlighted');
+                }
+            });
+        });
     },
 
     async saveSeasons(showId) {
