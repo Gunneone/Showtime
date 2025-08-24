@@ -936,11 +936,277 @@ const StatsApp = {
         document.getElementById('inProgressShows').textContent = stats.completion_stats.in_progress_shows;
         document.getElementById('completionRate').textContent = `${stats.completion_stats.completion_rate}%`;
 
-        // Genre breakdown
+        // Legacy breakdowns (keep for fallback)
         this.displayGenreBreakdown(stats.genre_breakdown);
-
-        // Yearly breakdown
         this.displayYearlyBreakdown(stats.yearly_breakdown);
+        
+        // New interactive charts
+        this.createYearlyChart(stats.yearly_breakdown);
+        this.createTopGenresChart(stats.genre_breakdown);
+        this.displayFunConversions(stats.fun_conversions);
+        this.createAvgLengthChart(stats.show_length_distribution);
+        this.createCompletionChart(stats.completion_stats);
+    },
+
+    // Create yearly line chart using Plotly
+    createYearlyChart(yearlyData) {
+        const chartDiv = document.getElementById('yearlyChart');
+        
+        if (typeof Plotly === 'undefined') {
+            chartDiv.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">Chart library not available. Please check your internet connection.</p>';
+            return;
+        }
+        
+        if (Object.keys(yearlyData).length === 0) {
+            chartDiv.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No yearly data available</p>';
+            return;
+        }
+
+        // Sort years and convert to chart data
+        const sortedYears = Object.entries(yearlyData)
+            .filter(([year]) => year !== 'Unknown')
+            .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+
+        const years = sortedYears.map(([year]) => year);
+        const minutes = sortedYears.map(([, time]) => time);
+        const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
+
+        const trace = {
+            x: years,
+            y: hours,
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: {
+                color: '#63b3ed',
+                width: 3
+            },
+            marker: {
+                color: '#63b3ed',
+                size: 8,
+                line: {
+                    color: '#e2e8f0',
+                    width: 1
+                }
+            },
+            hovertemplate: '<b>%{x}</b><br>Watch Time: %{y} hours<extra></extra>'
+        };
+
+        const layout = {
+            title: {
+                text: '',
+                font: { color: '#e2e8f0' }
+            },
+            xaxis: {
+                title: 'Release Year',
+                color: '#e2e8f0',
+                gridcolor: 'rgba(226, 232, 240, 0.1)',
+                tickfont: { color: '#cbd5e0' }
+            },
+            yaxis: {
+                title: 'Hours Watched',
+                color: '#e2e8f0',
+                gridcolor: 'rgba(226, 232, 240, 0.1)',
+                tickfont: { color: '#cbd5e0' }
+            },
+            plot_bgcolor: 'rgba(0, 0, 0, 0)',
+            paper_bgcolor: 'rgba(0, 0, 0, 0)',
+            font: { color: '#e2e8f0' },
+            margin: { l: 60, r: 30, t: 30, b: 60 }
+        };
+
+        const config = {
+            displayModeBar: true,
+            modeBarButtonsToRemove: ['autoScale2d', 'lasso2d', 'select2d'],
+            displaylogo: false
+        };
+
+        Plotly.newPlot('yearlyChart', [trace], layout, config);
+    },
+
+    // Create top 3 genres bar chart
+    createTopGenresChart(genreData) {
+        if (Object.keys(genreData).length === 0) {
+            document.getElementById('topGenresChart').innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No genre data available</p>';
+            return;
+        }
+
+        // Get top 3 genres
+        const sortedGenres = Object.entries(genreData)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+
+        const genres = sortedGenres.map(([genre]) => genre);
+        const minutes = sortedGenres.map(([, time]) => time);
+        const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
+
+        const trace = {
+            x: genres,
+            y: hours,
+            type: 'bar',
+            marker: {
+                color: ['#63b3ed', '#4299e1', '#3182ce'],
+                line: {
+                    color: '#e2e8f0',
+                    width: 1
+                }
+            },
+            hovertemplate: '<b>%{x}</b><br>Watch Time: %{y} hours<extra></extra>'
+        };
+
+        const layout = {
+            title: {
+                text: '',
+                font: { color: '#e2e8f0' }
+            },
+            xaxis: {
+                title: 'Genre',
+                color: '#e2e8f0',
+                tickfont: { color: '#cbd5e0' }
+            },
+            yaxis: {
+                title: 'Hours Watched',
+                color: '#e2e8f0',
+                gridcolor: 'rgba(226, 232, 240, 0.1)',
+                tickfont: { color: '#cbd5e0' }
+            },
+            plot_bgcolor: 'rgba(0, 0, 0, 0)',
+            paper_bgcolor: 'rgba(0, 0, 0, 0)',
+            font: { color: '#e2e8f0' },
+            margin: { l: 60, r: 30, t: 30, b: 100 }
+        };
+
+        const config = {
+            displayModeBar: true,
+            modeBarButtonsToRemove: ['autoScale2d', 'lasso2d', 'select2d'],
+            displaylogo: false
+        };
+
+        Plotly.newPlot('topGenresChart', [trace], layout, config);
+    },
+
+    // Display fun time conversions
+    displayFunConversions(conversions) {
+        const container = document.getElementById('timeConversions');
+        container.innerHTML = '';
+
+        if (!conversions || conversions.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No conversion data available</p>';
+            return;
+        }
+
+        conversions.forEach(conversion => {
+            const card = document.createElement('div');
+            card.className = 'conversion-card';
+            card.innerHTML = `
+                <div class="conversion-icon">
+                    <i class="${conversion.icon}"></i>
+                </div>
+                <div class="conversion-value">${conversion.value}</div>
+                <div class="conversion-description">${conversion.description}</div>
+            `;
+            container.appendChild(card);
+        });
+    },
+
+    // Create average length distribution chart
+    createAvgLengthChart(lengthData) {
+        if (Object.keys(lengthData).length === 0) {
+            document.getElementById('avgLengthChart').innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No length data available</p>';
+            return;
+        }
+
+        const categories = Object.keys(lengthData);
+        const minutes = Object.values(lengthData);
+        const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
+
+        const trace = {
+            labels: categories,
+            values: hours,
+            type: 'pie',
+            hole: 0.4,
+            marker: {
+                colors: ['#63b3ed', '#4299e1', '#3182ce', '#2b6cb0'],
+                line: {
+                    color: '#e2e8f0',
+                    width: 2
+                }
+            },
+            textfont: { color: '#e2e8f0' },
+            hovertemplate: '<b>%{label}</b><br>%{value} hours<br>%{percent}<extra></extra>'
+        };
+
+        const layout = {
+            title: {
+                text: '',
+                font: { color: '#e2e8f0' }
+            },
+            plot_bgcolor: 'rgba(0, 0, 0, 0)',
+            paper_bgcolor: 'rgba(0, 0, 0, 0)',
+            font: { color: '#e2e8f0' },
+            margin: { l: 20, r: 20, t: 20, b: 20 },
+            showlegend: true,
+            legend: {
+                font: { color: '#e2e8f0' }
+            }
+        };
+
+        const config = {
+            displayModeBar: true,
+            modeBarButtonsToRemove: ['autoScale2d', 'lasso2d', 'select2d'],
+            displaylogo: false
+        };
+
+        Plotly.newPlot('avgLengthChart', [trace], layout, config);
+    },
+
+    // Create completion status pie chart
+    createCompletionChart(completionStats) {
+        const completed = completionStats.completed_shows;
+        const inProgress = completionStats.in_progress_shows;
+
+        if (completed === 0 && inProgress === 0) {
+            document.getElementById('completionChart').innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No completion data available</p>';
+            return;
+        }
+
+        const trace = {
+            labels: ['Completed', 'In Progress'],
+            values: [completed, inProgress],
+            type: 'pie',
+            hole: 0.4,
+            marker: {
+                colors: ['#48bb78', '#ed8936'],
+                line: {
+                    color: '#e2e8f0',
+                    width: 2
+                }
+            },
+            textfont: { color: '#e2e8f0' },
+            hovertemplate: '<b>%{label}</b><br>%{value} shows<br>%{percent}<extra></extra>'
+        };
+
+        const layout = {
+            title: {
+                text: '',
+                font: { color: '#e2e8f0' }
+            },
+            plot_bgcolor: 'rgba(0, 0, 0, 0)',
+            paper_bgcolor: 'rgba(0, 0, 0, 0)',
+            font: { color: '#e2e8f0' },
+            margin: { l: 20, r: 20, t: 20, b: 20 },
+            showlegend: true,
+            legend: {
+                font: { color: '#e2e8f0' }
+            }
+        };
+
+        const config = {
+            displayModeBar: true,
+            modeBarButtonsToRemove: ['autoScale2d', 'lasso2d', 'select2d'],
+            displaylogo: false
+        };
+
+        Plotly.newPlot('completionChart', [trace], layout, config);
     },
 
     // Display genre breakdown

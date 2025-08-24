@@ -2,6 +2,11 @@
 
 {% block title %}Statistics - Days Watched{% endblock %}
 
+{% block head %}
+<!-- Plotly.js from unpkg (alternative CDN) -->
+<script src="https://unpkg.com/plotly.js-dist@2.27.0/plotly.js"></script>
+{% endblock %}
+
 {% block content %}
 <!-- Statistics Overview -->
 <section class="stats-overview">
@@ -69,16 +74,53 @@
     </div>
 </section>
 
-<!-- Genre Breakdown -->
-<section class="genre-stats">
+<!-- Legacy Genre Breakdown (kept for fallback) -->
+<section class="genre-stats" style="display: none;">
     <h3>Time by Genre</h3>
     <div id="genreBreakdown" class="genre-list">
         <!-- Genre breakdown will be populated here -->
     </div>
 </section>
 
-<!-- Yearly Breakdown -->
-<section class="yearly-stats">
+<!-- Interactive Charts Section -->
+<section class="charts-section">
+    <h3>Viewing Analytics</h3>
+    
+    <!-- Time by Publishing Year Line Chart -->
+    <div class="chart-container">
+        <h4>Watch Time by Show Release Year</h4>
+        <div id="yearlyChart" class="plotly-chart"></div>
+    </div>
+    
+    <!-- Top 3 Genres -->
+    <div class="chart-container">
+        <h4>Top 3 Genres</h4>
+        <div id="topGenresChart" class="plotly-chart"></div>
+    </div>
+    
+    <!-- Fun Time Conversions -->
+    <div class="chart-container">
+        <h4>Fun Time Comparisons</h4>
+        <div id="timeConversions" class="time-conversions-grid">
+            <!-- Fun conversions will be populated here -->
+        </div>
+    </div>
+    
+    <!-- Average Show Length -->
+    <div class="chart-container">
+        <h4>Average Show Length Distribution</h4>
+        <div id="avgLengthChart" class="plotly-chart"></div>
+    </div>
+    
+    <!-- Completion Rate Pie Chart -->
+    <div class="chart-container">
+        <h4>Show Completion Status</h4>
+        <div id="completionChart" class="plotly-chart"></div>
+    </div>
+</section>
+
+<!-- Legacy Breakdown (kept for fallback) -->
+<section class="yearly-stats" style="display: none;">
     <h3>Time by Show Release Year</h3>
     <div id="yearlyBreakdown" class="yearly-list">
         <!-- Yearly breakdown will be populated here -->
