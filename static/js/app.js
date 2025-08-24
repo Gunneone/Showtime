@@ -14,6 +14,7 @@ const App = {
     // DOM elements
     elements: {
         searchInput: null,
+        searchButton: null,
         searchResults: null,
         watchedShows: null,
         emptyState: null,
@@ -34,6 +35,7 @@ const App = {
     // Initialize DOM elements
     initElements() {
         this.elements.searchInput = document.getElementById('searchInput');
+        this.elements.searchButton = document.getElementById('searchButton');
         this.elements.searchResults = document.getElementById('searchResults');
         this.elements.watchedShows = document.getElementById('watchedShows');
         this.elements.emptyState = document.getElementById('emptyState');
@@ -45,44 +47,70 @@ const App = {
 
     // Bind event listeners
     bindEvents() {
-        // Search functionality - instant search with debouncing only
+        // Search functionality
+        this.setupSearchFunctionality();
+        
+        // Close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!this.elements.searchInput.contains(e.target) && 
+                !this.elements.searchResults.contains(e.target) &&
+                !this.elements.searchButton.contains(e.target)) {
+                this.hideSearchResults();
+            }
+        });
+
+        // Modal events
+        this.bindModalEvents();
+    },
+
+    // Setup comprehensive search functionality
+    setupSearchFunctionality() {
         let searchTimeout;
+
+        // Instant search with debouncing (for quick suggestions)
         this.elements.searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
             const query = this.elements.searchInput.value.trim();
             
+            // Hide results if empty
             if (query.length === 0) {
-                this.elements.searchResults.classList.add('hidden');
+                this.hideSearchResults();
                 return;
             }
             
+            // Trigger instant search after 300ms delay for queries >= 2 characters
             if (query.length >= 2) {
-                searchTimeout = setTimeout(() => this.performSearch(true), 300);
+                searchTimeout = setTimeout(() => {
+                    this.performSearch(query, true);
+                }, 300);
             }
         });
 
-        // Add Enter key functionality for manual search trigger
+        // Manual search with Enter key
         this.elements.searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const query = this.elements.searchInput.value.trim();
                 if (query.length >= 1) {
                     clearTimeout(searchTimeout);
-                    this.performSearch(true);
+                    this.performSearch(query, false);
                 }
             }
         });
 
-        // Close search results when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!this.elements.searchInput.contains(e.target) && 
-                !this.elements.searchResults.contains(e.target)) {
-                this.elements.searchResults.classList.add('hidden');
-            }
-        });
-
-        // Modal events
-        this.bindModalEvents();
+        // Manual search with button click
+        if (this.elements.searchButton) {
+            this.elements.searchButton.addEventListener('click', () => {
+                const query = this.elements.searchInput.value.trim();
+                if (query.length >= 1) {
+                    clearTimeout(searchTimeout);
+                    this.performSearch(query, false);
+                } else {
+                    this.showToast('Please enter a search term', 'error');
+                    this.elements.searchInput.focus();
+                }
+            });
+        }
     },
 
     // Bind modal event listeners
@@ -107,67 +135,111 @@ const App = {
     },
 
     // Perform search for TV shows
-    async performSearch(isInstantSearch = true) {
-        const query = this.elements.searchInput.value.trim();
-        if (!query) {
+    async performSearch(query, isInstantSearch = false) {
+        if (!query || query.length === 0) {
+            this.hideSearchResults();
             return;
         }
 
+        console.log('Performing search for:', query, 'isInstantSearch:', isInstantSearch);
+
         try {
+            // Show loading state
+            this.showSearchLoading();
+
             const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
             const data = await response.json();
+            
+            console.log('Search response:', data);
             
             if (!response.ok) {
                 throw new Error(data.error || 'Search failed');
             }
 
-            // Limit to 5 results for instant search
-            const results = data.results.slice(0, 5);
+            // For instant search, limit to 5 results. For manual search, show more
+            const maxResults = isInstantSearch ? 5 : 10;
+            const results = data.results.slice(0, maxResults);
+            
             this.displaySearchResults(results, isInstantSearch);
             this.state.currentSearch = data;
+            
         } catch (error) {
             console.error('Search error:', error);
             this.showToast('Search failed. Please try again.', 'error');
+            this.hideSearchResults();
         }
     },
 
+    // Show loading state in search results
+    showSearchLoading() {
+        this.elements.searchResults.innerHTML = '<div class="search-loading"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+        this.elements.searchResults.classList.remove('hidden');
+    },
+
+    // Hide search results
+    hideSearchResults() {
+        this.elements.searchResults.classList.add('hidden');
+        this.elements.searchResults.innerHTML = '';
+    },
+
     // Display search results
-    displaySearchResults(results, isInstantSearch = true) {
+    displaySearchResults(results, isInstantSearch = false) {
+        console.log('Displaying search results:', results, 'isInstantSearch:', isInstantSearch);
+        
+        // Clear previous results
         this.elements.searchResults.innerHTML = '';
         this.elements.searchResults.classList.remove('hidden');
 
-        if (results.length === 0) {
-            this.elements.searchResults.innerHTML = '<p style="text-align: center; padding: 1rem; color: #a0aec0;">No shows found. Try a different search term.</p>';
+        if (!results || results.length === 0) {
+            this.elements.searchResults.innerHTML = `
+                <div class="search-no-results">
+                    <i class="fas fa-search"></i>
+                    <p>No shows found. Try a different search term.</p>
+                </div>
+            `;
             return;
         }
 
-        // Add a header for instant search to show it's limited
-        if (isInstantSearch && results.length === 5) {
-            const header = document.createElement('p');
+        // Add header for instant search
+        if (isInstantSearch && results.length >= 3) {
+            const header = document.createElement('div');
             header.className = 'search-results-header';
-            header.innerHTML = '<i class="fas fa-search"></i> Top 5 results - click to add:';
+            header.innerHTML = '<i class="fas fa-search"></i> Quick search results - click to add:';
+            this.elements.searchResults.appendChild(header);
+        } else if (!isInstantSearch) {
+            const header = document.createElement('div');
+            header.className = 'search-results-header';
+            header.innerHTML = `<i class="fas fa-search"></i> Found ${results.length} results:`;
             this.elements.searchResults.appendChild(header);
         }
 
+        // Create result elements
         results.forEach(show => {
             const resultElement = this.createSearchResultElement(show, isInstantSearch);
             this.elements.searchResults.appendChild(resultElement);
         });
+
+        console.log('Search results displayed successfully');
     },
 
     // Create search result element
-    createSearchResultElement(show, isInstantSearch = true) {
+    createSearchResultElement(show, isInstantSearch = false) {
         const div = document.createElement('div');
         div.className = 'search-result';
         
-        // For instant search, allow direct add with simple click
-        if (isInstantSearch) {
-            div.addEventListener('click', () => this.addShowDirectly(show));
-        } else {
-            div.addEventListener('click', () => this.showAddModal(show));
-        }
+        // Event handler for adding shows
+        div.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (isInstantSearch) {
+                this.addShowDirectly(show);
+            } else {
+                this.showAddModal(show);
+            }
+        });
 
-        // Better poster URL handling to prevent console spam
+        // Handle poster image
         let posterUrl = '/static/images/no-poster.png';
         if (show.poster_path && show.poster_path !== 'null' && show.poster_path !== null) {
             posterUrl = show.poster_path;
@@ -175,6 +247,7 @@ const App = {
 
         const year = show.first_air_date ? new Date(show.first_air_date).getFullYear() : 'Unknown';
         const overview = show.overview || 'No description available.';
+        const truncatedOverview = overview.length > 150 ? overview.substring(0, 150) + '...' : overview;
 
         div.innerHTML = `
             <div class="search-result-content">
@@ -186,8 +259,11 @@ const App = {
                 <div class="search-result-info">
                     <h4>${show.name}</h4>
                     <div class="search-result-date">${year}</div>
-                    <div class="search-result-overview">${overview}</div>
-                    ${isInstantSearch ? '<div class="search-result-hint"><i class="fas fa-plus"></i> Click to add</div>' : ''}
+                    <div class="search-result-overview">${truncatedOverview}</div>
+                    ${isInstantSearch ? 
+                        '<div class="search-result-hint"><i class="fas fa-plus"></i> Click to add with 1 season</div>' : 
+                        '<div class="search-result-hint"><i class="fas fa-cog"></i> Click to configure</div>'
+                    }
                 </div>
             </div>
         `;
@@ -241,7 +317,7 @@ const App = {
 
             this.showToast(`Added "${show.name}" to your watched list!`);
             this.loadWatchedShows();
-            this.elements.searchResults.classList.add('hidden');
+            this.hideSearchResults();
             this.elements.searchInput.value = '';
         } catch (error) {
             console.error('Error adding show:', error);
@@ -324,7 +400,7 @@ const App = {
             this.showToast(`Added "${this.state.selectedShow.name}" to your watched list!`);
             this.hideAddModal();
             this.loadWatchedShows();
-            this.elements.searchResults.classList.add('hidden');
+            this.hideSearchResults();
             this.elements.searchInput.value = '';
         } catch (error) {
             console.error('Error adding show:', error);
