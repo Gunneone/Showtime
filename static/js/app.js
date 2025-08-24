@@ -953,7 +953,8 @@ const StatsApp = {
         const chartDiv = document.getElementById('yearlyChart');
         
         if (typeof Plotly === 'undefined') {
-            chartDiv.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">Chart library not available. Please check your internet connection.</p>';
+            // Fallback to simple HTML chart
+            this.createSimpleYearlyChart(yearlyData, chartDiv);
             return;
         }
         
@@ -1023,10 +1024,52 @@ const StatsApp = {
         Plotly.newPlot('yearlyChart', [trace], layout, config);
     },
 
+    // Fallback simple yearly chart using CSS
+    createSimpleYearlyChart(yearlyData, container) {
+        if (Object.keys(yearlyData).length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No yearly data available</p>';
+            return;
+        }
+
+        const sortedYears = Object.entries(yearlyData)
+            .filter(([year]) => year !== 'Unknown')
+            .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+
+        const maxHours = Math.max(...sortedYears.map(([, minutes]) => minutes / 60));
+        
+        let chartHTML = '<div style="padding: 1rem;"><div style="display: flex; align-items: end; gap: 8px; height: 200px; padding: 20px 0; border-bottom: 1px solid rgba(226, 232, 240, 0.1);">';
+        
+        sortedYears.forEach(([year, minutes]) => {
+            const hours = Math.round(minutes / 60 * 10) / 10;
+            const heightPercent = (hours / maxHours) * 100;
+            
+            chartHTML += `
+                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                    <div style="background: #63b3ed; width: 100%; height: ${heightPercent}%; min-height: 4px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched in ${year}"></div>
+                    <div style="color: #cbd5e0; font-size: 0.8rem; text-align: center;">${year}</div>
+                </div>
+            `;
+        });
+        
+        chartHTML += '</div>';
+        chartHTML += '<div style="text-align: center; color: #cbd5e0; font-size: 0.9rem; margin-top: 1rem;">Hours watched by release year</div>';
+        chartHTML += '</div>';
+        
+        container.innerHTML = chartHTML;
+    },
+
     // Create top 3 genres bar chart
     createTopGenresChart(genreData) {
+        const chartDiv = document.getElementById('topGenresChart');
+        
+        if (typeof Plotly === 'undefined') {
+            // Fallback to simple HTML chart
+            this.createSimpleGenresChart(genreData, chartDiv);
+            return;
+        }
+        
         if (Object.keys(genreData).length === 0) {
-            document.getElementById('topGenresChart').innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No genre data available</p>';
+            chartDiv.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No genre data available</p>';
             return;
         }
 
@@ -1084,6 +1127,40 @@ const StatsApp = {
         Plotly.newPlot('topGenresChart', [trace], layout, config);
     },
 
+    // Fallback simple genres chart using CSS
+    createSimpleGenresChart(genreData, container) {
+        if (Object.keys(genreData).length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No genre data available</p>';
+            return;
+        }
+
+        const sortedGenres = Object.entries(genreData)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+
+        const maxHours = Math.max(...sortedGenres.map(([, minutes]) => minutes / 60));
+        const colors = ['#63b3ed', '#4299e1', '#3182ce'];
+        
+        let chartHTML = '<div style="padding: 1rem;"><div style="display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
+        
+        sortedGenres.forEach(([genre, minutes], index) => {
+            const hours = Math.round(minutes / 60 * 10) / 10;
+            const heightPercent = (hours / maxHours) * 100;
+            
+            chartHTML += `
+                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                    <div style="background: ${colors[index]}; width: 80%; height: ${heightPercent}%; min-height: 8px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched"></div>
+                    <div style="color: #cbd5e0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
+                    <div style="color: #63b3ed; font-size: 0.7rem; font-weight: bold;">${hours}h</div>
+                </div>
+            `;
+        });
+        
+        chartHTML += '</div></div>';
+        
+        container.innerHTML = chartHTML;
+    },
+
     // Display fun time conversions
     displayFunConversions(conversions) {
         const container = document.getElementById('timeConversions');
@@ -1110,8 +1187,16 @@ const StatsApp = {
 
     // Create average length distribution chart
     createAvgLengthChart(lengthData) {
+        const chartDiv = document.getElementById('avgLengthChart');
+        
+        if (typeof Plotly === 'undefined') {
+            // Fallback to simple HTML chart
+            this.createSimplePieChart(lengthData, chartDiv, 'Show Length Distribution');
+            return;
+        }
+        
         if (Object.keys(lengthData).length === 0) {
-            document.getElementById('avgLengthChart').innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No length data available</p>';
+            chartDiv.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No length data available</p>';
             return;
         }
 
@@ -1161,11 +1246,22 @@ const StatsApp = {
 
     // Create completion status pie chart
     createCompletionChart(completionStats) {
+        const chartDiv = document.getElementById('completionChart');
         const completed = completionStats.completed_shows;
         const inProgress = completionStats.in_progress_shows;
 
         if (completed === 0 && inProgress === 0) {
-            document.getElementById('completionChart').innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No completion data available</p>';
+            chartDiv.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No completion data available</p>';
+            return;
+        }
+        
+        if (typeof Plotly === 'undefined') {
+            // Fallback to simple HTML chart
+            const data = {
+                'Completed': completed,
+                'In Progress': inProgress
+            };
+            this.createSimplePieChart(data, chartDiv, 'Completion Status', ['#48bb78', '#ed8936']);
             return;
         }
 
@@ -1207,6 +1303,38 @@ const StatsApp = {
         };
 
         Plotly.newPlot('completionChart', [trace], layout, config);
+    },
+
+    // Fallback simple pie chart using CSS
+    createSimplePieChart(data, container, title, customColors = null) {
+        if (Object.keys(data).length === 0) {
+            container.innerHTML = `<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No data available for ${title}</p>`;
+            return;
+        }
+
+        const entries = Object.entries(data).filter(([, value]) => value > 0);
+        const total = entries.reduce((sum, [, value]) => sum + value, 0);
+        const colors = customColors || ['#63b3ed', '#4299e1', '#3182ce', '#2b6cb0'];
+        
+        let chartHTML = '<div style="padding: 1rem; text-align: center;">';
+        chartHTML += '<div style="display: flex; justify-content: center; align-items: center; gap: 2rem; flex-wrap: wrap;">';
+        
+        // Simple representation using colored boxes and percentages
+        entries.forEach(([label, value], index) => {
+            const percentage = ((value / total) * 100).toFixed(1);
+            const color = colors[index % colors.length];
+            
+            chartHTML += `
+                <div style="display: flex; align-items: center; gap: 8px; margin: 8px;">
+                    <div style="width: 20px; height: 20px; background: ${color}; border-radius: 4px;"></div>
+                    <div style="color: #e2e8f0; font-size: 0.9rem;">${label}: ${percentage}%</div>
+                </div>
+            `;
+        });
+        
+        chartHTML += '</div></div>';
+        
+        container.innerHTML = chartHTML;
     },
 
     // Display genre breakdown
