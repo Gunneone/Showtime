@@ -94,6 +94,124 @@ body {
     font-size: 2.5rem;
     font-weight: bold;
     display: block;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+/* Animation classes for time updates */
+.time-value.animating {
+    animation: timeUpdate 0.8s ease-out;
+}
+
+.time-value.increase {
+    color: #48bb78;
+    animation: timeIncrease 1.2s ease-out;
+}
+
+.time-value.decrease {
+    color: #f56565;
+    animation: timeDecrease 1.2s ease-out;
+}
+
+@keyframes timeUpdate {
+    0% { 
+        transform: scale(1); 
+    }
+    25% { 
+        transform: scale(1.1); 
+    }
+    50% { 
+        transform: scale(1.15); 
+        text-shadow: 0 0 20px rgba(99, 179, 237, 0.6);
+    }
+    100% { 
+        transform: scale(1); 
+        text-shadow: none;
+    }
+}
+
+@keyframes timeIncrease {
+    0% { 
+        transform: scale(1); 
+        color: inherit;
+    }
+    15% { 
+        transform: scale(1.2); 
+        color: #48bb78;
+        text-shadow: 0 0 25px rgba(72, 187, 120, 0.7);
+    }
+    30% { 
+        transform: scale(1.1); 
+    }
+    45% { 
+        transform: scale(1.15); 
+    }
+    60% { 
+        transform: scale(1.05); 
+    }
+    100% { 
+        transform: scale(1); 
+        color: inherit;
+        text-shadow: none;
+    }
+}
+
+@keyframes timeDecrease {
+    0% { 
+        transform: scale(1); 
+        color: inherit;
+    }
+    15% { 
+        transform: scale(0.9); 
+        color: #f56565;
+        text-shadow: 0 0 25px rgba(245, 101, 101, 0.7);
+    }
+    30% { 
+        transform: scale(0.95); 
+    }
+    45% { 
+        transform: scale(0.92); 
+    }
+    60% { 
+        transform: scale(0.98); 
+    }
+    100% { 
+        transform: scale(1); 
+        color: inherit;
+        text-shadow: none;
+    }
+}
+
+/* Celebration particles effect */
+.time-celebration {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #ffd700;
+    border-radius: 50%;
+    animation: particle 1.5s ease-out forwards;
+}
+
+@keyframes particle {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(0);
+    }
+    10% {
+        transform: translate(0, 0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) scale(0);
+    }
 }
 
 .watch-time-subtitle {

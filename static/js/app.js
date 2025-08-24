@@ -7,6 +7,7 @@ const App = {
         currentSearch: null,
         watchedShows: [],
         totalTime: 0,
+        previousTotalTime: 0,
         isLoading: false,
         selectedShow: null
     },
@@ -447,9 +448,8 @@ const App = {
             }
 
             this.state.watchedShows = data.watched_shows;
-            this.state.totalTime = data.total_time_minutes;
             
-            this.updateTotalTimeDisplay(data.total_time_formatted);
+            this.updateTotalTimeDisplay(data.total_time_formatted, data.total_time_minutes);
             this.displayWatchedShows();
         } catch (error) {
             console.error('Error loading watched shows:', error);
@@ -457,14 +457,131 @@ const App = {
         }
     },
 
-    // Update total time display
-    updateTotalTimeDisplay(formattedTime) {
-        if (this.elements.totalWatchTime) {
-            const timeValue = this.elements.totalWatchTime.querySelector('.time-value');
-            if (timeValue) {
-                timeValue.textContent = formattedTime || '0 minutes';
+    // Update total time display with animations
+    updateTotalTimeDisplay(formattedTime, newTimeMinutes = null) {
+        if (!this.elements.totalWatchTime) return;
+        
+        const timeValue = this.elements.totalWatchTime.querySelector('.time-value');
+        if (!timeValue) return;
+
+        const currentText = timeValue.textContent;
+        const newText = formattedTime || '0 minutes';
+        
+        // If no change, just update without animation
+        if (currentText === newText) {
+            timeValue.textContent = newText;
+            return;
+        }
+
+        // Store the new time value for comparison
+        if (newTimeMinutes !== null) {
+            this.state.previousTotalTime = this.state.totalTime;
+            this.state.totalTime = newTimeMinutes;
+        }
+
+        // Determine if this is an increase or decrease
+        const isIncrease = this.state.totalTime > this.state.previousTotalTime;
+        const isDecrease = this.state.totalTime < this.state.previousTotalTime;
+
+        // Clear any existing animation classes
+        timeValue.classList.remove('animating', 'increase', 'decrease');
+
+        // If we have both old and new minute values, animate the counting
+        if (this.state.previousTotalTime !== 0 && this.state.totalTime !== this.state.previousTotalTime) {
+            this.animateTimeValue(timeValue, this.state.previousTotalTime, this.state.totalTime, isIncrease, isDecrease);
+        } else {
+            // Simple update for first load
+            timeValue.textContent = newText;
+            if (isIncrease || isDecrease) {
+                this.triggerCelebrationEffect(timeValue, isIncrease);
             }
         }
+    },
+
+    // Animate time value with counting effect
+    animateTimeValue(element, fromMinutes, toMinutes, isIncrease, isDecrease) {
+        const duration = 1200; // 1.2 seconds
+        const startTime = performance.now();
+        
+        // Add appropriate animation class
+        if (isIncrease) {
+            element.classList.add('increase');
+        } else if (isDecrease) {
+            element.classList.add('decrease');
+        }
+        element.classList.add('animating');
+
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Use easeOutQuart for smooth animation
+            const easeProgress = 1 - Math.pow(1 - progress, 4);
+            
+            // Calculate current minute value
+            const currentMinutes = Math.round(fromMinutes + (toMinutes - fromMinutes) * easeProgress);
+            
+            // Format and display current value
+            element.textContent = this.formatTime(currentMinutes);
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                // Animation complete - trigger celebration for significant increases
+                if (isIncrease && (toMinutes - fromMinutes) > 60) { // More than 1 hour increase
+                    this.triggerCelebrationEffect(element, true);
+                }
+                
+                // Clean up animation classes after a delay
+                setTimeout(() => {
+                    element.classList.remove('animating', 'increase', 'decrease');
+                }, 500);
+            }
+        };
+
+        requestAnimationFrame(animate);
+    },
+
+    // Trigger celebration particle effect
+    triggerCelebrationEffect(element, isIncrease) {
+        if (!isIncrease) return;
+
+        const container = element.closest('.watch-time-display');
+        if (!container) return;
+
+        // Create celebration container
+        const celebration = document.createElement('div');
+        celebration.className = 'time-celebration';
+        container.style.position = 'relative';
+        container.appendChild(celebration);
+
+        // Generate particles
+        const particleCount = 12;
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            
+            // Random direction and distance
+            const angle = (i / particleCount) * 2 * Math.PI;
+            const distance = 40 + Math.random() * 30;
+            const dx = Math.cos(angle) * distance;
+            const dy = Math.sin(angle) * distance;
+            
+            particle.style.setProperty('--dx', `${dx}px`);
+            particle.style.setProperty('--dy', `${dy}px`);
+            
+            // Random delay for staggered effect
+            particle.style.animationDelay = `${Math.random() * 0.3}s`;
+            
+            celebration.appendChild(particle);
+        }
+
+        // Clean up after animation
+        setTimeout(() => {
+            if (celebration.parentNode) {
+                celebration.parentNode.removeChild(celebration);
+            }
+        }, 2000);
     },
 
     // Display watched shows
