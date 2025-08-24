@@ -43,6 +43,17 @@ const App = {
         this.elements.loadingSpinner = document.getElementById('loadingSpinner');
         this.elements.addShowModal = document.getElementById('addShowModal');
         this.elements.toastContainer = document.getElementById('toastContainer');
+        
+        // Debug: Check if search results element is found
+        console.log('Search results element found:', this.elements.searchResults);
+        if (this.elements.searchResults) {
+            console.log('Search results element classes:', this.elements.searchResults.className);
+            console.log('Search results element computed style:', {
+                position: getComputedStyle(this.elements.searchResults).position,
+                display: getComputedStyle(this.elements.searchResults).display,
+                zIndex: getComputedStyle(this.elements.searchResults).zIndex
+            });
+        }
     },
 
     // Bind event listeners
@@ -185,10 +196,22 @@ const App = {
     // Display search results
     displaySearchResults(results, isInstantSearch = false) {
         console.log('Displaying search results:', results, 'isInstantSearch:', isInstantSearch);
+        console.log('Search results element:', this.elements.searchResults);
         
         // Clear previous results
         this.elements.searchResults.innerHTML = '';
         this.elements.searchResults.classList.remove('hidden');
+
+        // Debug: Log the visibility and positioning
+        console.log('Search results visibility after show:', {
+            display: getComputedStyle(this.elements.searchResults).display,
+            position: getComputedStyle(this.elements.searchResults).position,
+            zIndex: getComputedStyle(this.elements.searchResults).zIndex,
+            top: getComputedStyle(this.elements.searchResults).top,
+            left: getComputedStyle(this.elements.searchResults).left,
+            width: getComputedStyle(this.elements.searchResults).width,
+            height: getComputedStyle(this.elements.searchResults).height
+        });
 
         if (!results || results.length === 0) {
             this.elements.searchResults.innerHTML = `
@@ -220,6 +243,9 @@ const App = {
         });
 
         console.log('Search results displayed successfully');
+        
+        // Force a reflow to ensure visibility
+        this.elements.searchResults.offsetHeight;
     },
 
     // Create search result element

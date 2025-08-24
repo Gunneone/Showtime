@@ -119,6 +119,10 @@ body {
     align-items: center;
 }
 
+.search-container {
+    position: relative;
+}
+
 .search-input {
     flex: 1;
     padding: 1rem;
@@ -206,6 +210,8 @@ body {
     max-height: 400px;
     overflow-y: auto;
     margin-top: 8px;
+    min-height: 50px; /* Ensure minimum height for visibility */
+    width: 100%; /* Ensure full width */
 }
 
 .search-loading {
