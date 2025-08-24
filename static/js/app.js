@@ -852,8 +852,8 @@ const App = {
         const show = this.state.watchedShows.find(s => s.id === showId);
         if (show) {
             editElement.setAttribute('data-selected-seasons', show.seasons_watched);
-            // Update bars to show current selection
-            this.selectEditSeasons(showId, show.seasons_watched);
+            // Update bars to show current selection without saving
+            this.updateEditSeasonBars(showId, show.seasons_watched);
         }
     },
 
@@ -866,8 +866,8 @@ const App = {
         editElement.style.display = 'none';
     },
 
-    // Handle selection of seasons during editing
-    selectEditSeasons(showId, selectedSeasons) {
+    // Update season bars visual state without triggering save
+    updateEditSeasonBars(showId, selectedSeasons) {
         // Update all season bars to show selection state
         const container = document.getElementById(`seasonsEdit-${showId}`);
         const bars = container.querySelectorAll('.edit-season-bar');
@@ -881,8 +881,14 @@ const App = {
             }
         });
 
-        // Store the selected value and save immediately
+        // Store the selected value 
         container.setAttribute('data-selected-seasons', selectedSeasons);
+    },
+
+    // Handle selection of seasons during editing
+    selectEditSeasons(showId, selectedSeasons) {
+        // Update bars visual state
+        this.updateEditSeasonBars(showId, selectedSeasons);
         
         // Close the editing interface and save the selection
         this.saveSeasons(showId);

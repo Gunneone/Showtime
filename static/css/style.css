@@ -463,24 +463,32 @@ body {
 
 .season-selector-bars {
     display: flex;
-    gap: 2px;
+    gap: 0;
     margin-top: 0.25rem;
     position: relative;
     z-index: 10;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(99, 179, 237, 0.5);
 }
 
 .season-bar {
     background: rgba(99, 179, 237, 0.3);
-    border: 1px solid rgba(99, 179, 237, 0.5);
+    border: none;
+    border-right: 1px solid rgba(99, 179, 237, 0.5);
     color: #63b3ed;
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    border-radius: 0;
     cursor: pointer;
     font-size: 0.75rem;
     font-weight: 600;
     transition: all 0.2s ease;
     min-width: 24px;
     text-align: center;
+}
+
+.season-bar:last-child {
+    border-right: none;
 }
 
 .season-bar:hover,
@@ -613,22 +621,30 @@ body {
 
 .edit-season-bars {
     display: flex;
-    gap: 2px;
+    gap: 0;
     flex-wrap: wrap;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(99, 179, 237, 0.4);
 }
 
 .edit-season-bar {
     background: rgba(99, 179, 237, 0.2);
-    border: 1px solid rgba(99, 179, 237, 0.4);
+    border: none;
+    border-right: 1px solid rgba(99, 179, 237, 0.4);
     color: #63b3ed;
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    border-radius: 0;
     cursor: pointer;
     font-size: 0.75rem;
     font-weight: 600;
     transition: all 0.2s ease;
     min-width: 24px;
     text-align: center;
+}
+
+.edit-season-bar:last-child {
+    border-right: none;
 }
 
 .edit-season-bar:hover,
