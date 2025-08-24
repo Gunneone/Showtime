@@ -331,6 +331,48 @@ body {
     opacity: 0.8;
 }
 
+/* Season selector bars for search results */
+.search-result-seasons {
+    margin-top: 0.75rem;
+}
+
+.season-selector-label {
+    color: #a0aec0;
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.season-selector-bars {
+    display: flex;
+    gap: 2px;
+    margin-top: 0.25rem;
+    position: relative;
+    z-index: 10;
+}
+
+.season-bar {
+    background: rgba(99, 179, 237, 0.3);
+    border: 1px solid rgba(99, 179, 237, 0.5);
+    color: #63b3ed;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    min-width: 24px;
+    text-align: center;
+}
+
+.season-bar:hover,
+.season-bar.highlighted {
+    background: rgba(99, 179, 237, 0.6);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 179, 237, 0.3);
+}
+
 /* Watched shows section */
 .watched-section {
     margin-bottom: 3rem;
@@ -419,6 +461,12 @@ body {
     font-size: 0.8rem;
     background: rgba(45, 55, 72, 0.9);
     color: #e2e8f0;
+}
+
+.seasons-total {
+    color: #a0aec0;
+    font-size: 0.8rem;
+    font-weight: 500;
 }
 
 .seasons-edit input:focus {

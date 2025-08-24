@@ -14,7 +14,6 @@ const App = {
     // DOM elements
     elements: {
         searchInput: null,
-        searchButton: null,
         searchResults: null,
         watchedShows: null,
         emptyState: null,
@@ -35,7 +34,6 @@ const App = {
     // Initialize DOM elements
     initElements() {
         this.elements.searchInput = document.getElementById('searchInput');
-        this.elements.searchButton = document.getElementById('searchButton');
         this.elements.searchResults = document.getElementById('searchResults');
         this.elements.watchedShows = document.getElementById('watchedShows');
         this.elements.emptyState = document.getElementById('emptyState');
@@ -64,8 +62,7 @@ const App = {
         // Close search results when clicking outside
         document.addEventListener('click', (e) => {
             if (!this.elements.searchInput.contains(e.target) && 
-                !this.elements.searchResults.contains(e.target) &&
-                !this.elements.searchButton.contains(e.target)) {
+                !this.elements.searchResults.contains(e.target)) {
                 this.hideSearchResults();
             }
         });
@@ -108,20 +105,6 @@ const App = {
                 }
             }
         });
-
-        // Manual search with button click
-        if (this.elements.searchButton) {
-            this.elements.searchButton.addEventListener('click', () => {
-                const query = this.elements.searchInput.value.trim();
-                if (query.length >= 1) {
-                    clearTimeout(searchTimeout);
-                    this.performSearch(query, false);
-                } else {
-                    this.showToast('Please enter a search term', 'error');
-                    this.elements.searchInput.focus();
-                }
-            });
-        }
     },
 
     // Bind modal event listeners
@@ -237,33 +220,25 @@ const App = {
         }
 
         // Create result elements
-        results.forEach(show => {
-            const resultElement = this.createSearchResultElement(show, isInstantSearch);
-            this.elements.searchResults.appendChild(resultElement);
-        });
-
-        console.log('Search results displayed successfully');
+        const createResults = async () => {
+            for (const show of results) {
+                const resultElement = await this.createSearchResultElement(show, isInstantSearch);
+                this.elements.searchResults.appendChild(resultElement);
+            }
+        };
         
-        // Force a reflow to ensure visibility
-        this.elements.searchResults.offsetHeight;
+        createResults().then(() => {
+            console.log('Search results displayed successfully');
+            
+            // Force a reflow to ensure visibility
+            this.elements.searchResults.offsetHeight;
+        });
     },
 
     // Create search result element
-    createSearchResultElement(show, isInstantSearch = false) {
+    async createSearchResultElement(show, isInstantSearch = false) {
         const div = document.createElement('div');
         div.className = 'search-result';
-        
-        // Event handler for adding shows
-        div.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            if (isInstantSearch) {
-                this.addShowDirectly(show);
-            } else {
-                this.showAddModal(show);
-            }
-        });
 
         // Handle poster image
         let posterUrl = '/static/images/no-poster.png';
@@ -274,6 +249,19 @@ const App = {
         const year = show.first_air_date ? new Date(show.first_air_date).getFullYear() : 'Unknown';
         const overview = show.overview || 'No description available.';
         const truncatedOverview = overview.length > 150 ? overview.substring(0, 150) + '...' : overview;
+
+        // Get total seasons from mock data based on show ID
+        const mockSeasons = {
+            1: 5, // Breaking Bad
+            2: 9, // The Office
+            3: 8, // Game of Thrones
+            4: 4, // Stranger Things
+            5: 3  // The Mandalorian
+        };
+        const totalSeasons = mockSeasons[show.id] || 1;
+
+        // Create season selector bars
+        const seasonBars = this.createSeasonSelectorBars(totalSeasons, show);
 
         div.innerHTML = `
             <div class="search-result-content">
@@ -286,15 +274,67 @@ const App = {
                     <h4>${show.name}</h4>
                     <div class="search-result-date">${year}</div>
                     <div class="search-result-overview">${truncatedOverview}</div>
-                    ${isInstantSearch ? 
-                        '<div class="search-result-hint"><i class="fas fa-plus"></i> Click to add with 1 season</div>' : 
-                        '<div class="search-result-hint"><i class="fas fa-cog"></i> Click to configure</div>'
-                    }
+                    <div class="search-result-seasons">
+                        <div class="season-selector-label">Add seasons:</div>
+                        <div class="season-selector-bars" data-show-id="${show.id}">
+                            ${seasonBars}
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
 
+        // Add hover effects for season bars
+        setTimeout(() => {
+            const seasonBarsContainer = div.querySelector('.season-selector-bars');
+            if (seasonBarsContainer) {
+                this.setupSeasonBarHoverEffects(seasonBarsContainer);
+            }
+        }, 0);
+
         return div;
+    },
+
+    // Create season selector bars
+    createSeasonSelectorBars(totalSeasons, show) {
+        let barsHtml = '';
+        for (let i = 1; i <= totalSeasons; i++) {
+            barsHtml += `
+                <div class="season-bar" 
+                     data-season="${i}" 
+                     data-show-id="${show.id}"
+                     onclick="App.addShowWithSeasons(${show.id}, ${i}, '${show.name.replace(/'/g, "\\'")}')">
+                    ${i}
+                </div>
+            `;
+        }
+        return barsHtml;
+    },
+
+    // Setup hover effects for season bars
+    setupSeasonBarHoverEffects(container) {
+        const bars = container.querySelectorAll('.season-bar');
+        
+        bars.forEach((bar, index) => {
+            bar.addEventListener('mouseenter', () => {
+                // Reset all bars
+                bars.forEach(b => b.classList.remove('highlighted'));
+                
+                // Highlight all bars up to and including the hovered one
+                for (let i = 0; i <= index; i++) {
+                    bars[i].classList.add('highlighted');
+                }
+            });
+            
+            bar.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent triggering search result click
+            });
+        });
+        
+        container.addEventListener('mouseleave', () => {
+            // Remove all highlights when leaving the container
+            bars.forEach(b => b.classList.remove('highlighted'));
+        });
     },
 
     // Show add show modal
@@ -342,6 +382,48 @@ const App = {
             }
 
             this.showToast(`Added "${show.name}" to your watched list!`);
+            this.loadWatchedShows();
+            this.hideSearchResults();
+            this.elements.searchInput.value = '';
+        } catch (error) {
+            console.error('Error adding show:', error);
+            this.showToast('Failed to add show. Please try again.', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    },
+
+    // Add show with specific number of seasons (for season selector bars)
+    async addShowWithSeasons(showId, seasonsWatched, showName) {
+        // Find the show in current search results
+        const show = this.state.currentSearch?.results?.find(s => s.id === showId);
+        if (!show) {
+            this.showToast('Show not found. Please try again.', 'error');
+            return;
+        }
+
+        this.state.selectedShow = show;
+        this.showLoading();
+
+        try {
+            const response = await fetch('/api/watched', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: show.id,
+                    seasons_watched: seasonsWatched
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to add show');
+            }
+
+            this.showToast(`Added "${showName}" with ${seasonsWatched} season${seasonsWatched !== 1 ? 's' : ''} to your watched list!`);
             this.loadWatchedShows();
             this.hideSearchResults();
             this.elements.searchInput.value = '';
@@ -491,6 +573,7 @@ const App = {
 
         const posterUrl = show.poster_path || '/static/images/no-poster.png';
         const watchTime = this.calculateShowTime(show);
+        const totalSeasons = show.total_seasons || 1;
 
         div.innerHTML = `
             <div class="watched-show-header">
@@ -498,11 +581,12 @@ const App = {
                     <h4>${show.name}</h4>
                     <div class="watched-show-seasons">
                         <div class="seasons-display" onclick="App.editSeasons(${show.id})">
-                            <i class="fas fa-eye"></i> ${show.seasons_watched} season${show.seasons_watched !== 1 ? 's' : ''} watched 
+                            <i class="fas fa-eye"></i> ${show.seasons_watched} of ${totalSeasons} season${totalSeasons !== 1 ? 's' : ''} watched 
                             <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
                         </div>
                         <div class="seasons-edit" id="seasonsEdit-${show.id}">
-                            <input type="number" min="0" value="${show.seasons_watched}" id="seasonsInput-${show.id}">
+                            <input type="number" min="0" max="${totalSeasons}" value="${show.seasons_watched}" id="seasonsInput-${show.id}">
+                            <span class="seasons-total">/ ${totalSeasons}</span>
                             <button class="seasons-edit-btn seasons-edit-save" onclick="App.saveSeasons(${show.id})">
                                 <i class="fas fa-check"></i>
                             </button>
@@ -579,8 +663,17 @@ const App = {
         const inputElement = document.getElementById(`seasonsInput-${showId}`);
         const seasonsWatched = parseInt(inputElement.value);
         
+        // Find the show to get total seasons
+        const show = this.state.watchedShows.find(s => s.id === showId);
+        const maxSeasons = show ? (show.total_seasons || 1) : 1;
+        
         if (isNaN(seasonsWatched) || seasonsWatched < 0) {
             this.showToast('Please enter a valid number of seasons', 'error');
+            return;
+        }
+        
+        if (seasonsWatched > maxSeasons) {
+            this.showToast(`Cannot exceed ${maxSeasons} season${maxSeasons !== 1 ? 's' : ''} for this show`, 'error');
             return;
         }
 
@@ -603,7 +696,6 @@ const App = {
                 throw new Error(data.error || 'Failed to update show');
             }
 
-            const show = this.state.watchedShows.find(s => s.id === showId);
             this.showToast(`Updated "${show ? show.name : 'show'}"!`);
             this.loadWatchedShows();
         } catch (error) {
