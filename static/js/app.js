@@ -14,14 +14,13 @@ const App = {
     // DOM elements
     elements: {
         searchInput: null,
-        searchBtn: null,
+        searchButton: null,
         searchResults: null,
         watchedShows: null,
         emptyState: null,
         totalWatchTime: null,
         loadingSpinner: null,
         addShowModal: null,
-        updateShowModal: null,
         toastContainer: null
     },
 
@@ -36,29 +35,93 @@ const App = {
     // Initialize DOM elements
     initElements() {
         this.elements.searchInput = document.getElementById('searchInput');
-        this.elements.searchBtn = document.getElementById('searchBtn');
+        this.elements.searchButton = document.getElementById('searchButton');
         this.elements.searchResults = document.getElementById('searchResults');
         this.elements.watchedShows = document.getElementById('watchedShows');
         this.elements.emptyState = document.getElementById('emptyState');
         this.elements.totalWatchTime = document.getElementById('totalWatchTime');
         this.elements.loadingSpinner = document.getElementById('loadingSpinner');
         this.elements.addShowModal = document.getElementById('addShowModal');
-        this.elements.updateShowModal = document.getElementById('updateShowModal');
         this.elements.toastContainer = document.getElementById('toastContainer');
+        
+        // Debug: Check if search results element is found
+        console.log('Search results element found:', this.elements.searchResults);
+        if (this.elements.searchResults) {
+            console.log('Search results element classes:', this.elements.searchResults.className);
+            console.log('Search results element computed style:', {
+                position: getComputedStyle(this.elements.searchResults).position,
+                display: getComputedStyle(this.elements.searchResults).display,
+                zIndex: getComputedStyle(this.elements.searchResults).zIndex
+            });
+        }
     },
 
     // Bind event listeners
     bindEvents() {
         // Search functionality
-        this.elements.searchBtn.addEventListener('click', () => this.performSearch());
-        this.elements.searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.performSearch();
+        this.setupSearchFunctionality();
+        
+        // Close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!this.elements.searchInput.contains(e.target) && 
+                !this.elements.searchResults.contains(e.target) &&
+                !this.elements.searchButton.contains(e.target)) {
+                this.hideSearchResults();
             }
         });
 
         // Modal events
         this.bindModalEvents();
+    },
+
+    // Setup comprehensive search functionality
+    setupSearchFunctionality() {
+        let searchTimeout;
+
+        // Instant search with debouncing (for quick suggestions)
+        this.elements.searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            const query = this.elements.searchInput.value.trim();
+            
+            // Hide results if empty
+            if (query.length === 0) {
+                this.hideSearchResults();
+                return;
+            }
+            
+            // Trigger instant search after 300ms delay for queries >= 2 characters
+            if (query.length >= 2) {
+                searchTimeout = setTimeout(() => {
+                    this.performSearch(query, true);
+                }, 300);
+            }
+        });
+
+        // Manual search with Enter key
+        this.elements.searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const query = this.elements.searchInput.value.trim();
+                if (query.length >= 1) {
+                    clearTimeout(searchTimeout);
+                    this.performSearch(query, false);
+                }
+            }
+        });
+
+        // Manual search with button click
+        if (this.elements.searchButton) {
+            this.elements.searchButton.addEventListener('click', () => {
+                const query = this.elements.searchInput.value.trim();
+                if (query.length >= 1) {
+                    clearTimeout(searchTimeout);
+                    this.performSearch(query, false);
+                } else {
+                    this.showToast('Please enter a search term', 'error');
+                    this.elements.searchInput.focus();
+                }
+            });
+        }
     },
 
     // Bind modal event listeners
@@ -72,92 +135,161 @@ const App = {
         if (modalCancel) modalCancel.addEventListener('click', () => this.hideAddModal());
         if (modalAdd) modalAdd.addEventListener('click', () => this.addShowToWatched());
 
-        // Update show modal
-        const updateModalClose = document.getElementById('updateModalClose');
-        const updateModalCancel = document.getElementById('updateModalCancel');
-        const updateModalSave = document.getElementById('updateModalSave');
-
-        if (updateModalClose) updateModalClose.addEventListener('click', () => this.hideUpdateModal());
-        if (updateModalCancel) updateModalCancel.addEventListener('click', () => this.hideUpdateModal());
-        if (updateModalSave) updateModalSave.addEventListener('click', () => this.updateShow());
-
         // Close modal when clicking outside
-        this.elements.addShowModal.addEventListener('click', (e) => {
-            if (e.target === this.elements.addShowModal) {
-                this.hideAddModal();
-            }
-        });
-
-        this.elements.updateShowModal.addEventListener('click', (e) => {
-            if (e.target === this.elements.updateShowModal) {
-                this.hideUpdateModal();
-            }
-        });
+        if (this.elements.addShowModal) {
+            this.elements.addShowModal.addEventListener('click', (e) => {
+                if (e.target === this.elements.addShowModal) {
+                    this.hideAddModal();
+                }
+            });
+        }
     },
 
     // Perform search for TV shows
-    async performSearch() {
-        const query = this.elements.searchInput.value.trim();
-        if (!query) {
-            this.showToast('Please enter a search term', 'error');
+    async performSearch(query, isInstantSearch = false) {
+        if (!query || query.length === 0) {
+            this.hideSearchResults();
             return;
         }
 
-        this.showLoading();
-        
+        console.log('Performing search for:', query, 'isInstantSearch:', isInstantSearch);
+
         try {
+            // Show loading state
+            this.showSearchLoading();
+
             const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
             const data = await response.json();
+            
+            console.log('Search response:', data);
             
             if (!response.ok) {
                 throw new Error(data.error || 'Search failed');
             }
 
-            this.displaySearchResults(data.results);
+            // For instant search, limit to 5 results. For manual search, show more
+            const maxResults = isInstantSearch ? 5 : 10;
+            const results = data.results.slice(0, maxResults);
+            
+            this.displaySearchResults(results, isInstantSearch);
             this.state.currentSearch = data;
+            
         } catch (error) {
             console.error('Search error:', error);
             this.showToast('Search failed. Please try again.', 'error');
-        } finally {
-            this.hideLoading();
+            this.hideSearchResults();
         }
+    },
+
+    // Show loading state in search results
+    showSearchLoading() {
+        this.elements.searchResults.innerHTML = '<div class="search-loading"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+        this.elements.searchResults.classList.remove('hidden');
+    },
+
+    // Hide search results
+    hideSearchResults() {
+        this.elements.searchResults.classList.add('hidden');
+        this.elements.searchResults.innerHTML = '';
     },
 
     // Display search results
-    displaySearchResults(results) {
+    displaySearchResults(results, isInstantSearch = false) {
+        console.log('Displaying search results:', results, 'isInstantSearch:', isInstantSearch);
+        console.log('Search results element:', this.elements.searchResults);
+        
+        // Clear previous results
         this.elements.searchResults.innerHTML = '';
         this.elements.searchResults.classList.remove('hidden');
 
-        if (results.length === 0) {
-            this.elements.searchResults.innerHTML = '<p class="text-center">No shows found. Try a different search term.</p>';
+        // Debug: Log the visibility and positioning
+        console.log('Search results visibility after show:', {
+            display: getComputedStyle(this.elements.searchResults).display,
+            position: getComputedStyle(this.elements.searchResults).position,
+            zIndex: getComputedStyle(this.elements.searchResults).zIndex,
+            top: getComputedStyle(this.elements.searchResults).top,
+            left: getComputedStyle(this.elements.searchResults).left,
+            width: getComputedStyle(this.elements.searchResults).width,
+            height: getComputedStyle(this.elements.searchResults).height
+        });
+
+        if (!results || results.length === 0) {
+            this.elements.searchResults.innerHTML = `
+                <div class="search-no-results">
+                    <i class="fas fa-search"></i>
+                    <p>No shows found. Try a different search term.</p>
+                </div>
+            `;
             return;
         }
 
+        // Add header for instant search
+        if (isInstantSearch && results.length >= 3) {
+            const header = document.createElement('div');
+            header.className = 'search-results-header';
+            header.innerHTML = '<i class="fas fa-search"></i> Quick search results - click to add:';
+            this.elements.searchResults.appendChild(header);
+        } else if (!isInstantSearch) {
+            const header = document.createElement('div');
+            header.className = 'search-results-header';
+            header.innerHTML = `<i class="fas fa-search"></i> Found ${results.length} results:`;
+            this.elements.searchResults.appendChild(header);
+        }
+
+        // Create result elements
         results.forEach(show => {
-            const resultElement = this.createSearchResultElement(show);
+            const resultElement = this.createSearchResultElement(show, isInstantSearch);
             this.elements.searchResults.appendChild(resultElement);
         });
+
+        console.log('Search results displayed successfully');
+        
+        // Force a reflow to ensure visibility
+        this.elements.searchResults.offsetHeight;
     },
 
     // Create search result element
-    createSearchResultElement(show) {
+    createSearchResultElement(show, isInstantSearch = false) {
         const div = document.createElement('div');
         div.className = 'search-result';
-        div.addEventListener('click', () => this.showAddModal(show));
+        
+        // Event handler for adding shows
+        div.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (isInstantSearch) {
+                this.addShowDirectly(show);
+            } else {
+                this.showAddModal(show);
+            }
+        });
 
-        const posterUrl = show.poster_path || '/static/images/no-poster.png';
+        // Handle poster image
+        let posterUrl = '/static/images/no-poster.png';
+        if (show.poster_path && show.poster_path !== 'null' && show.poster_path !== null) {
+            posterUrl = show.poster_path;
+        }
+
         const year = show.first_air_date ? new Date(show.first_air_date).getFullYear() : 'Unknown';
         const overview = show.overview || 'No description available.';
+        const truncatedOverview = overview.length > 150 ? overview.substring(0, 150) + '...' : overview;
 
         div.innerHTML = `
             <div class="search-result-content">
                 <div class="search-result-poster">
-                    <img src="${posterUrl}" alt="${show.name}" onerror="this.src='/static/images/no-poster.png'">
+                    <img src="${posterUrl}" alt="${show.name}" 
+                         onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
+                         loading="lazy">
                 </div>
                 <div class="search-result-info">
                     <h4>${show.name}</h4>
                     <div class="search-result-date">${year}</div>
-                    <div class="search-result-overview">${overview}</div>
+                    <div class="search-result-overview">${truncatedOverview}</div>
+                    ${isInstantSearch ? 
+                        '<div class="search-result-hint"><i class="fas fa-plus"></i> Click to add with 1 season</div>' : 
+                        '<div class="search-result-hint"><i class="fas fa-cog"></i> Click to configure</div>'
+                    }
                 </div>
             </div>
         `;
@@ -186,6 +318,41 @@ const App = {
         }
     },
 
+    // Add show directly (for instant search) with default 1 season
+    async addShowDirectly(show) {
+        this.state.selectedShow = show;
+        this.showLoading();
+
+        try {
+            const response = await fetch('/api/watched', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: show.id,
+                    seasons_watched: 1  // Default to 1 season
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to add show');
+            }
+
+            this.showToast(`Added "${show.name}" to your watched list!`);
+            this.loadWatchedShows();
+            this.hideSearchResults();
+            this.elements.searchInput.value = '';
+        } catch (error) {
+            console.error('Error adding show:', error);
+            this.showToast('Failed to add show. Please try again.', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    },
+
     // Populate add show modal
     populateAddModal(show) {
         const modalTitle = document.getElementById('modalShowTitle');
@@ -194,13 +361,20 @@ const App = {
 
         modalTitle.textContent = `Add "${show.name}"`;
         
-        const posterUrl = show.poster_path || '/static/images/no-poster.png';
+        // Better poster URL handling
+        let posterUrl = '/static/images/no-poster.png';
+        if (show.poster_path && show.poster_path !== 'null' && show.poster_path !== null) {
+            posterUrl = show.poster_path;
+        }
+        
         const year = show.first_air_date ? new Date(show.first_air_date).getFullYear() : 'Unknown';
         const overview = show.overview || 'No description available.';
 
         modalInfo.innerHTML = `
             <div class="show-poster">
-                <img src="${posterUrl}" alt="${show.name}" onerror="this.src='/static/images/no-poster.png'">
+                <img src="${posterUrl}" alt="${show.name}" 
+                     onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
+                     loading="lazy">
             </div>
             <div class="show-details">
                 <h5>${show.name}</h5>
@@ -252,7 +426,7 @@ const App = {
             this.showToast(`Added "${this.state.selectedShow.name}" to your watched list!`);
             this.hideAddModal();
             this.loadWatchedShows();
-            this.elements.searchResults.classList.add('hidden');
+            this.hideSearchResults();
             this.elements.searchInput.value = '';
         } catch (error) {
             console.error('Error adding show:', error);
@@ -323,17 +497,26 @@ const App = {
                 <div class="watched-show-info">
                     <h4>${show.name}</h4>
                     <div class="watched-show-seasons">
-                        ${show.seasons_watched} season${show.seasons_watched !== 1 ? 's' : ''} watched
+                        <div class="seasons-display" onclick="App.editSeasons(${show.id})">
+                            <i class="fas fa-eye"></i> ${show.seasons_watched} season${show.seasons_watched !== 1 ? 's' : ''} watched 
+                            <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
+                        </div>
+                        <div class="seasons-edit" id="seasonsEdit-${show.id}">
+                            <input type="number" min="0" value="${show.seasons_watched}" id="seasonsInput-${show.id}">
+                            <button class="seasons-edit-btn seasons-edit-save" onclick="App.saveSeasons(${show.id})">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="seasons-edit-btn seasons-edit-cancel" onclick="App.cancelEditSeasons(${show.id})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="watched-show-time">${watchTime}</div>
+                <div class="watched-show-time"><i class="fas fa-clock"></i> ${watchTime}</div>
             </div>
             <div class="watched-show-actions">
-                <button type="button" class="btn btn-secondary" onclick="App.showUpdateModal(${show.id})">
-                    Update
-                </button>
                 <button type="button" class="btn btn-danger" onclick="App.removeShow(${show.id})">
-                    Remove
+                    <i class="fas fa-trash"></i> Remove
                 </button>
             </div>
         `;
@@ -367,34 +550,35 @@ const App = {
         return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
     },
 
-    // Show update modal for a show
-    showUpdateModal(showId) {
+    // Inline season editing methods
+    editSeasons(showId) {
+        const displayElement = document.querySelector(`#seasonsEdit-${showId}`).previousElementSibling;
+        const editElement = document.getElementById(`seasonsEdit-${showId}`);
+        const inputElement = document.getElementById(`seasonsInput-${showId}`);
+        
+        displayElement.style.display = 'none';
+        editElement.style.display = 'flex';
+        inputElement.focus();
+        inputElement.select();
+    },
+
+    cancelEditSeasons(showId) {
         const show = this.state.watchedShows.find(s => s.id === showId);
-        if (!show) return;
-
-        this.state.selectedShow = show;
+        const displayElement = document.querySelector(`#seasonsEdit-${showId}`).previousElementSibling;
+        const editElement = document.getElementById(`seasonsEdit-${showId}`);
+        const inputElement = document.getElementById(`seasonsInput-${showId}`);
         
-        const modalTitle = document.getElementById('updateModalShowTitle');
-        const seasonsInput = document.getElementById('updateSeasonsWatched');
-
-        modalTitle.textContent = `Update "${show.name}"`;
-        seasonsInput.value = show.seasons_watched;
+        // Reset input to original value
+        inputElement.value = show ? show.seasons_watched : 1;
         
-        this.elements.updateShowModal.classList.remove('hidden');
-        seasonsInput.focus();
+        displayElement.style.display = 'block';
+        editElement.style.display = 'none';
     },
 
-    // Hide update modal
-    hideUpdateModal() {
-        this.elements.updateShowModal.classList.add('hidden');
-        this.state.selectedShow = null;
-    },
-
-    // Update show seasons
-    async updateShow() {
-        if (!this.state.selectedShow) return;
-
-        const seasonsWatched = parseInt(document.getElementById('updateSeasonsWatched').value);
+    async saveSeasons(showId) {
+        const inputElement = document.getElementById(`seasonsInput-${showId}`);
+        const seasonsWatched = parseInt(inputElement.value);
+        
         if (isNaN(seasonsWatched) || seasonsWatched < 0) {
             this.showToast('Please enter a valid number of seasons', 'error');
             return;
@@ -403,7 +587,7 @@ const App = {
         this.showLoading();
 
         try {
-            const response = await fetch(`/api/watched/${this.state.selectedShow.id}`, {
+            const response = await fetch(`/api/watched/${showId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -419,12 +603,13 @@ const App = {
                 throw new Error(data.error || 'Failed to update show');
             }
 
-            this.showToast(`Updated "${this.state.selectedShow.name}"!`);
-            this.hideUpdateModal();
+            const show = this.state.watchedShows.find(s => s.id === showId);
+            this.showToast(`Updated "${show ? show.name : 'show'}"!`);
             this.loadWatchedShows();
         } catch (error) {
             console.error('Error updating show:', error);
             this.showToast('Failed to update show. Please try again.', 'error');
+            this.cancelEditSeasons(showId);
         } finally {
             this.hideLoading();
         }
