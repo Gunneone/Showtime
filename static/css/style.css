@@ -501,6 +501,46 @@ body {
     color: #e2e8f0;
 }
 
+.watched-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sort-controls label {
+    color: #a0aec0;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.sort-select {
+    padding: 0.5rem;
+    border: 1px solid #4a5568;
+    border-radius: 6px;
+    background: rgba(45, 55, 72, 0.9);
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: #63b3ed;
+    box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.1);
+}
+
+.sort-select:hover {
+    border-color: #63b3ed;
+}
+
 .watched-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -567,8 +607,42 @@ body {
 
 .seasons-edit {
     display: none;
-    align-items: center;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.edit-season-bars {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+.edit-season-bar {
+    background: rgba(99, 179, 237, 0.2);
+    border: 1px solid rgba(99, 179, 237, 0.4);
+    color: #63b3ed;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    min-width: 24px;
+    text-align: center;
+}
+
+.edit-season-bar:hover,
+.edit-season-bar.highlighted {
+    background: rgba(99, 179, 237, 0.6);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 179, 237, 0.3);
+}
+
+.seasons-edit-actions {
+    display: flex;
     gap: 0.5rem;
+    justify-content: center;
 }
 
 .seasons-edit input {
