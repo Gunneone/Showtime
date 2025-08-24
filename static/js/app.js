@@ -262,15 +262,8 @@ const App = {
         const overview = show.overview || 'No description available.';
         const truncatedOverview = overview.length > 150 ? overview.substring(0, 150) + '...' : overview;
 
-        // Get total seasons from mock data based on show ID
-        const mockSeasons = {
-            1: 5, // Breaking Bad
-            2: 9, // The Office
-            3: 8, // Game of Thrones
-            4: 4, // Stranger Things
-            5: 3  // The Mandalorian
-        };
-        const totalSeasons = mockSeasons[show.id] || 1;
+        // Get total seasons from the show data returned by the API
+        const totalSeasons = show.number_of_seasons || 1;
 
         // Create season selector bars
         const seasonBars = this.createSeasonSelectorBars(totalSeasons, show);
@@ -568,6 +561,12 @@ const App = {
             this.state.watchedShows = data.watched_shows;
             
             this.updateTotalTimeDisplay(data.total_time_formatted, data.total_time_minutes);
+            
+            // Apply current sort if any is selected, then display
+            if (this.elements.sortSelect && this.elements.sortSelect.value) {
+                this.applySortToCurrentShows();
+            }
+            
             this.displayWatchedShows();
         } catch (error) {
             console.error('Error loading watched shows:', error);
@@ -704,6 +703,12 @@ const App = {
 
     // Sort watched shows based on selected criteria
     sortWatchedShows() {
+        this.applySortToCurrentShows();
+        this.displayWatchedShows();
+    },
+    
+    // Apply sort to current shows without re-displaying
+    applySortToCurrentShows() {
         if (!this.elements.sortSelect) return;
         
         const sortBy = this.elements.sortSelect.value;
@@ -726,9 +731,6 @@ const App = {
         
         // Update the state with sorted shows
         this.state.watchedShows = shows;
-        
-        // Re-render the shows
-        this.displayWatchedShows();
     },
 
     // Calculate show time in minutes for sorting
@@ -879,8 +881,11 @@ const App = {
             }
         });
 
-        // Store the selected value for saving
+        // Store the selected value and save immediately
         container.setAttribute('data-selected-seasons', selectedSeasons);
+        
+        // Close the editing interface and save the selection
+        this.saveSeasons(showId);
     },
 
     async saveSeasons(showId) {
