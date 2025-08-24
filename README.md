@@ -47,20 +47,30 @@ A Flask-based web application for tracking the time you spend watching TV shows 
 
 Before running this application, make sure you have:
 
+### For Local Development
 * Python 3.11 or higher installed
 * pip (Python package installer)
 * A TMDB API key (free registration at [themoviedb.org](https://www.themoviedb.org/settings/api))
 
+### For Docker Deployment
+* Docker Engine installed
+* Docker Compose (or use `docker compose` with modern Docker)
+* A TMDB API key (free registration at [themoviedb.org](https://www.themoviedb.org/settings/api))
+
 ## 🚀 Installation & Setup
 
-### 1. Clone the Repository
+You can run this application either locally with Python or using Docker for production deployment.
+
+### Option 1: Local Development Setup
+
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/Gunneone/Days-Watched.git
 cd Days-Watched
 ```
 
-### 2. Create Virtual Environment
+#### 2. Create Virtual Environment
 
 ```bash
 # Create virtual environment
@@ -73,13 +83,13 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-### 3. Install Dependencies
+#### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Environment Configuration
+#### 4. Environment Configuration
 
 Create a `.env` file in the root directory:
 
@@ -90,13 +100,77 @@ SECRET_KEY=your-secret-key-here
 TMDB_API_KEY=your-tmdb-api-key-here
 ```
 
-### 5. Run the Application
+#### 5. Run the Application
 
 ```bash
 flask run
 ```
 
 The application will be available at `http://localhost:5000`
+
+### Option 2: Docker Deployment (Recommended for Production)
+
+Docker deployment provides automatic restarts and easier server management.
+
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Gunneone/Days-Watched.git
+cd Days-Watched
+```
+
+#### 2. Environment Configuration
+
+Create a `.env` file in the root directory with your production settings:
+
+```env
+SECRET_KEY=your-very-secure-secret-key-for-production
+TMDB_API_KEY=your-tmdb-api-key-here
+```
+
+You can also copy the example file:
+```bash
+cp .env.docker .env
+# Then edit .env with your actual values
+```
+
+#### 3. Run with Docker Compose
+
+```bash
+# Build and start the application
+docker compose up -d
+
+# To view logs
+docker compose logs -f
+
+# To stop the application
+docker compose down
+```
+
+The application will be available at `http://localhost:5001`
+
+#### 4. Alternative: Run with Docker directly
+
+```bash
+# Build the image
+docker build -t days-watched .
+
+# Run the container
+docker run -d \
+  --name days-watched-app \
+  -p 5001:5001 \
+  -e SECRET_KEY=your-secret-key \
+  -e TMDB_API_KEY=your-tmdb-api-key \
+  --restart unless-stopped \
+  days-watched
+```
+
+#### Docker Features
+
+* **Automatic Restart**: The container will automatically restart after server outages
+* **Health Checks**: Built-in health monitoring
+* **Isolated Environment**: Runs in a secure, isolated container
+* **Easy Updates**: Simple deployment and rollback process
 
 ## 🎯 Usage
 
