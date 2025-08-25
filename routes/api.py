@@ -14,6 +14,57 @@ def get_calc_service():
     """Get calculation service instance."""
     return CalculationService()
 
+def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched, show_details):
+    """Calculate precise runtime based on actual episode counts per season."""
+    total_runtime = 0
+    default_episode_runtime = show_details.get('episode_run_time', 45)
+    
+    for season_num in range(1, seasons_watched + 1):
+        try:
+            # Get precise episode data for this season
+            season_details = tmdb_service.get_season_details(show_id, season_num)
+            episodes = season_details.get('episodes', [])
+            
+            if episodes:
+                # Sum up actual episode runtimes for this season
+                season_runtime = 0
+                for episode in episodes:
+                    episode_runtime = episode.get('runtime')
+                    if episode_runtime and episode_runtime > 0:
+                        season_runtime += episode_runtime
+                    else:
+                        # Fallback to show's default runtime for missing episode data
+                        season_runtime += default_episode_runtime
+                total_runtime += season_runtime
+            else:
+                # Fallback: estimate based on total episodes/seasons ratio
+                total_episodes = show_details.get('number_of_episodes', 0)
+                total_seasons = show_details.get('number_of_seasons', 1)
+                
+                if total_episodes > 0 and total_seasons > 0:
+                    episodes_per_season = total_episodes / total_seasons
+                else:
+                    episodes_per_season = 20  # Default assumption
+                
+                season_runtime = episodes_per_season * default_episode_runtime
+                total_runtime += season_runtime
+                
+        except Exception as e:
+            # If season data fails, use fallback calculation
+            print(f"Failed to get season {season_num} data for show {show_id}: {e}")
+            total_episodes = show_details.get('number_of_episodes', 0)
+            total_seasons = show_details.get('number_of_seasons', 1)
+            
+            if total_episodes > 0 and total_seasons > 0:
+                episodes_per_season = total_episodes / total_seasons
+            else:
+                episodes_per_season = 20
+            
+            season_runtime = episodes_per_season * default_episode_runtime
+            total_runtime += season_runtime
+    
+    return int(total_runtime)
+
 @api_bp.route('/search')
 def search():
     """Search for shows/movies using TMDB API with caching."""
@@ -45,16 +96,24 @@ def search():
 
 @api_bp.route('/watched', methods=['GET'])
 def get_watched():
-    """Get watched list from cookies."""
+    """Get watched list from localStorage (via request body) or fallback to cookies for migration."""
     try:
-        watched_cookie = request.cookies.get('watched_shows', '[]')
+        watched_shows = []
         
-        # URL decode the cookie value if needed
-        import urllib.parse
-        if watched_cookie.startswith('%'):
-            watched_cookie = urllib.parse.unquote(watched_cookie)
-        
-        watched_shows = json.loads(watched_cookie)
+        # Try to get data from request body (localStorage data sent by frontend)
+        if request.is_json and request.get_json():
+            data = request.get_json()
+            watched_shows = data.get('watched_shows', [])
+        else:
+            # Fallback to cookies for backward compatibility / migration
+            watched_cookie = request.cookies.get('watched_shows', '[]')
+            
+            # URL decode the cookie value if needed
+            import urllib.parse
+            if watched_cookie.startswith('%'):
+                watched_cookie = urllib.parse.unquote(watched_cookie)
+            
+            watched_shows = json.loads(watched_cookie)
         
         # Calculate total watch time
         calc_service = get_calc_service()
@@ -70,15 +129,22 @@ def get_watched():
 
 @api_bp.route('/watched', methods=['POST'])
 def add_watched():
-    """Add watched content (stored in cookies)."""
+    """Add watched content (stored in localStorage, with migration support from cookies)."""
     try:
         data = request.get_json()
         if not data or 'id' not in data:
             return jsonify({'error': 'Show ID is required'}), 400
         
-        # Get current watched shows from cookies
-        watched_cookie = request.cookies.get('watched_shows', '[]')
-        watched_shows = json.loads(watched_cookie)
+        # Get current watched shows from request body (localStorage) or fallback to cookies
+        watched_shows = []
+        
+        if 'current_watched_shows' in data:
+            # Frontend sent current localStorage data
+            watched_shows = data['current_watched_shows']
+        else:
+            # Fallback to cookies for migration
+            watched_cookie = request.cookies.get('watched_shows', '[]')
+            watched_shows = json.loads(watched_cookie)
         
         # Get show details from TMDB
         tmdb_service = get_tmdb_service()
@@ -90,10 +156,18 @@ def add_watched():
         existing_show = next((show for show in watched_shows if show['id'] == data['id']), None)
         
         if existing_show:
-            # Update existing show
-            existing_show['seasons_watched'] = data.get('seasons_watched', existing_show['seasons_watched'])
+            # Update existing show - recalculate runtime for new seasons count
+            seasons_watched = data.get('seasons_watched', existing_show['seasons_watched'])
+            existing_show['seasons_watched'] = seasons_watched
+            # Recalculate precise runtime for the updated seasons count
+            existing_show['calculated_runtime_minutes'] = calculate_precise_show_runtime(
+                tmdb_service, data['id'], seasons_watched, show_details
+            )
         else:
-            # Add new show
+            # Add new show with precise runtime calculation
+            seasons_watched = data.get('seasons_watched', 1)
+            
+            # Get default episode runtime
             episode_runtime = 45  # default
             if show_details.get('episode_run_time'):
                 runtime_data = show_details['episode_run_time']
@@ -102,39 +176,37 @@ def add_watched():
                 elif isinstance(runtime_data, int):
                     episode_runtime = runtime_data
             
-            # Get precise episode runtime data
-            episode_runtimes = {}
-            total_seasons = show_details.get('number_of_seasons', 1)
-            
-            try:
-                episode_runtimes = tmdb_service.get_show_episode_runtimes(data['id'], total_seasons)
-            except Exception as e:
-                print(f"Failed to get episode runtimes for show {data['id']}: {e}")
-                # Continue without episode runtime data - will use fallback calculation
+            # Calculate precise runtime for the seasons being watched
+            calculated_runtime = calculate_precise_show_runtime(
+                tmdb_service, data['id'], seasons_watched, show_details
+            )
             
             new_show = {
                 'id': show_details['id'],
                 'name': show_details['name'],
                 'poster_path': show_details.get('poster_path'),
                 'first_air_date': show_details.get('first_air_date'),
-                'seasons_watched': data.get('seasons_watched', 1),
+                'seasons_watched': seasons_watched,
                 'total_seasons': show_details.get('number_of_seasons', 1),
                 'total_episodes': show_details.get('number_of_episodes', 0),
                 'episode_run_time': episode_runtime,
-                'episode_runtimes': episode_runtimes,  # Store precise episode runtime data
-                'genres': show_details.get('genres', [])
+                'calculated_runtime_minutes': calculated_runtime,
+                # Store only genre names as compact array to save space
+                'genres': [genre['name'] for genre in show_details.get('genres', [])]
             }
             watched_shows.append(new_show)
         
-        # Create response with updated cookie
-        response = make_response(jsonify({'success': True, 'show': show_details}))
-        response.set_cookie(
-            'watched_shows',
-            json.dumps(watched_shows),
-            max_age=365*24*60*60,  # 1 year
-            httponly=True,
-            samesite='Lax'
-        )
+        # Return updated data for localStorage storage (no cookies)
+        response_data = {
+            'success': True, 
+            'show': show_details,
+            'updated_watched_shows': watched_shows
+        }
+        
+        # Clear legacy cookie if it exists (migration)
+        response = make_response(jsonify(response_data))
+        if request.cookies.get('watched_shows'):
+            response.set_cookie('watched_shows', '', expires=0, httponly=True, samesite='Lax')
         
         return response
     except Exception as e:
@@ -148,9 +220,16 @@ def update_watched(show_id):
         if not data:
             return jsonify({'error': 'Request data is required'}), 400
         
-        # Get current watched shows from cookies
-        watched_cookie = request.cookies.get('watched_shows', '[]')
-        watched_shows = json.loads(watched_cookie)
+        # Get current watched shows from request body (localStorage) or fallback to cookies
+        watched_shows = []
+        
+        if 'current_watched_shows' in data:
+            # Frontend sent current localStorage data
+            watched_shows = data['current_watched_shows']
+        else:
+            # Fallback to cookies for migration
+            watched_cookie = request.cookies.get('watched_shows', '[]')
+            watched_shows = json.loads(watched_cookie)
         
         # Find and update the show
         show_to_update = next((show for show in watched_shows if show['id'] == show_id), None)
@@ -159,17 +238,28 @@ def update_watched(show_id):
         
         # Update the show data
         if 'seasons_watched' in data:
-            show_to_update['seasons_watched'] = data['seasons_watched']
+            new_seasons_watched = data['seasons_watched']
+            show_to_update['seasons_watched'] = new_seasons_watched
+            
+            # Recalculate precise runtime for the new seasons count
+            tmdb_service = get_tmdb_service()
+            show_details = tmdb_service.get_show_details(show_id)
+            if show_details:
+                show_to_update['calculated_runtime_minutes'] = calculate_precise_show_runtime(
+                    tmdb_service, show_id, new_seasons_watched, show_details
+                )
         
-        # Create response with updated cookie
-        response = make_response(jsonify({'success': True, 'show': show_to_update}))
-        response.set_cookie(
-            'watched_shows',
-            json.dumps(watched_shows),
-            max_age=365*24*60*60,  # 1 year
-            httponly=True,
-            samesite='Lax'
-        )
+        # Return updated data for localStorage storage (no cookies)
+        response_data = {
+            'success': True, 
+            'show': show_to_update,
+            'updated_watched_shows': watched_shows
+        }
+        
+        # Clear legacy cookie if it exists (migration)
+        response = make_response(jsonify(response_data))
+        if request.cookies.get('watched_shows'):
+            response.set_cookie('watched_shows', '', expires=0, httponly=True, samesite='Lax')
         
         return response
     except Exception as e:
@@ -179,22 +269,32 @@ def update_watched(show_id):
 def remove_watched(show_id):
     """Remove watched content."""
     try:
-        # Get current watched shows from cookies
-        watched_cookie = request.cookies.get('watched_shows', '[]')
-        watched_shows = json.loads(watched_cookie)
+        data = request.get_json() or {}
+        
+        # Get current watched shows from request body (localStorage) or fallback to cookies
+        watched_shows = []
+        
+        if 'current_watched_shows' in data:
+            # Frontend sent current localStorage data
+            watched_shows = data['current_watched_shows']
+        else:
+            # Fallback to cookies for migration
+            watched_cookie = request.cookies.get('watched_shows', '[]')
+            watched_shows = json.loads(watched_cookie)
         
         # Remove the show
         watched_shows = [show for show in watched_shows if show['id'] != show_id]
         
-        # Create response with updated cookie
-        response = make_response(jsonify({'success': True}))
-        response.set_cookie(
-            'watched_shows',
-            json.dumps(watched_shows),
-            max_age=365*24*60*60,  # 1 year
-            httponly=True,
-            samesite='Lax'
-        )
+        # Return updated data for localStorage storage (no cookies)
+        response_data = {
+            'success': True,
+            'updated_watched_shows': watched_shows
+        }
+        
+        # Clear legacy cookie if it exists (migration)
+        response = make_response(jsonify(response_data))
+        if request.cookies.get('watched_shows'):
+            response.set_cookie('watched_shows', '', expires=0, httponly=True, samesite='Lax')
         
         return response
     except Exception as e:
@@ -207,7 +307,7 @@ def clear_all_watched():
         # Create response that clears both watched shows and sort preference cookies
         response = make_response(jsonify({'success': True, 'message': 'All data cleared successfully'}))
         
-        # Clear the watched shows cookie by setting it to empty and expiring it
+        # Clear the watched shows cookie by setting it to empty and expiring it (migration cleanup)
         response.set_cookie(
             'watched_shows',
             '',
@@ -228,18 +328,37 @@ def clear_all_watched():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@api_bp.route('/stats')
-def get_stats():
-    """Get viewing statistics."""
+@api_bp.route('/watched/calculate', methods=['POST'])
+def calculate_watched():
+    """Calculate watched shows statistics from localStorage data."""
     try:
-        watched_cookie = request.cookies.get('watched_shows', '[]')
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Request data is required'}), 400
         
-        # URL decode the cookie value if needed
-        import urllib.parse
-        if watched_cookie.startswith('%'):
-            watched_cookie = urllib.parse.unquote(watched_cookie)
+        watched_shows = data.get('watched_shows', [])
         
-        watched_shows = json.loads(watched_cookie)
+        # Calculate total watch time
+        calc_service = get_calc_service()
+        total_time = calc_service.calculate_total_time(watched_shows)
+        
+        return jsonify({
+            'watched_shows': watched_shows,
+            'total_time_minutes': total_time,
+            'total_time_formatted': calc_service.format_time(total_time)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/stats/calculate', methods=['POST'])
+def calculate_stats():
+    """Calculate viewing statistics from localStorage data."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Request data is required'}), 400
+        
+        watched_shows = data.get('watched_shows', [])
         
         calc_service = get_calc_service()
         stats = calc_service.calculate_stats(watched_shows)
