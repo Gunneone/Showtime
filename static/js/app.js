@@ -1267,7 +1267,7 @@ const StatsApp = {
             y: hours,
             type: 'bar',
             marker: {
-                color: ['#63b3ed', '#4299e1', '#3182ce'],
+                color: '#63b3ed',
                 line: {
                     color: '#e2e8f0',
                     width: 1
