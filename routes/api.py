@@ -188,6 +188,34 @@ def remove_watched(show_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@api_bp.route('/watched', methods=['DELETE'])
+def clear_all_watched():
+    """Clear all watched shows data."""
+    try:
+        # Create response that clears both watched shows and sort preference cookies
+        response = make_response(jsonify({'success': True, 'message': 'All data cleared successfully'}))
+        
+        # Clear the watched shows cookie by setting it to empty and expiring it
+        response.set_cookie(
+            'watched_shows',
+            '',
+            expires=0,
+            httponly=True,
+            samesite='Lax'
+        )
+        
+        # Also clear the sort preference cookie (not HTTP-only, but clear it from server for consistency)
+        response.set_cookie(
+            'sort_preference',
+            '',
+            expires=0,
+            samesite='Lax'
+        )
+        
+        return response
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @api_bp.route('/stats')
 def get_stats():
     """Get viewing statistics."""

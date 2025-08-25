@@ -18,7 +18,7 @@ body {
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1300px;
     margin: 0 auto;
     padding: 0 20px;
 }
@@ -563,7 +563,7 @@ body {
 
 .watched-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
     gap: 1.5rem;
 }
 
@@ -684,7 +684,6 @@ body {
     flex-wrap: wrap;
     border-radius: 4px;
     overflow: hidden;
-    border: 1px solid rgba(99, 179, 237, 0.4);
 }
 
 .edit-season-bar {
@@ -766,6 +765,26 @@ body {
 }
 
 .btn:hover {
+}
+
+/* Remove all data section */
+.remove-all-section {
+    margin-top: 2rem;
+    padding: 1rem 0;
+}
+
+.remove-all-container {
+    text-align: center;
+}
+
+.remove-all-btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+
+.remove-all-btn:hover {
+    background: #c53030 !important;
+    transform: translateY(-1px);
 }
 
 /* Empty state */
