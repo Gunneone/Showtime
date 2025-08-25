@@ -29,11 +29,14 @@ class CalculationService:
     
     def format_time(self, minutes):
         """Format time in minutes to a human-readable string."""
-        if minutes < 60:
-            return f"{minutes} minutes"
+        if minutes == 0:
+            return "0h"
         
         hours = minutes // 60
         remaining_minutes = minutes % 60
+        
+        if hours == 0:
+            return f"{remaining_minutes} minute{'s' if remaining_minutes != 1 else ''}"
         
         if hours < 24:
             if remaining_minutes > 0:
@@ -44,9 +47,8 @@ class CalculationService:
         remaining_hours = hours % 24
         
         if days < 365:
-            if remaining_hours > 0:
-                return f"{days}d {remaining_hours}h"
-            return f"{days}d"
+            # Always display hours, even when 0h
+            return f"{days}d {remaining_hours}h"
         
         years = days // 365
         remaining_days = days % 365
@@ -163,7 +165,7 @@ class CalculationService:
                 'total_shows': 0,
                 'total_seasons': 0,
                 'total_time_minutes': 0,
-                'total_time_formatted': '0 minutes',
+                'total_time_formatted': '0h',
                 'average_time_per_show': 0,
                 'genre_breakdown': {},
                 'yearly_breakdown': {},

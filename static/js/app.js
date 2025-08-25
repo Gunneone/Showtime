@@ -803,23 +803,21 @@ const App = {
                      loading="lazy">
             </div>
             <div class="watched-show-content">
-                <div class="watched-show-header">
-                    <div class="watched-show-info">
-                        <h4>${show.name}</h4>
-                        <div class="watched-show-seasons">
-                            <div class="seasons-display" onclick="App.editSeasons(${show.id})">
-                                <i class="fas fa-eye"></i> ${show.seasons_watched} of ${totalSeasons} season${totalSeasons !== 1 ? 's' : ''} watched 
-                                <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
-                            </div>
-                            <div class="seasons-edit" id="seasonsEdit-${show.id}" data-selected-seasons="${show.seasons_watched}">
-                                <div class="season-selector-bars edit-season-bars">
-                                    ${editSeasonBars}
-                                </div>
+                <div class="watched-show-info">
+                    <h4>${show.name}</h4>
+                    <div class="watched-show-seasons">
+                        <div class="seasons-display" onclick="App.editSeasons(${show.id})">
+                            <i class="fas fa-eye"></i> ${show.seasons_watched} of ${totalSeasons} season${totalSeasons !== 1 ? 's' : ''} watched 
+                            <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
+                        </div>
+                        <div class="seasons-edit" id="seasonsEdit-${show.id}" data-selected-seasons="${show.seasons_watched}">
+                            <div class="season-selector-bars edit-season-bars">
+                                ${editSeasonBars}
                             </div>
                         </div>
                     </div>
-                    <div class="watched-show-time"><i class="fas fa-clock"></i> ${watchTime}</div>
                 </div>
+                <div class="watched-show-time"><i class="fas fa-clock"></i> ${watchTime}</div>
             </div>
         `;
 
@@ -837,10 +835,16 @@ const App = {
 
     // Format time in minutes to human readable string
     formatTime(minutes) {
-        if (minutes < 60) return `${minutes}m`;
+        if (minutes === 0) {
+            return "0h";
+        }
         
         const hours = Math.floor(minutes / 60);
         const remainingMinutes = minutes % 60;
+        
+        if (hours === 0) {
+            return remainingMinutes === 1 ? "1 minute" : `${remainingMinutes} minutes`;
+        }
         
         if (hours < 24) {
             return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
@@ -849,7 +853,8 @@ const App = {
         const days = Math.floor(hours / 24);
         const remainingHours = hours % 24;
         
-        return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
+        // Always display hours, even when 0h
+        return `${days}d ${remainingHours}h`;
     },
 
     // Inline season editing methods
@@ -1471,8 +1476,6 @@ const StatsApp = {
 
     // Format time (same as main app)
     formatTime(minutes) {
-        if (minutes < 60) return `${minutes}m`;
-        
         const hours = Math.floor(minutes / 60);
         const remainingMinutes = minutes % 60;
         
