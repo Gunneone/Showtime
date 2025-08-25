@@ -580,6 +580,7 @@ const App = {
             this.loadWatchedShows();
             this.hideSearchResults();
             this.elements.searchInput.value = '';
+            this.elements.searchInput.focus();
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -631,6 +632,7 @@ const App = {
             this.loadWatchedShows();
             this.hideSearchResults();
             this.elements.searchInput.value = '';
+            this.elements.searchInput.focus();
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -723,6 +725,7 @@ const App = {
             this.loadWatchedShows();
             this.hideSearchResults();
             this.elements.searchInput.value = '';
+            this.elements.searchInput.focus();
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
