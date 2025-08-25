@@ -1178,7 +1178,8 @@ const StatsApp = {
                     width: 0
                 }
             },
-            hovertemplate: '<b>%{x}</b><br>%{y} hours watched<extra></extra>'
+            hovertemplate: '<b>%{x}</b><br>%{customdata} days (%{y} hours)<extra></extra>',
+            customdata: filledHours.map(h => Math.round(h / 24 * 10) / 10)
         };
 
         const layout = {
@@ -1190,19 +1191,17 @@ const StatsApp = {
                 title: 'Release Year',
                 color: '#e2e8f0',
                 showgrid: false,
-                showline: true,
-                linecolor: '#4a5568',
-                linewidth: 1,
+                showline: false,
+                tickvals: allYears.length > 0 ? [allYears[0], allYears[allYears.length - 1]] : [],
+                ticktext: allYears.length > 0 ? [allYears[0], allYears[allYears.length - 1]] : [],
                 tickfont: { color: '#a0aec0' }
             },
             yaxis: {
-                title: 'Hours Watched',
+                title: '',
                 color: '#e2e8f0',
                 showgrid: false,
-                showline: true,
-                linecolor: '#4a5568',
-                linewidth: 1,
-                showticklabels: true,
+                showline: false,
+                showticklabels: false,
                 tickfont: { color: '#9ca3af' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1250,19 +1249,23 @@ const StatsApp = {
 
         const maxHours = Math.max(...allYearsData.map(([, minutes]) => minutes / 60));
         
-        let chartHTML = '<div style="padding: 1rem;"><div style="position: relative; display: flex; align-items: end; gap: 8px; height: 200px; padding: 20px 0; border-left: 2px solid #4a5568; border-bottom: 2px solid #4a5568;">';
+        let chartHTML = '<div style="padding: 1rem;"><div style="position: relative; display: flex; align-items: end; gap: 8px; height: 200px; padding: 20px 0;">';
         
-        allYearsData.forEach(([year, minutes]) => {
+        allYearsData.forEach(([year, minutes], index) => {
             const hours = Math.round(minutes / 60 * 10) / 10;
+            const days = Math.round(hours / 24 * 10) / 10;
             const heightPixels = Math.max(4, (hours / maxHours) * 160); // 160px max height within 200px container
+            
+            // Only show year labels for first and last
+            const showYear = index === 0 || index === allYearsData.length - 1;
             
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
                     <div style="background: #63b3ed; width: 100%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
-                         title="${hours}h watched in ${year}"
+                         title="${year}: ${days} days (${hours} hours)"
                          onmouseover="this.style.backgroundColor='#4299e1'"
                          onmouseout="this.style.backgroundColor='#63b3ed'"></div>
-                    <div style="color: #a0aec0; font-size: 0.8rem; text-align: center;">${year}</div>
+                    <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; visibility: ${showYear ? 'visible' : 'hidden'};">${year}</div>
                 </div>
             `;
         });
@@ -1308,7 +1311,8 @@ const StatsApp = {
                     width: 0
                 }
             },
-            hovertemplate: '<b>%{x}</b><br>%{y} hours watched<extra></extra>'
+            hovertemplate: '<b>%{x}</b><br>%{customdata} days (%{y} hours)<extra></extra>',
+            customdata: hours.map(h => Math.round(h / 24 * 10) / 10)
         };
 
         const layout = {
@@ -1317,22 +1321,18 @@ const StatsApp = {
                 font: { color: '#e2e8f0' }
             },
             xaxis: {
-                title: 'Genre',
+                title: '',
                 color: '#e2e8f0',
                 showgrid: false,
-                showline: true,
-                linecolor: '#4a5568',
-                linewidth: 1,
+                showline: false,
                 tickfont: { color: '#a0aec0' }
             },
             yaxis: {
-                title: 'Hours Watched',
+                title: '',
                 color: '#e2e8f0',
                 showgrid: false,
-                showline: true,
-                linecolor: '#4a5568',
-                linewidth: 1,
-                showticklabels: true,
+                showline: false,
+                showticklabels: false,
                 tickfont: { color: '#9ca3af' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1364,20 +1364,20 @@ const StatsApp = {
 
         const maxHours = Math.max(...sortedGenres.map(([, minutes]) => minutes / 60));
         
-        let chartHTML = '<div style="padding: 1rem;"><div style="position: relative; display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0; border-left: 2px solid #4a5568; border-bottom: 2px solid #4a5568;">';
+        let chartHTML = '<div style="padding: 1rem;"><div style="position: relative; display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
         
         sortedGenres.forEach(([genre, minutes], index) => {
             const hours = Math.round(minutes / 60 * 10) / 10;
+            const days = Math.round(hours / 24 * 10) / 10;
             const heightPixels = Math.max(8, (hours / maxHours) * 160); // 160px max height within 200px container
             
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
                     <div style="background: #63b3ed; width: 80%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
-                         title="${hours}h watched"
+                         title="${genre}: ${days} days (${hours} hours)"
                          onmouseover="this.style.backgroundColor='#4299e1'"
                          onmouseout="this.style.backgroundColor='#63b3ed'"></div>
                     <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
-                    <div style="color: #63b3ed; font-size: 0.7rem; font-weight: bold;">${hours}h</div>
                 </div>
             `;
         });
