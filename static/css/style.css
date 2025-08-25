@@ -556,7 +556,7 @@ body {
 
 .watched-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 1.5rem;
 }
 
@@ -632,6 +632,11 @@ body {
     background: rgba(160, 174, 192, 0.2);
     color: rgba(226, 232, 240, 0.9);
     transform: scale(1.05);
+}
+
+.watched-show-info {
+    flex: 1;
+    min-width: 0; /* Allow shrinking */
 }
 
 .watched-show-info h4 {

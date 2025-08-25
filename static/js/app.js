@@ -837,8 +837,6 @@ const App = {
 
     // Format time in minutes to human readable string
     formatTime(minutes) {
-        if (minutes < 60) return `${minutes}m`;
-        
         const hours = Math.floor(minutes / 60);
         const remainingMinutes = minutes % 60;
         
@@ -1419,8 +1417,6 @@ const StatsApp = {
 
     // Format time (same as main app)
     formatTime(minutes) {
-        if (minutes < 60) return `${minutes}m`;
-        
         const hours = Math.floor(minutes / 60);
         const remainingMinutes = minutes % 60;
         

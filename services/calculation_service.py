@@ -29,9 +29,6 @@ class CalculationService:
     
     def format_time(self, minutes):
         """Format time in minutes to a human-readable string."""
-        if minutes < 60:
-            return f"{minutes} minutes"
-        
         hours = minutes // 60
         remaining_minutes = minutes % 60
         
@@ -142,7 +139,7 @@ class CalculationService:
                 'total_shows': 0,
                 'total_seasons': 0,
                 'total_time_minutes': 0,
-                'total_time_formatted': '0 minutes',
+                'total_time_formatted': '0h',
                 'average_time_per_show': 0,
                 'genre_breakdown': {},
                 'yearly_breakdown': {},
