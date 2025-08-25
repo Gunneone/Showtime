@@ -794,24 +794,26 @@ const App = {
         const editSeasonBars = this.createEditSeasonSelectorBars(totalSeasons, show, show.seasons_watched);
 
         div.innerHTML = `
-            <div class="watched-show-header">
-                <div class="watched-show-info">
-                    <h4>${show.name}</h4>
-                    <div class="watched-show-seasons">
-                        <div class="seasons-display" onclick="App.editSeasons(${show.id})">
-                            <i class="fas fa-eye"></i> ${show.seasons_watched} of ${totalSeasons} season${totalSeasons !== 1 ? 's' : ''} watched 
-                            <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
-                        </div>
-                        <div class="seasons-edit" id="seasonsEdit-${show.id}" data-selected-seasons="${show.seasons_watched}">
-                            <div class="season-selector-bars edit-season-bars">
-                                ${editSeasonBars}
+            <div class="watched-show-remove" onclick="App.removeShow(${show.id})" title="Remove show">
+                <i class="fas fa-times"></i>
+            </div>
+            <div class="watched-show-content">
+                <div class="watched-show-header">
+                    <div class="watched-show-info">
+                        <h4>${show.name}</h4>
+                        <div class="watched-show-seasons">
+                            <div class="seasons-display" onclick="App.editSeasons(${show.id})">
+                                <i class="fas fa-eye"></i> ${show.seasons_watched} of ${totalSeasons} season${totalSeasons !== 1 ? 's' : ''} watched 
+                                <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
+                            </div>
+                            <div class="seasons-edit" id="seasonsEdit-${show.id}" data-selected-seasons="${show.seasons_watched}">
+                                <div class="season-selector-bars edit-season-bars">
+                                    ${editSeasonBars}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="watched-show-time"><i class="fas fa-clock"></i> ${watchTime}</div>
-                <div class="watched-show-remove" onclick="App.removeShow(${show.id})" title="Remove show">
-                    <i class="fas fa-times"></i>
+                    <div class="watched-show-time"><i class="fas fa-clock"></i> ${watchTime}</div>
                 </div>
             </div>
         `;

@@ -577,14 +577,6 @@ body {
     background: rgba(45, 55, 72, 0.95);
 }
 
-.watched-show-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    margin-bottom: 1rem;
-    position: relative;
-}
-
 .watched-show-remove {
     position: absolute;
     top: 0.5rem;
@@ -604,6 +596,17 @@ body {
     border: none;
 }
 
+.watched-show-content {
+    margin-top: 1.5rem; /* Add space below remove button */
+}
+
+.watched-show-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
 .watched-show-remove:hover {
     background: rgba(160, 174, 192, 0.2);
     color: rgba(226, 232, 240, 0.9);
@@ -615,7 +618,6 @@ body {
     margin-bottom: 0.5rem;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    margin-right: 2rem; /* Leave space for remove button */
 }
 
 .watched-show-seasons {
