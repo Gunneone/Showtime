@@ -1173,7 +1173,10 @@ const StatsApp = {
             y: filledHours,
             type: 'bar',
             marker: {
-                color: '#63b3ed'
+                color: '#63b3ed',
+                line: {
+                    width: 0
+                }
             },
             hovertemplate: '<b>%{x}</b><br>%{y} hours watched<extra></extra>'
         };
@@ -1187,14 +1190,20 @@ const StatsApp = {
                 title: 'Release Year',
                 color: '#e2e8f0',
                 showgrid: false,
+                showline: true,
+                linecolor: '#4a5568',
+                linewidth: 1,
                 tickfont: { color: '#a0aec0' }
             },
             yaxis: {
                 title: 'Hours Watched',
                 color: '#e2e8f0',
                 showgrid: false,
+                showline: true,
+                linecolor: '#4a5568',
+                linewidth: 1,
                 showticklabels: true,
-                tickfont: { color: 'rgba(226, 232, 240, 0.6)' }
+                tickfont: { color: '#9ca3af' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1206,7 +1215,7 @@ const StatsApp = {
             displayModeBar: false,
             staticPlot: false,
             displaylogo: false,
-            modeBarButtonsToRemove: ['pan2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d', 'select2d', 'lasso2d']
+            responsive: true
         };
 
         Plotly.newPlot('yearlyChart', [trace], layout, config);
@@ -1223,18 +1232,37 @@ const StatsApp = {
             .filter(([year]) => year !== 'Unknown')
             .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
 
-        const maxHours = Math.max(...sortedYears.map(([, minutes]) => minutes / 60));
+        // Fill in missing years with zero data for continuous chart
+        const allYearsData = [];
+        if (sortedYears.length > 0) {
+            const minYear = Math.min(...sortedYears.map(([year]) => parseInt(year)));
+            const maxYear = Math.max(...sortedYears.map(([year]) => parseInt(year)));
+            
+            for (let year = minYear; year <= maxYear; year++) {
+                const existingYear = sortedYears.find(([y]) => parseInt(y) === year);
+                if (existingYear) {
+                    allYearsData.push([year.toString(), existingYear[1]]);
+                } else {
+                    allYearsData.push([year.toString(), 0]);
+                }
+            }
+        }
+
+        const maxHours = Math.max(...allYearsData.map(([, minutes]) => minutes / 60));
         
-        let chartHTML = '<div style="padding: 1rem;"><div style="display: flex; align-items: end; gap: 8px; height: 200px; padding: 20px 0; border-bottom: 1px solid rgba(226, 232, 240, 0.1);">';
+        let chartHTML = '<div style="padding: 1rem;"><div style="position: relative; display: flex; align-items: end; gap: 8px; height: 200px; padding: 20px 0; border-left: 2px solid #4a5568; border-bottom: 2px solid #4a5568;">';
         
-        sortedYears.forEach(([year, minutes]) => {
+        allYearsData.forEach(([year, minutes]) => {
             const hours = Math.round(minutes / 60 * 10) / 10;
-            const heightPercent = (hours / maxHours) * 100;
+            const heightPixels = Math.max(4, (hours / maxHours) * 160); // 160px max height within 200px container
             
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="background: #63b3ed; width: 100%; height: ${heightPercent}%; min-height: 4px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched in ${year}"></div>
-                    <div style="color: #9ca3af; font-size: 0.8rem; text-align: center;">${year}</div>
+                    <div style="background: #63b3ed; width: 100%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
+                         title="${hours}h watched in ${year}"
+                         onmouseover="this.style.backgroundColor='#4299e1'"
+                         onmouseout="this.style.backgroundColor='#63b3ed'"></div>
+                    <div style="color: #a0aec0; font-size: 0.8rem; text-align: center;">${year}</div>
                 </div>
             `;
         });
@@ -1275,7 +1303,10 @@ const StatsApp = {
             y: hours,
             type: 'bar',
             marker: {
-                color: '#63b3ed'
+                color: '#63b3ed',
+                line: {
+                    width: 0
+                }
             },
             hovertemplate: '<b>%{x}</b><br>%{y} hours watched<extra></extra>'
         };
@@ -1289,14 +1320,20 @@ const StatsApp = {
                 title: 'Genre',
                 color: '#e2e8f0',
                 showgrid: false,
+                showline: true,
+                linecolor: '#4a5568',
+                linewidth: 1,
                 tickfont: { color: '#a0aec0' }
             },
             yaxis: {
                 title: 'Hours Watched',
                 color: '#e2e8f0',
                 showgrid: false,
+                showline: true,
+                linecolor: '#4a5568',
+                linewidth: 1,
                 showticklabels: true,
-                tickfont: { color: 'rgba(226, 232, 240, 0.6)' }
+                tickfont: { color: '#9ca3af' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1308,7 +1345,7 @@ const StatsApp = {
             displayModeBar: false,
             staticPlot: false,
             displaylogo: false,
-            modeBarButtonsToRemove: ['pan2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d', 'select2d', 'lasso2d']
+            responsive: true
         };
 
         Plotly.newPlot('topGenresChart', [trace], layout, config);
@@ -1327,16 +1364,19 @@ const StatsApp = {
 
         const maxHours = Math.max(...sortedGenres.map(([, minutes]) => minutes / 60));
         
-        let chartHTML = '<div style="padding: 1rem;"><div style="display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
+        let chartHTML = '<div style="padding: 1rem;"><div style="position: relative; display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0; border-left: 2px solid #4a5568; border-bottom: 2px solid #4a5568;">';
         
         sortedGenres.forEach(([genre, minutes], index) => {
             const hours = Math.round(minutes / 60 * 10) / 10;
-            const heightPercent = (hours / maxHours) * 100;
+            const heightPixels = Math.max(8, (hours / maxHours) * 160); // 160px max height within 200px container
             
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="background: #63b3ed; width: 80%; height: ${heightPercent}%; min-height: 8px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched"></div>
-                    <div style="color: #9ca3af; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
+                    <div style="background: #63b3ed; width: 80%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
+                         title="${hours}h watched"
+                         onmouseover="this.style.backgroundColor='#4299e1'"
+                         onmouseout="this.style.backgroundColor='#63b3ed'"></div>
+                    <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
                     <div style="color: #63b3ed; font-size: 0.7rem; font-weight: bold;">${hours}h</div>
                 </div>
             `;
