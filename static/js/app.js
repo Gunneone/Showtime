@@ -1175,7 +1175,7 @@ const StatsApp = {
             marker: {
                 color: '#63b3ed'
             },
-            hoverinfo: 'none'
+            hovertemplate: '<b>%{x}</b><br>%{y} hours watched<extra></extra>'
         };
 
         const layout = {
@@ -1187,7 +1187,7 @@ const StatsApp = {
                 title: 'Release Year',
                 color: '#e2e8f0',
                 showgrid: false,
-                tickfont: { color: '#cbd5e0' }
+                tickfont: { color: '#9ca3af' }
             },
             yaxis: {
                 title: 'Hours Watched',
@@ -1203,8 +1203,7 @@ const StatsApp = {
         };
 
         const config = {
-            displayModeBar: false,
-            staticPlot: true
+            displayModeBar: false
         };
 
         Plotly.newPlot('yearlyChart', [trace], layout, config);
@@ -1232,7 +1231,7 @@ const StatsApp = {
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
                     <div style="background: #63b3ed; width: 100%; height: ${heightPercent}%; min-height: 4px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched in ${year}"></div>
-                    <div style="color: #cbd5e0; font-size: 0.8rem; text-align: center;">${year}</div>
+                    <div style="color: #9ca3af; font-size: 0.8rem; text-align: center;">${year}</div>
                 </div>
             `;
         });
@@ -1275,7 +1274,7 @@ const StatsApp = {
             marker: {
                 color: '#63b3ed'
             },
-            hoverinfo: 'none'
+            hovertemplate: '<b>%{x}</b><br>%{y} hours watched<extra></extra>'
         };
 
         const layout = {
@@ -1287,7 +1286,7 @@ const StatsApp = {
                 title: 'Genre',
                 color: '#e2e8f0',
                 showgrid: false,
-                tickfont: { color: '#cbd5e0' }
+                tickfont: { color: '#9ca3af' }
             },
             yaxis: {
                 title: 'Hours Watched',
@@ -1303,8 +1302,7 @@ const StatsApp = {
         };
 
         const config = {
-            displayModeBar: false,
-            staticPlot: true
+            displayModeBar: false
         };
 
         Plotly.newPlot('topGenresChart', [trace], layout, config);
@@ -1322,7 +1320,6 @@ const StatsApp = {
             .slice(0, 5);
 
         const maxHours = Math.max(...sortedGenres.map(([, minutes]) => minutes / 60));
-        const colors = ['#63b3ed', '#4299e1', '#3182ce', '#2b6cb0', '#2c5282'];
         
         let chartHTML = '<div style="padding: 1rem;"><div style="display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
         
@@ -1332,8 +1329,8 @@ const StatsApp = {
             
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="background: ${colors[index] || '#63b3ed'}; width: 80%; height: ${heightPercent}%; min-height: 8px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched"></div>
-                    <div style="color: #cbd5e0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
+                    <div style="background: #63b3ed; width: 80%; height: ${heightPercent}%; min-height: 8px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched"></div>
+                    <div style="color: #9ca3af; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
                     <div style="color: #63b3ed; font-size: 0.7rem; font-weight: bold;">${hours}h</div>
                 </div>
             `;
