@@ -111,13 +111,13 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 6. Trans-Siberian Railway end-to-end trip (about 7 days ≈ 10,080 minutes)
+        # 6. Trans-Siberian Railway trip (about 7 days ≈ 10,080 minutes)
         trans_siberian_times = total_minutes / 10080
         value = self._format_conversion_number(trans_siberian_times)
         conversions.append({
             'icon': 'fas fa-train',
             'value': value,
-            'description': 'completed end-to-end trips on the Trans-Siberian Railway',
+            'description': 'completed trips on the Trans-Siberian Railway',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         

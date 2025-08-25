@@ -1152,18 +1152,30 @@ const StatsApp = {
         const minutes = sortedYears.map(([, time]) => time);
         const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
 
+        // Fill in missing years with zero data for continuous chart
+        const allYears = [];
+        if (years.length > 0) {
+            const minYear = Math.min(...years.map(y => parseInt(y)));
+            const maxYear = Math.max(...years.map(y => parseInt(y)));
+            for (let year = minYear; year <= maxYear; year++) {
+                allYears.push(year.toString());
+            }
+        }
+
+        // Create data arrays with zeros for missing years
+        const filledHours = allYears.map(year => {
+            const index = years.indexOf(year);
+            return index !== -1 ? hours[index] : 0;
+        });
+
         const trace = {
-            x: years,
-            y: hours,
+            x: allYears,
+            y: filledHours,
             type: 'bar',
             marker: {
-                color: '#63b3ed',
-                line: {
-                    color: '#e2e8f0',
-                    width: 1
-                }
+                color: '#63b3ed'
             },
-            hovertemplate: '<b>%{x}</b><br>Watch Time: %{y} hours<extra></extra>'
+            hoverinfo: 'none'
         };
 
         const layout = {
@@ -1174,13 +1186,14 @@ const StatsApp = {
             xaxis: {
                 title: 'Release Year',
                 color: '#e2e8f0',
-                gridcolor: 'rgba(226, 232, 240, 0.1)',
+                showgrid: false,
                 tickfont: { color: '#cbd5e0' }
             },
             yaxis: {
                 title: 'Hours Watched',
                 color: '#e2e8f0',
-                gridcolor: 'rgba(226, 232, 240, 0.1)',
+                showgrid: false,
+                showticklabels: false,
                 tickfont: { color: '#cbd5e0' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1190,9 +1203,8 @@ const StatsApp = {
         };
 
         const config = {
-            displayModeBar: true,
-            modeBarButtonsToRemove: ['autoScale2d', 'lasso2d', 'select2d'],
-            displaylogo: false
+            displayModeBar: false,
+            staticPlot: true
         };
 
         Plotly.newPlot('yearlyChart', [trace], layout, config);
@@ -1261,13 +1273,9 @@ const StatsApp = {
             y: hours,
             type: 'bar',
             marker: {
-                color: '#63b3ed',
-                line: {
-                    color: '#e2e8f0',
-                    width: 1
-                }
+                color: '#63b3ed'
             },
-            hovertemplate: '<b>%{x}</b><br>Watch Time: %{y} hours<extra></extra>'
+            hoverinfo: 'none'
         };
 
         const layout = {
@@ -1278,12 +1286,14 @@ const StatsApp = {
             xaxis: {
                 title: 'Genre',
                 color: '#e2e8f0',
+                showgrid: false,
                 tickfont: { color: '#cbd5e0' }
             },
             yaxis: {
                 title: 'Hours Watched',
                 color: '#e2e8f0',
-                gridcolor: 'rgba(226, 232, 240, 0.1)',
+                showgrid: false,
+                showticklabels: false,
                 tickfont: { color: '#cbd5e0' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1293,9 +1303,8 @@ const StatsApp = {
         };
 
         const config = {
-            displayModeBar: true,
-            modeBarButtonsToRemove: ['autoScale2d', 'lasso2d', 'select2d'],
-            displaylogo: false
+            displayModeBar: false,
+            staticPlot: true
         };
 
         Plotly.newPlot('topGenresChart', [trace], layout, config);
