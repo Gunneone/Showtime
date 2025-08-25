@@ -14,6 +14,57 @@ def get_calc_service():
     """Get calculation service instance."""
     return CalculationService()
 
+def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched, show_details):
+    """Calculate precise runtime based on actual episode counts per season."""
+    total_runtime = 0
+    default_episode_runtime = show_details.get('episode_run_time', 45)
+    
+    for season_num in range(1, seasons_watched + 1):
+        try:
+            # Get precise episode data for this season
+            season_details = tmdb_service.get_season_details(show_id, season_num)
+            episodes = season_details.get('episodes', [])
+            
+            if episodes:
+                # Sum up actual episode runtimes for this season
+                season_runtime = 0
+                for episode in episodes:
+                    episode_runtime = episode.get('runtime')
+                    if episode_runtime and episode_runtime > 0:
+                        season_runtime += episode_runtime
+                    else:
+                        # Fallback to show's default runtime for missing episode data
+                        season_runtime += default_episode_runtime
+                total_runtime += season_runtime
+            else:
+                # Fallback: estimate based on total episodes/seasons ratio
+                total_episodes = show_details.get('number_of_episodes', 0)
+                total_seasons = show_details.get('number_of_seasons', 1)
+                
+                if total_episodes > 0 and total_seasons > 0:
+                    episodes_per_season = total_episodes / total_seasons
+                else:
+                    episodes_per_season = 20  # Default assumption
+                
+                season_runtime = episodes_per_season * default_episode_runtime
+                total_runtime += season_runtime
+                
+        except Exception as e:
+            # If season data fails, use fallback calculation
+            print(f"Failed to get season {season_num} data for show {show_id}: {e}")
+            total_episodes = show_details.get('number_of_episodes', 0)
+            total_seasons = show_details.get('number_of_seasons', 1)
+            
+            if total_episodes > 0 and total_seasons > 0:
+                episodes_per_season = total_episodes / total_seasons
+            else:
+                episodes_per_season = 20
+            
+            season_runtime = episodes_per_season * default_episode_runtime
+            total_runtime += season_runtime
+    
+    return int(total_runtime)
+
 @api_bp.route('/search')
 def search():
     """Search for shows/movies using TMDB API with caching."""
@@ -105,10 +156,18 @@ def add_watched():
         existing_show = next((show for show in watched_shows if show['id'] == data['id']), None)
         
         if existing_show:
-            # Update existing show
-            existing_show['seasons_watched'] = data.get('seasons_watched', existing_show['seasons_watched'])
+            # Update existing show - recalculate runtime for new seasons count
+            seasons_watched = data.get('seasons_watched', existing_show['seasons_watched'])
+            existing_show['seasons_watched'] = seasons_watched
+            # Recalculate precise runtime for the updated seasons count
+            existing_show['calculated_runtime_minutes'] = calculate_precise_show_runtime(
+                tmdb_service, data['id'], seasons_watched, show_details
+            )
         else:
-            # Add new show
+            # Add new show with precise runtime calculation
+            seasons_watched = data.get('seasons_watched', 1)
+            
+            # Get default episode runtime
             episode_runtime = 45  # default
             if show_details.get('episode_run_time'):
                 runtime_data = show_details['episode_run_time']
@@ -117,15 +176,21 @@ def add_watched():
                 elif isinstance(runtime_data, int):
                     episode_runtime = runtime_data
             
+            # Calculate precise runtime for the seasons being watched
+            calculated_runtime = calculate_precise_show_runtime(
+                tmdb_service, data['id'], seasons_watched, show_details
+            )
+            
             new_show = {
                 'id': show_details['id'],
                 'name': show_details['name'],
                 'poster_path': show_details.get('poster_path'),
                 'first_air_date': show_details.get('first_air_date'),
-                'seasons_watched': data.get('seasons_watched', 1),
+                'seasons_watched': seasons_watched,
                 'total_seasons': show_details.get('number_of_seasons', 1),
                 'total_episodes': show_details.get('number_of_episodes', 0),
                 'episode_run_time': episode_runtime,
+                'calculated_runtime_minutes': calculated_runtime,
                 # Store only genre names as compact array to save space
                 'genres': [genre['name'] for genre in show_details.get('genres', [])]
             }
@@ -173,7 +238,16 @@ def update_watched(show_id):
         
         # Update the show data
         if 'seasons_watched' in data:
-            show_to_update['seasons_watched'] = data['seasons_watched']
+            new_seasons_watched = data['seasons_watched']
+            show_to_update['seasons_watched'] = new_seasons_watched
+            
+            # Recalculate precise runtime for the new seasons count
+            tmdb_service = get_tmdb_service()
+            show_details = tmdb_service.get_show_details(show_id)
+            if show_details:
+                show_to_update['calculated_runtime_minutes'] = calculate_precise_show_runtime(
+                    tmdb_service, show_id, new_seasons_watched, show_details
+                )
         
         # Return updated data for localStorage storage (no cookies)
         response_data = {
