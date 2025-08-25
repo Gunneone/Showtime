@@ -1188,7 +1188,7 @@ const StatsApp = {
                 font: { color: '#e2e8f0' }
             },
             xaxis: {
-                title: 'Release Year',
+                title: '',
                 color: '#e2e8f0',
                 showgrid: false,
                 showline: false,
@@ -1249,7 +1249,10 @@ const StatsApp = {
 
         const maxHours = Math.max(...allYearsData.map(([, minutes]) => minutes / 60));
         
-        let chartHTML = '<div style="padding: 1rem;"><div style="position: relative; display: flex; align-items: end; gap: 8px; height: 200px; padding: 20px 0;">';
+        let chartHTML = '<div style="padding: 1rem; position: relative;"><div style="position: relative; display: flex; align-items: end; gap: 8px; height: 200px; padding: 20px 0;">';
+        
+        // Add tooltip element
+        chartHTML += '<div id="yearly-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
         
         allYearsData.forEach(([year, minutes], index) => {
             const hours = Math.round(minutes / 60 * 10) / 10;
@@ -1262,17 +1265,16 @@ const StatsApp = {
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
                     <div style="background: #63b3ed; width: 100%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
-                         title="${year}: ${days} days (${hours} hours)"
-                         onmouseover="this.style.backgroundColor='#4299e1'"
-                         onmouseout="this.style.backgroundColor='#63b3ed'"></div>
+                         data-year="${year}" data-days="${days}" data-hours="${hours}"
+                         onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'yearly-tooltip', '${year}: ${days} days (${hours} hours)')"
+                         onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('yearly-tooltip')"
+                         onmousemove="StatsApp.moveTooltip(event, 'yearly-tooltip')"></div>
                     <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; visibility: ${showYear ? 'visible' : 'hidden'};">${year}</div>
                 </div>
             `;
         });
         
-        chartHTML += '</div>';
-        chartHTML += '<div style="text-align: center; color: #cbd5e0; font-size: 0.9rem; margin-top: 1rem;">Hours watched by release year</div>';
-        chartHTML += '</div>';
+        chartHTML += '</div></div>';
         
         container.innerHTML = chartHTML;
     },
@@ -1364,7 +1366,10 @@ const StatsApp = {
 
         const maxHours = Math.max(...sortedGenres.map(([, minutes]) => minutes / 60));
         
-        let chartHTML = '<div style="padding: 1rem;"><div style="position: relative; display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
+        let chartHTML = '<div style="padding: 1rem; position: relative;"><div style="position: relative; display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
+        
+        // Add tooltip element
+        chartHTML += '<div id="genre-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
         
         sortedGenres.forEach(([genre, minutes], index) => {
             const hours = Math.round(minutes / 60 * 10) / 10;
@@ -1374,9 +1379,10 @@ const StatsApp = {
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
                     <div style="background: #63b3ed; width: 80%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
-                         title="${genre}: ${days} days (${hours} hours)"
-                         onmouseover="this.style.backgroundColor='#4299e1'"
-                         onmouseout="this.style.backgroundColor='#63b3ed'"></div>
+                         data-genre="${genre}" data-days="${days}" data-hours="${hours}"
+                         onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'genre-tooltip', '${genre}: ${days} days (${hours} hours)')"
+                         onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('genre-tooltip')"
+                         onmousemove="StatsApp.moveTooltip(event, 'genre-tooltip')"></div>
                     <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
                 </div>
             `;
@@ -1478,6 +1484,36 @@ const StatsApp = {
         const remainingHours = hours % 24;
         
         return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
+    },
+
+    // Show custom tooltip
+    showTooltip(event, tooltipId, content) {
+        const tooltip = document.getElementById(tooltipId);
+        if (tooltip) {
+            tooltip.innerHTML = content;
+            tooltip.style.opacity = '1';
+            this.moveTooltip(event, tooltipId);
+        }
+    },
+
+    // Hide custom tooltip
+    hideTooltip(tooltipId) {
+        const tooltip = document.getElementById(tooltipId);
+        if (tooltip) {
+            tooltip.style.opacity = '0';
+        }
+    },
+
+    // Move tooltip with mouse
+    moveTooltip(event, tooltipId) {
+        const tooltip = document.getElementById(tooltipId);
+        if (tooltip) {
+            const rect = event.target.closest('.chart-container').getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            tooltip.style.left = (x + 10) + 'px';
+            tooltip.style.top = (y - 10) + 'px';
+        }
     }
 };
 
