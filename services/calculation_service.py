@@ -61,57 +61,78 @@ class CalculationService:
         """Calculate fun time conversions ordered by size (smallest to largest time periods)."""
         conversions = []
         
-        # Order by size: Teen Spirit (5min) -> NYC-LA flights (6h) -> Sleep (8h) -> LotR (11.5h) -> Harry Potter (73h) -> Trans-Siberian (7 days)
+        # Order by size: Teen Spirit (5min) -> 30-min walk -> Sleep (8h) -> Harry Potter (73h) -> Trans-Siberian (7 days) -> Pregnancy (9 months)
         
         # 1. Smells Like Teen Spirit (5 minutes 1 second ≈ 5.02 minutes)
         teen_spirit_times = total_minutes / 5.02
+        value = self._format_conversion_number(teen_spirit_times)
         conversions.append({
             'icon': 'fas fa-music',
-            'value': f"{teen_spirit_times:.0f}",
-            'description': 'listened to "Smells Like Teen Spirit" 🎵'
+            'value': value,
+            'description': 'listened to "Smells Like Teen Spirit"',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 2. NYC to LA flights (about 6 hours ≈ 360 minutes)
-        nyc_la_flights = total_minutes / 360
+        # 2. 30-minute walk
+        walk_times = total_minutes / 30
+        value = self._format_conversion_number(walk_times)
         conversions.append({
-            'icon': 'fas fa-plane',
-            'value': f"{nyc_la_flights:.1f}",
-            'description': 'flown between New York and Los Angeles ✈️'
+            'icon': 'fas fa-walking',
+            'value': value,
+            'description': 'taken a 30-minute walk',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
         # 3. Full night's sleep (8 hours = 480 minutes)
         sleep_nights = total_minutes / 480
+        value = self._format_conversion_number(sleep_nights)
         conversions.append({
             'icon': 'fas fa-bed',
-            'value': f"{sleep_nights:.0f}",
-            'description': 'gotten full nights of sleep 😴'
+            'value': value,
+            'description': 'gotten full nights of sleep',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 4. Extended Lord of the Rings trilogy (11 hours 26 minutes ≈ 686 minutes)
-        lotr_times = total_minutes / 686
-        conversions.append({
-            'icon': 'fas fa-ring',
-            'value': f"{lotr_times:.1f}",
-            'description': 'watched the extended Lord of the Rings trilogy 💍'
-        })
-        
-        # 5. Reading Harry Potter series (about 73 hours ≈ 4,380 minutes)
+        # 4. Reading Harry Potter series (about 73 hours ≈ 4,380 minutes)
         hp_times = total_minutes / 4380
+        value = self._format_conversion_number(hp_times)
         conversions.append({
             'icon': 'fas fa-book',
-            'value': f"{hp_times:.1f}",
-            'description': 'read the entire Harry Potter series 📚'
+            'value': value,
+            'description': 'read the entire Harry Potter series',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 6. Trans-Siberian Railway end-to-end trip (about 7 days ≈ 10,080 minutes)
+        # 5. Trans-Siberian Railway trip (about 7 days ≈ 10,080 minutes)
         trans_siberian_times = total_minutes / 10080
+        value = self._format_conversion_number(trans_siberian_times)
         conversions.append({
             'icon': 'fas fa-train',
-            'value': f"{trans_siberian_times:.2f}",
-            'description': 'completed end-to-end trips on the Trans-Siberian Railway 🚂'
+            'value': value,
+            'description': 'completed trips on the Trans-Siberian Railway',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
+        })
+        
+        # 6. Carried out a baby (9 months = 270 days = 388,800 minutes)
+        pregnancy_times = total_minutes / 388800
+        value = self._format_conversion_number(pregnancy_times)
+        conversions.append({
+            'icon': 'fas fa-baby',
+            'value': value,
+            'description': 'carried out a baby',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
         return conversions
+    
+    def _format_conversion_number(self, number):
+        """Format conversion number with decimal places only if less than two digits before comma."""
+        if number >= 10:
+            # Two or more digits before decimal point - show as integer
+            return f"{number:,.0f}"
+        else:
+            # Less than two digits before decimal point - show one decimal place
+            return f"{number:.1f}"
     
     def get_show_length_distribution(self, watched_shows):
         """Get distribution of show lengths for chart."""
