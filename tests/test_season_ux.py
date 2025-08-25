@@ -22,8 +22,8 @@ def test_index_page_has_sort_controls(client):
     assert response.status_code == 200
     assert b'Sort by:' in response.data
     assert b'sortSelect' in response.data
-    assert b'Alphabet (A-Z)' in response.data
-    assert b'Watch Time (Most to Least)' in response.data
+    assert b'Alphabetical' in response.data
+    assert b'Watch Time' in response.data
 
 def test_watched_shows_api_structure(client):
     """Test that the API returns the expected structure for watched shows."""

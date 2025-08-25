@@ -40,8 +40,8 @@
             <div class="sort-controls" id="sortControls" style="display: none;">
                 <label for="sortSelect">Sort by:</label>
                 <select id="sortSelect" class="sort-select">
-                    <option value="alphabet-asc">Alphabet (A-Z)</option>
-                    <option value="watchtime-desc">Watch Time (Most to Least)</option>
+                    <option value="alphabet-asc">Alphabetical</option>
+                    <option value="watchtime-desc">Watch Time</option>
                 </select>
             </div>
         </div>
@@ -54,6 +54,17 @@
             <div class="empty-icon"><i class="fas fa-tv"></i></div>
             <h4>No shows tracked yet!</h4>
             <p>Start by searching for a TV show above and adding it to your watched list.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Remove All Data Section -->
+<section class="remove-all-section">
+    <div class="container">
+        <div class="remove-all-container">
+            <button type="button" class="btn btn-danger remove-all-btn" id="removeAllBtn">
+                <i class="fas fa-trash"></i> Remove All Data
+            </button>
         </div>
     </div>
 </section>

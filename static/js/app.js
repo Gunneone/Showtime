@@ -25,7 +25,8 @@ const App = {
         addShowModal: null,
         toastContainer: null,
         sortControls: null,
-        sortSelect: null
+        sortSelect: null,
+        removeAllBtn: null
     },
 
     // Initialize the application
@@ -48,6 +49,7 @@ const App = {
         this.elements.toastContainer = document.getElementById('toastContainer');
         this.elements.sortControls = document.getElementById('sortControls');
         this.elements.sortSelect = document.getElementById('sortSelect');
+        this.elements.removeAllBtn = document.getElementById('removeAllBtn');
         
         // Debug: Check if search results element is found
         console.log('Search results element found:', this.elements.searchResults);
@@ -68,8 +70,19 @@ const App = {
         
         // Sort functionality
         if (this.elements.sortSelect) {
+            // Load saved sort preference
+            this.loadSortPreference();
+            
             this.elements.sortSelect.addEventListener('change', () => {
+                this.saveSortPreference();
                 this.sortWatchedShows();
+            });
+        }
+        
+        // Remove all data functionality
+        if (this.elements.removeAllBtn) {
+            this.elements.removeAllBtn.addEventListener('click', () => {
+                this.confirmRemoveAllData();
             });
         }
         
@@ -259,19 +272,6 @@ const App = {
                 </div>
             `;
             return;
-        }
-
-        // Add header for instant search
-        if (isInstantSearch && results.length >= 3) {
-            const header = document.createElement('div');
-            header.className = 'search-results-header';
-            header.innerHTML = '<i class="fas fa-search"></i> Quick search results - click to add:';
-            this.elements.searchResults.appendChild(header);
-        } else if (!isInstantSearch) {
-            const header = document.createElement('div');
-            header.className = 'search-results-header';
-            header.innerHTML = `<i class="fas fa-search"></i> Found ${results.length} results:`;
-            this.elements.searchResults.appendChild(header);
         }
 
         // Create result elements
@@ -1097,6 +1097,64 @@ const App = {
                 toast.parentNode.removeChild(toast);
             }
         }, 5000);
+    },
+
+    // Save sort preference to cookies
+    saveSortPreference() {
+        if (this.elements.sortSelect) {
+            const sortValue = this.elements.sortSelect.value;
+            document.cookie = `sort_preference=${sortValue}; max-age=${365*24*60*60}; path=/`;
+        }
+    },
+
+    // Load sort preference from cookies
+    loadSortPreference() {
+        const cookies = document.cookie.split(';');
+        const sortCookie = cookies.find(cookie => cookie.trim().startsWith('sort_preference='));
+        
+        if (sortCookie && this.elements.sortSelect) {
+            const sortValue = sortCookie.split('=')[1];
+            this.elements.sortSelect.value = sortValue;
+        }
+    },
+
+    // Confirm and remove all data
+    confirmRemoveAllData() {
+        const confirmMessage = "⚠️ WARNING: This will permanently delete all your watched shows data.\n\nThis action cannot be undone. Are you sure you want to continue?";
+        
+        if (confirm(confirmMessage)) {
+            this.removeAllData();
+        }
+    },
+
+    // Remove all data from storage
+    async removeAllData() {
+        try {
+            // Clear the watched_shows cookie by setting it to expire in the past
+            document.cookie = 'watched_shows=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+            
+            // Clear the sort preference cookie too
+            document.cookie = 'sort_preference=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+            
+            // Reset application state
+            this.state.watchedShows = [];
+            this.state.totalTime = 0;
+            
+            // Update UI
+            this.updateTotalTimeDisplay('0h', 0);
+            this.displayWatchedShows();
+            
+            // Reset sort select to default
+            if (this.elements.sortSelect) {
+                this.elements.sortSelect.value = 'alphabet-asc';
+            }
+            
+            this.showToast('All data has been removed successfully', 'success');
+            
+        } catch (error) {
+            console.error('Error removing all data:', error);
+            this.showToast('Failed to remove data. Please try again.', 'error');
+        }
     }
 };
 
