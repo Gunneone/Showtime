@@ -797,6 +797,11 @@ const App = {
             <div class="watched-show-remove" onclick="App.removeShow(${show.id})" title="Remove show">
                 <i class="fas fa-times"></i>
             </div>
+            <div class="watched-show-poster">
+                <img src="${posterUrl}" alt="${show.name}" 
+                     onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
+                     loading="lazy">
+            </div>
             <div class="watched-show-content">
                 <div class="watched-show-header">
                     <div class="watched-show-info">
