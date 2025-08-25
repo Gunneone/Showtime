@@ -59,7 +59,7 @@ class CalculationService:
         """Calculate fun time conversions ordered by size (smallest to largest time periods)."""
         conversions = []
         
-        # Order by size: Teen Spirit (5min) -> 30-min walk -> Sleep (8h) -> Harry Potter (73h) -> Pregnancy (9 months) -> Trans-Siberian (7 days)
+        # Order by size: Teen Spirit (5min) -> 30-min walk -> Sleep (8h) -> Harry Potter (73h) -> Trans-Siberian (7 days) -> Pregnancy (9 months)
         
         # 1. Smells Like Teen Spirit (5 minutes 1 second ≈ 5.02 minutes)
         teen_spirit_times = total_minutes / 5.02
@@ -101,23 +101,23 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 5. Carried out a baby (9 months = 270 days = 388,800 minutes)
-        pregnancy_times = total_minutes / 388800
-        value = self._format_conversion_number(pregnancy_times)
-        conversions.append({
-            'icon': 'fas fa-baby',
-            'value': value,
-            'description': 'carried out a baby',
-            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
-        })
-        
-        # 6. Trans-Siberian Railway trip (about 7 days ≈ 10,080 minutes)
+        # 5. Trans-Siberian Railway trip (about 7 days ≈ 10,080 minutes)
         trans_siberian_times = total_minutes / 10080
         value = self._format_conversion_number(trans_siberian_times)
         conversions.append({
             'icon': 'fas fa-train',
             'value': value,
             'description': 'completed trips on the Trans-Siberian Railway',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
+        })
+        
+        # 6. Carried out a baby (9 months = 270 days = 388,800 minutes)
+        pregnancy_times = total_minutes / 388800
+        value = self._format_conversion_number(pregnancy_times)
+        conversions.append({
+            'icon': 'fas fa-baby',
+            'value': value,
+            'description': 'carried out a baby',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         

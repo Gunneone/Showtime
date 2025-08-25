@@ -1194,7 +1194,7 @@ const StatsApp = {
                 color: '#e2e8f0',
                 showgrid: false,
                 showticklabels: true,
-                tickfont: { color: 'rgba(226, 232, 240, 0.4)' }
+                tickfont: { color: 'rgba(226, 232, 240, 0.6)' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1296,7 +1296,7 @@ const StatsApp = {
                 color: '#e2e8f0',
                 showgrid: false,
                 showticklabels: true,
-                tickfont: { color: 'rgba(226, 232, 240, 0.4)' }
+                tickfont: { color: 'rgba(226, 232, 240, 0.6)' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
