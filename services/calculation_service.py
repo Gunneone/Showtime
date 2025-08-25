@@ -56,55 +56,57 @@ class CalculationService:
         return f"{years}y"
     
     def calculate_fun_conversions(self, total_minutes):
-        """Calculate fun time conversions."""
+        """Calculate fun time conversions ordered by size (smallest to largest time periods)."""
         conversions = []
         
-        # Smells Like Teen Spirit (5 minutes 1 second ≈ 5.02 minutes)
+        # Order by size: Teen Spirit (5min) -> NYC-LA flights (6h) -> Sleep (8h) -> LotR (11.5h) -> Harry Potter (73h) -> Trans-Siberian (7 days)
+        
+        # 1. Smells Like Teen Spirit (5 minutes 1 second ≈ 5.02 minutes)
         teen_spirit_times = total_minutes / 5.02
         conversions.append({
             'icon': 'fas fa-music',
             'value': f"{teen_spirit_times:.0f}",
-            'description': 'times you could have listened to "Smells Like Teen Spirit"'
+            'description': 'listened to "Smells Like Teen Spirit" 🎵'
         })
         
-        # Extended Lord of the Rings trilogy (11 hours 26 minutes ≈ 686 minutes)
-        lotr_times = total_minutes / 686
+        # 2. NYC to LA flights (about 6 hours ≈ 360 minutes)
+        nyc_la_flights = total_minutes / 360
         conversions.append({
-            'icon': 'fas fa-ring',
-            'value': f"{lotr_times:.1f}",
-            'description': 'times you could have watched the extended LotR trilogy'
+            'icon': 'fas fa-plane',
+            'value': f"{nyc_la_flights:.1f}",
+            'description': 'flown between New York and Los Angeles ✈️'
         })
         
-        # Sailing around the world (about 40 days ≈ 57,600 minutes)
-        sailing_times = total_minutes / 57600
-        conversions.append({
-            'icon': 'fas fa-ship',
-            'value': f"{sailing_times:.2f}",
-            'description': 'times you could have sailed around the world'
-        })
-        
-        # Full night's sleep (8 hours = 480 minutes)
+        # 3. Full night's sleep (8 hours = 480 minutes)
         sleep_nights = total_minutes / 480
         conversions.append({
             'icon': 'fas fa-bed',
             'value': f"{sleep_nights:.0f}",
-            'description': 'full nights of sleep you could have gotten'
+            'description': 'gotten full nights of sleep 😴'
         })
         
-        # Reading Harry Potter series (about 73 hours ≈ 4,380 minutes)
+        # 4. Extended Lord of the Rings trilogy (11 hours 26 minutes ≈ 686 minutes)
+        lotr_times = total_minutes / 686
+        conversions.append({
+            'icon': 'fas fa-ring',
+            'value': f"{lotr_times:.1f}",
+            'description': 'watched the extended Lord of the Rings trilogy 💍'
+        })
+        
+        # 5. Reading Harry Potter series (about 73 hours ≈ 4,380 minutes)
         hp_times = total_minutes / 4380
         conversions.append({
             'icon': 'fas fa-book',
             'value': f"{hp_times:.1f}",
-            'description': 'times you could have read the entire Harry Potter series'
+            'description': 'read the entire Harry Potter series 📚'
         })
         
-        # Round trip flight to Japan (about 26 hours ≈ 1,560 minutes)
-        japan_flights = total_minutes / 1560
+        # 6. Trans-Siberian Railway end-to-end trip (about 7 days ≈ 10,080 minutes)
+        trans_siberian_times = total_minutes / 10080
         conversions.append({
-            'icon': 'fas fa-plane',
-            'value': f"{japan_flights:.1f}",
-            'description': 'round trips to Japan you could have taken'
+            'icon': 'fas fa-train',
+            'value': f"{trans_siberian_times:.2f}",
+            'description': 'completed end-to-end trips on the Trans-Siberian Railway 🚂'
         })
         
         return conversions

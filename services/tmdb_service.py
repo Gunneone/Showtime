@@ -118,7 +118,10 @@ class TMDBService:
                     'number_of_episodes': 62,
                     'number_of_seasons': 5,
                     'episode_run_time': [47],
-                    'genres': [],
+                    'genres': [
+                        {'id': 18, 'name': 'Drama'},
+                        {'id': 80, 'name': 'Crime'}
+                    ],
                     'status': 'Ended',
                     'networks': []
                 },
@@ -135,7 +138,9 @@ class TMDBService:
                     'number_of_episodes': 201,
                     'number_of_seasons': 9,
                     'episode_run_time': [22],
-                    'genres': [],
+                    'genres': [
+                        {'id': 35, 'name': 'Comedy'}
+                    ],
                     'status': 'Ended',
                     'networks': []
                 },
@@ -152,7 +157,11 @@ class TMDBService:
                     'number_of_episodes': 73,
                     'number_of_seasons': 8,
                     'episode_run_time': [60],
-                    'genres': [],
+                    'genres': [
+                        {'id': 18, 'name': 'Drama'},
+                        {'id': 10759, 'name': 'Action & Adventure'},
+                        {'id': 10765, 'name': 'Sci-Fi & Fantasy'}
+                    ],
                     'status': 'Ended',
                     'networks': []
                 },
@@ -169,7 +178,11 @@ class TMDBService:
                     'number_of_episodes': 42,
                     'number_of_seasons': 4,
                     'episode_run_time': [51],
-                    'genres': [],
+                    'genres': [
+                        {'id': 18, 'name': 'Drama'},
+                        {'id': 10765, 'name': 'Sci-Fi & Fantasy'},
+                        {'id': 9648, 'name': 'Mystery'}
+                    ],
                     'status': 'Ended',
                     'networks': []
                 },
@@ -186,7 +199,11 @@ class TMDBService:
                     'number_of_episodes': 24,
                     'number_of_seasons': 3,
                     'episode_run_time': [36],
-                    'genres': [],
+                    'genres': [
+                        {'id': 10759, 'name': 'Action & Adventure'},
+                        {'id': 18, 'name': 'Drama'},
+                        {'id': 10765, 'name': 'Sci-Fi & Fantasy'}
+                    ],
                     'status': 'Ended',
                     'networks': []
                 }
