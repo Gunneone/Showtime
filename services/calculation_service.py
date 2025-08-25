@@ -59,7 +59,7 @@ class CalculationService:
         """Calculate fun time conversions ordered by size (smallest to largest time periods)."""
         conversions = []
         
-        # Order by size: Teen Spirit (5min) -> NYC-LA flights (6h) -> Sleep (8h) -> LotR (11.5h) -> Harry Potter (73h) -> Trans-Siberian (7 days)
+        # Order by size: Teen Spirit (5min) -> 30-min walk -> Sleep (8h) -> Harry Potter (73h) -> Pregnancy (9 months) -> Trans-Siberian (7 days)
         
         # 1. Smells Like Teen Spirit (5 minutes 1 second ≈ 5.02 minutes)
         teen_spirit_times = total_minutes / 5.02
@@ -71,13 +71,13 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 2. NYC to LA flights (about 6 hours ≈ 360 minutes)
-        nyc_la_flights = total_minutes / 360
-        value = self._format_conversion_number(nyc_la_flights)
+        # 2. 30-minute walk
+        walk_times = total_minutes / 30
+        value = self._format_conversion_number(walk_times)
         conversions.append({
-            'icon': 'fas fa-plane',
+            'icon': 'fas fa-walking',
             'value': value,
-            'description': 'flown between New York and Los Angeles',
+            'description': 'taken a 30-minute walk',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
@@ -91,23 +91,23 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 4. Extended Lord of the Rings trilogy (11 hours 26 minutes ≈ 686 minutes)
-        lotr_times = total_minutes / 686
-        value = self._format_conversion_number(lotr_times)
-        conversions.append({
-            'icon': 'fas fa-ring',
-            'value': value,
-            'description': 'watched the extended Lord of the Rings trilogy',
-            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
-        })
-        
-        # 5. Reading Harry Potter series (about 73 hours ≈ 4,380 minutes)
+        # 4. Reading Harry Potter series (about 73 hours ≈ 4,380 minutes)
         hp_times = total_minutes / 4380
         value = self._format_conversion_number(hp_times)
         conversions.append({
             'icon': 'fas fa-book',
             'value': value,
             'description': 'read the entire Harry Potter series',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
+        })
+        
+        # 5. Carried out a baby (9 months = 270 days = 388,800 minutes)
+        pregnancy_times = total_minutes / 388800
+        value = self._format_conversion_number(pregnancy_times)
+        conversions.append({
+            'icon': 'fas fa-baby',
+            'value': value,
+            'description': 'carried out a baby',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         

@@ -1187,14 +1187,14 @@ const StatsApp = {
                 title: 'Release Year',
                 color: '#e2e8f0',
                 showgrid: false,
-                tickfont: { color: '#9ca3af' }
+                tickfont: { color: '#a0aec0' }
             },
             yaxis: {
                 title: 'Hours Watched',
                 color: '#e2e8f0',
                 showgrid: false,
-                showticklabels: false,
-                tickfont: { color: '#cbd5e0' }
+                showticklabels: true,
+                tickfont: { color: 'rgba(226, 232, 240, 0.4)' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1203,7 +1203,10 @@ const StatsApp = {
         };
 
         const config = {
-            displayModeBar: false
+            displayModeBar: false,
+            staticPlot: false,
+            displaylogo: false,
+            modeBarButtonsToRemove: ['pan2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d', 'select2d', 'lasso2d']
         };
 
         Plotly.newPlot('yearlyChart', [trace], layout, config);
@@ -1286,14 +1289,14 @@ const StatsApp = {
                 title: 'Genre',
                 color: '#e2e8f0',
                 showgrid: false,
-                tickfont: { color: '#9ca3af' }
+                tickfont: { color: '#a0aec0' }
             },
             yaxis: {
                 title: 'Hours Watched',
                 color: '#e2e8f0',
                 showgrid: false,
-                showticklabels: false,
-                tickfont: { color: '#cbd5e0' }
+                showticklabels: true,
+                tickfont: { color: 'rgba(226, 232, 240, 0.4)' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1302,7 +1305,10 @@ const StatsApp = {
         };
 
         const config = {
-            displayModeBar: false
+            displayModeBar: false,
+            staticPlot: false,
+            displaylogo: false,
+            modeBarButtonsToRemove: ['pan2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d', 'select2d', 'lasso2d']
         };
 
         Plotly.newPlot('topGenresChart', [trace], layout, config);

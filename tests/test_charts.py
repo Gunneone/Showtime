@@ -9,17 +9,17 @@ def test_fun_conversions_calculation():
     conversions = calc_service.calculate_fun_conversions(2880)
     
     assert len(conversions) == 6
-    # Check new order: Teen Spirit, NYC-LA flights, Sleep, LotR, Harry Potter, Trans-Siberian
+    # Check new order: Teen Spirit, 30-min walk, Sleep, Harry Potter, Baby, Trans-Siberian
     assert conversions[0]['icon'] == 'fas fa-music'
     assert 'Smells Like Teen Spirit' in conversions[0]['description']
-    assert conversions[1]['icon'] == 'fas fa-plane'
-    assert 'New York and Los Angeles' in conversions[1]['description']
+    assert conversions[1]['icon'] == 'fas fa-walking'
+    assert '30-minute walk' in conversions[1]['description']
     assert conversions[2]['icon'] == 'fas fa-bed'
     assert 'sleep' in conversions[2]['description']
-    assert conversions[3]['icon'] == 'fas fa-ring'
-    assert 'Lord of the Rings' in conversions[3]['description']
-    assert conversions[4]['icon'] == 'fas fa-book'
-    assert 'Harry Potter' in conversions[4]['description']
+    assert conversions[3]['icon'] == 'fas fa-book'
+    assert 'Harry Potter' in conversions[3]['description']
+    assert conversions[4]['icon'] == 'fas fa-baby'
+    assert 'carried out a baby' in conversions[4]['description']
     assert conversions[5]['icon'] == 'fas fa-train'
     assert 'Trans-Siberian Railway' in conversions[5]['description']
 
