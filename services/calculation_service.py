@@ -55,6 +55,86 @@ class CalculationService:
             return f"{years}y {remaining_days}d"
         return f"{years}y"
     
+    def calculate_fun_conversions(self, total_minutes):
+        """Calculate fun time conversions ordered by size (smallest to largest time periods)."""
+        conversions = []
+        
+        # Order by size: Teen Spirit (5min) -> NYC-LA flights (6h) -> Sleep (8h) -> LotR (11.5h) -> Harry Potter (73h) -> Trans-Siberian (7 days)
+        
+        # 1. Smells Like Teen Spirit (5 minutes 1 second ≈ 5.02 minutes)
+        teen_spirit_times = total_minutes / 5.02
+        conversions.append({
+            'icon': 'fas fa-music',
+            'value': f"{teen_spirit_times:.0f}",
+            'description': 'listened to "Smells Like Teen Spirit" 🎵'
+        })
+        
+        # 2. NYC to LA flights (about 6 hours ≈ 360 minutes)
+        nyc_la_flights = total_minutes / 360
+        conversions.append({
+            'icon': 'fas fa-plane',
+            'value': f"{nyc_la_flights:.1f}",
+            'description': 'flown between New York and Los Angeles ✈️'
+        })
+        
+        # 3. Full night's sleep (8 hours = 480 minutes)
+        sleep_nights = total_minutes / 480
+        conversions.append({
+            'icon': 'fas fa-bed',
+            'value': f"{sleep_nights:.0f}",
+            'description': 'gotten full nights of sleep 😴'
+        })
+        
+        # 4. Extended Lord of the Rings trilogy (11 hours 26 minutes ≈ 686 minutes)
+        lotr_times = total_minutes / 686
+        conversions.append({
+            'icon': 'fas fa-ring',
+            'value': f"{lotr_times:.1f}",
+            'description': 'watched the extended Lord of the Rings trilogy 💍'
+        })
+        
+        # 5. Reading Harry Potter series (about 73 hours ≈ 4,380 minutes)
+        hp_times = total_minutes / 4380
+        conversions.append({
+            'icon': 'fas fa-book',
+            'value': f"{hp_times:.1f}",
+            'description': 'read the entire Harry Potter series 📚'
+        })
+        
+        # 6. Trans-Siberian Railway end-to-end trip (about 7 days ≈ 10,080 minutes)
+        trans_siberian_times = total_minutes / 10080
+        conversions.append({
+            'icon': 'fas fa-train',
+            'value': f"{trans_siberian_times:.2f}",
+            'description': 'completed end-to-end trips on the Trans-Siberian Railway 🚂'
+        })
+        
+        return conversions
+    
+    def get_show_length_distribution(self, watched_shows):
+        """Get distribution of show lengths for chart."""
+        length_ranges = {
+            'Short (< 30min)': 0,
+            'Standard (30-60min)': 0,
+            'Long (60-90min)': 0,
+            'Very Long (> 90min)': 0
+        }
+        
+        for show in watched_shows:
+            runtime = show.get('episode_run_time', 45)
+            show_time = self.calculate_show_time(show)
+            
+            if runtime < 30:
+                length_ranges['Short (< 30min)'] += show_time
+            elif runtime <= 60:
+                length_ranges['Standard (30-60min)'] += show_time
+            elif runtime <= 90:
+                length_ranges['Long (60-90min)'] += show_time
+            else:
+                length_ranges['Very Long (> 90min)'] += show_time
+        
+        return length_ranges
+    
     def calculate_stats(self, watched_shows):
         """Calculate comprehensive viewing statistics."""
         if not watched_shows:
@@ -70,7 +150,9 @@ class CalculationService:
                     'completed_shows': 0,
                     'in_progress_shows': 0,
                     'completion_rate': 0
-                }
+                },
+                'fun_conversions': [],
+                'show_length_distribution': {}
             }
         
         total_shows = len(watched_shows)
@@ -129,5 +211,7 @@ class CalculationService:
                 'completed_shows': completed_shows,
                 'in_progress_shows': in_progress_shows,
                 'completion_rate': round(completion_rate, 1)
-            }
+            },
+            'fun_conversions': self.calculate_fun_conversions(total_time_minutes),
+            'show_length_distribution': self.get_show_length_distribution(watched_shows)
         }
