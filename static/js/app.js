@@ -1130,10 +1130,20 @@ const App = {
     // Remove all data from storage
     async removeAllData() {
         try {
-            // Clear the watched_shows cookie by setting it to expire in the past
-            document.cookie = 'watched_shows=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+            this.showLoading();
             
-            // Clear the sort preference cookie too
+            // Call the API to clear all watched shows data (including HTTP-only cookies)
+            const response = await fetch('/api/watched', {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to clear data');
+            }
+            
+            // Clear client-side sort preference cookie as backup
             document.cookie = 'sort_preference=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
             
             // Reset application state
@@ -1154,6 +1164,8 @@ const App = {
         } catch (error) {
             console.error('Error removing all data:', error);
             this.showToast('Failed to remove data. Please try again.', 'error');
+        } finally {
+            this.hideLoading();
         }
     }
 };
