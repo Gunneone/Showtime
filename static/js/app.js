@@ -79,6 +79,21 @@ const App = {
             }
         });
 
+        // Close season editing when clicking outside
+        document.addEventListener('click', (e) => {
+            // Find any open season editing elements
+            const openEdits = document.querySelectorAll('.seasons-edit[style*="display: flex"]');
+            openEdits.forEach(editElement => {
+                const showCard = editElement.closest('.watched-show');
+                const showId = editElement.id.replace('seasonsEdit-', '');
+                
+                // If click is outside the show card, close the editing
+                if (showCard && !showCard.contains(e.target)) {
+                    this.cancelEditSeasons(parseInt(showId));
+                }
+            });
+        });
+
         // Modal events
         this.bindModalEvents();
     },
