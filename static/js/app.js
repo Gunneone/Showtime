@@ -21,7 +21,9 @@ const App = {
         totalWatchTime: null,
         loadingSpinner: null,
         addShowModal: null,
-        toastContainer: null
+        toastContainer: null,
+        sortControls: null,
+        sortSelect: null
     },
 
     // Initialize the application
@@ -42,6 +44,8 @@ const App = {
         this.elements.loadingSpinner = document.getElementById('loadingSpinner');
         this.elements.addShowModal = document.getElementById('addShowModal');
         this.elements.toastContainer = document.getElementById('toastContainer');
+        this.elements.sortControls = document.getElementById('sortControls');
+        this.elements.sortSelect = document.getElementById('sortSelect');
         
         // Debug: Check if search results element is found
         console.log('Search results element found:', this.elements.searchResults);
@@ -60,12 +64,34 @@ const App = {
         // Search functionality
         this.setupSearchFunctionality();
         
+        // Sort functionality
+        if (this.elements.sortSelect) {
+            this.elements.sortSelect.addEventListener('change', () => {
+                this.sortWatchedShows();
+            });
+        }
+        
         // Close search results when clicking outside
         document.addEventListener('click', (e) => {
             if (!this.elements.searchInput.contains(e.target) && 
                 !this.elements.searchResults.contains(e.target)) {
                 this.hideSearchResults();
             }
+        });
+
+        // Close season editing when clicking outside
+        document.addEventListener('click', (e) => {
+            // Find any open season editing elements
+            const openEdits = document.querySelectorAll('.seasons-edit[style*="display: flex"]');
+            openEdits.forEach(editElement => {
+                const showCard = editElement.closest('.watched-show');
+                const showId = editElement.id.replace('seasonsEdit-', '');
+                
+                // If click is outside the show card, close the editing
+                if (showCard && !showCard.contains(e.target)) {
+                    this.cancelEditSeasons(parseInt(showId));
+                }
+            });
         });
 
         // Modal events
@@ -251,15 +277,8 @@ const App = {
         const overview = show.overview || 'No description available.';
         const truncatedOverview = overview.length > 150 ? overview.substring(0, 150) + '...' : overview;
 
-        // Get total seasons from mock data based on show ID
-        const mockSeasons = {
-            1: 5, // Breaking Bad
-            2: 9, // The Office
-            3: 8, // Game of Thrones
-            4: 4, // Stranger Things
-            5: 3  // The Mandalorian
-        };
-        const totalSeasons = mockSeasons[show.id] || 1;
+        // Get total seasons from the show data returned by the API
+        const totalSeasons = show.number_of_seasons || 1;
 
         // Create season selector bars
         const seasonBars = this.createSeasonSelectorBars(totalSeasons, show);
@@ -293,6 +312,14 @@ const App = {
             }
         }, 0);
 
+        // Add click handler for entire search result to add all seasons when clicking outside season buttons
+        div.addEventListener('click', (e) => {
+            // Don't trigger if clicking on season buttons
+            if (!e.target.closest('.season-selector-bars')) {
+                this.addShowWithSeasons(show.id, totalSeasons, show.name);
+            }
+        });
+
         return div;
     },
 
@@ -305,6 +332,23 @@ const App = {
                      data-season="${i}" 
                      data-show-id="${show.id}"
                      onclick="App.addShowWithSeasons(${show.id}, ${i}, '${show.name.replace(/'/g, "\\'")}')">
+                    ${i}
+                </div>
+            `;
+        }
+        return barsHtml;
+    },
+
+    // Create season selector bars for editing existing shows
+    createEditSeasonSelectorBars(totalSeasons, show, currentSeasons) {
+        let barsHtml = '';
+        for (let i = 1; i <= totalSeasons; i++) {
+            const isSelected = i <= currentSeasons;
+            barsHtml += `
+                <div class="season-bar edit-season-bar ${isSelected ? 'highlighted' : ''}" 
+                     data-season="${i}" 
+                     data-show-id="${show.id}"
+                     onclick="App.selectEditSeasons(${show.id}, ${i})">
                     ${i}
                 </div>
             `;
@@ -532,6 +576,12 @@ const App = {
             this.state.watchedShows = data.watched_shows;
             
             this.updateTotalTimeDisplay(data.total_time_formatted, data.total_time_minutes);
+            
+            // Apply current sort if any is selected, then display
+            if (this.elements.sortSelect && this.elements.sortSelect.value) {
+                this.applySortToCurrentShows();
+            }
+            
             this.displayWatchedShows();
         } catch (error) {
             console.error('Error loading watched shows:', error);
@@ -666,16 +716,64 @@ const App = {
         }, 2000);
     },
 
+    // Sort watched shows based on selected criteria
+    sortWatchedShows() {
+        this.applySortToCurrentShows();
+        this.displayWatchedShows();
+    },
+    
+    // Apply sort to current shows without re-displaying
+    applySortToCurrentShows() {
+        if (!this.elements.sortSelect) return;
+        
+        const sortBy = this.elements.sortSelect.value;
+        const shows = [...this.state.watchedShows]; // Create a copy to sort
+        
+        switch (sortBy) {
+            case 'alphabet-asc':
+                shows.sort((a, b) => a.name.localeCompare(b.name));
+                break;
+            case 'watchtime-desc':
+                shows.sort((a, b) => {
+                    const timeA = this.calculateShowTimeInMinutes(a);
+                    const timeB = this.calculateShowTimeInMinutes(b);
+                    return timeB - timeA; // Descending order
+                });
+                break;
+            default:
+                break;
+        }
+        
+        // Update the state with sorted shows
+        this.state.watchedShows = shows;
+    },
+
+    // Calculate show time in minutes for sorting
+    calculateShowTimeInMinutes(show) {
+        const episodesPerSeason = 20; // Default assumption (same as calculateShowTime)
+        const totalEpisodes = show.seasons_watched * episodesPerSeason;
+        const totalMinutes = totalEpisodes * (show.episode_run_time || 45);
+        return totalMinutes;
+    },
+
     // Display watched shows
     displayWatchedShows() {
         this.elements.watchedShows.innerHTML = '';
 
         if (this.state.watchedShows.length === 0) {
             this.elements.emptyState.classList.remove('hidden');
+            if (this.elements.sortControls) {
+                this.elements.sortControls.style.display = 'none';
+            }
             return;
         }
 
         this.elements.emptyState.classList.add('hidden');
+        
+        // Show sort controls when there are shows
+        if (this.elements.sortControls) {
+            this.elements.sortControls.style.display = 'flex';
+        }
 
         this.state.watchedShows.forEach(show => {
             const showElement = this.createWatchedShowElement(show);
@@ -692,33 +790,31 @@ const App = {
         const watchTime = this.calculateShowTime(show);
         const totalSeasons = show.total_seasons || 1;
 
+        // Create edit season selector bars
+        const editSeasonBars = this.createEditSeasonSelectorBars(totalSeasons, show, show.seasons_watched);
+
         div.innerHTML = `
-            <div class="watched-show-header">
-                <div class="watched-show-info">
-                    <h4>${show.name}</h4>
-                    <div class="watched-show-seasons">
-                        <div class="seasons-display" onclick="App.editSeasons(${show.id})">
-                            <i class="fas fa-eye"></i> ${show.seasons_watched} of ${totalSeasons} season${totalSeasons !== 1 ? 's' : ''} watched 
-                            <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
-                        </div>
-                        <div class="seasons-edit" id="seasonsEdit-${show.id}">
-                            <input type="number" min="0" max="${totalSeasons}" value="${show.seasons_watched}" id="seasonsInput-${show.id}">
-                            <span class="seasons-total">/ ${totalSeasons}</span>
-                            <button class="seasons-edit-btn seasons-edit-save" onclick="App.saveSeasons(${show.id})">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            <button class="seasons-edit-btn seasons-edit-cancel" onclick="App.cancelEditSeasons(${show.id})">
-                                <i class="fas fa-times"></i>
-                            </button>
+            <div class="watched-show-remove" onclick="App.removeShow(${show.id})" title="Remove show">
+                <i class="fas fa-times"></i>
+            </div>
+            <div class="watched-show-content">
+                <div class="watched-show-header">
+                    <div class="watched-show-info">
+                        <h4>${show.name}</h4>
+                        <div class="watched-show-seasons">
+                            <div class="seasons-display" onclick="App.editSeasons(${show.id})">
+                                <i class="fas fa-eye"></i> ${show.seasons_watched} of ${totalSeasons} season${totalSeasons !== 1 ? 's' : ''} watched 
+                                <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
+                            </div>
+                            <div class="seasons-edit" id="seasonsEdit-${show.id}" data-selected-seasons="${show.seasons_watched}">
+                                <div class="season-selector-bars edit-season-bars">
+                                    ${editSeasonBars}
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <div class="watched-show-time"><i class="fas fa-clock"></i> ${watchTime}</div>
                 </div>
-                <div class="watched-show-time"><i class="fas fa-clock"></i> ${watchTime}</div>
-            </div>
-            <div class="watched-show-actions">
-                <button type="button" class="btn btn-danger" onclick="App.removeShow(${show.id})">
-                    <i class="fas fa-trash"></i> Remove
-                </button>
             </div>
         `;
 
@@ -755,41 +851,122 @@ const App = {
     editSeasons(showId) {
         const displayElement = document.querySelector(`#seasonsEdit-${showId}`).previousElementSibling;
         const editElement = document.getElementById(`seasonsEdit-${showId}`);
-        const inputElement = document.getElementById(`seasonsInput-${showId}`);
         
         displayElement.style.display = 'none';
         editElement.style.display = 'flex';
-        inputElement.focus();
-        inputElement.select();
+        
+        // Initialize the selected seasons to current value
+        const show = this.state.watchedShows.find(s => s.id === showId);
+        if (show) {
+            editElement.setAttribute('data-selected-seasons', show.seasons_watched);
+            // Update bars to show current selection without saving
+            this.updateEditSeasonBars(showId, show.seasons_watched);
+            // Setup hover effects for edit season bars
+            this.setupEditSeasonHoverEffects(showId);
+        }
     },
 
     cancelEditSeasons(showId) {
         const show = this.state.watchedShows.find(s => s.id === showId);
         const displayElement = document.querySelector(`#seasonsEdit-${showId}`).previousElementSibling;
         const editElement = document.getElementById(`seasonsEdit-${showId}`);
-        const inputElement = document.getElementById(`seasonsInput-${showId}`);
-        
-        // Reset input to original value
-        inputElement.value = show ? show.seasons_watched : 1;
         
         displayElement.style.display = 'block';
         editElement.style.display = 'none';
     },
 
+    // Update season bars visual state without triggering save
+    updateEditSeasonBars(showId, selectedSeasons) {
+        // Update all season bars to show selection state
+        const container = document.getElementById(`seasonsEdit-${showId}`);
+        const bars = container.querySelectorAll('.edit-season-bar');
+        
+        bars.forEach((bar, index) => {
+            const seasonNumber = index + 1;
+            if (seasonNumber <= selectedSeasons) {
+                bar.classList.add('highlighted');
+            } else {
+                bar.classList.remove('highlighted');
+            }
+        });
+
+        // Store the selected value 
+        container.setAttribute('data-selected-seasons', selectedSeasons);
+    },
+
+    // Handle selection of seasons during editing
+    selectEditSeasons(showId, selectedSeasons) {
+        // Update bars visual state
+        this.updateEditSeasonBars(showId, selectedSeasons);
+        
+        // Close the editing interface and save the selection
+        this.saveSeasons(showId);
+    },
+
+    // Setup hover effects for edit season bars
+    setupEditSeasonHoverEffects(showId) {
+        const container = document.getElementById(`seasonsEdit-${showId}`);
+        const bars = container.querySelectorAll('.edit-season-bar');
+        
+        bars.forEach((bar, index) => {
+            bar.addEventListener('mouseenter', () => {
+                // Reset all bars to base state
+                bars.forEach(b => {
+                    b.classList.remove('highlighted', 'hover-highlighted');
+                });
+                
+                // Highlight all bars up to and including the hovered one with hover class
+                for (let i = 0; i <= index; i++) {
+                    bars[i].classList.add('hover-highlighted');
+                }
+            });
+            
+            bar.addEventListener('mouseleave', () => {
+                // Remove hover highlights and restore current selection state
+                bars.forEach(b => b.classList.remove('hover-highlighted'));
+                
+                // Restore the current selection highlights
+                const currentSeasons = parseInt(container.getAttribute('data-selected-seasons')) || 0;
+                bars.forEach((b, i) => {
+                    if (i + 1 <= currentSeasons) {
+                        b.classList.add('highlighted');
+                    } else {
+                        b.classList.remove('highlighted');
+                    }
+                });
+            });
+        });
+        
+        // Also handle container mouse leave to ensure proper state restoration
+        container.addEventListener('mouseleave', () => {
+            bars.forEach(b => b.classList.remove('hover-highlighted'));
+            
+            // Restore the current selection highlights
+            const currentSeasons = parseInt(container.getAttribute('data-selected-seasons')) || 0;
+            bars.forEach((b, i) => {
+                if (i + 1 <= currentSeasons) {
+                    b.classList.add('highlighted');
+                } else {
+                    b.classList.remove('highlighted');
+                }
+            });
+        });
+    },
+
     async saveSeasons(showId) {
-        const inputElement = document.getElementById(`seasonsInput-${showId}`);
-        const seasonsWatched = parseInt(inputElement.value);
+        const editElement = document.getElementById(`seasonsEdit-${showId}`);
+        const selectedSeasons = parseInt(editElement.getAttribute('data-selected-seasons')) || 0;
         
         // Find the show to get total seasons
         const show = this.state.watchedShows.find(s => s.id === showId);
         const maxSeasons = show ? (show.total_seasons || 1) : 1;
         
-        if (isNaN(seasonsWatched) || seasonsWatched < 0) {
-            this.showToast('Please enter a valid number of seasons', 'error');
+        if (selectedSeasons < 0) {
+            this.showToast('Please select at least 0 seasons', 'error');
             return;
         }
         
-        if (seasonsWatched > maxSeasons) {
+        if (selectedSeasons > maxSeasons) {
             this.showToast(`Cannot exceed ${maxSeasons} season${maxSeasons !== 1 ? 's' : ''} for this show`, 'error');
             return;
         }
@@ -803,7 +980,7 @@ const App = {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    seasons_watched: seasonsWatched
+                    seasons_watched: selectedSeasons
                 })
             });
 

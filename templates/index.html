@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Days Watched - Track Your TV Time{% endblock %}
+{% block title %}Showtime - Track Your TV Time{% endblock %}
 
 {% block content %}
 <!-- Watch Time Display -->
@@ -35,7 +35,16 @@
 <!-- Watched Shows Section -->
 <section class="watched-section">
     <div class="watched-container">
-        <h3>Your Watched Shows</h3>
+        <div class="watched-header">
+            <h3>Your Watched Shows</h3>
+            <div class="sort-controls" id="sortControls" style="display: none;">
+                <label for="sortSelect">Sort by:</label>
+                <select id="sortSelect" class="sort-select">
+                    <option value="alphabet-asc">Alphabet (A-Z)</option>
+                    <option value="watchtime-desc">Watch Time (Most to Least)</option>
+                </select>
+            </div>
+        </div>
         <div id="watchedShows" class="watched-grid">
             <!-- Watched shows will be populated here by JavaScript -->
         </div>

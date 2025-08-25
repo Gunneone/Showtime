@@ -224,6 +224,8 @@ class TMDBService:
         # Format the results
         results = []
         for show in data.get('results', []):
+            # Get detailed show info to include number of seasons
+            show_details = self.get_show_details(show['id'])
             results.append({
                 'id': show['id'],
                 'name': show['name'],
@@ -231,7 +233,8 @@ class TMDBService:
                 'first_air_date': show.get('first_air_date', ''),
                 'poster_path': self._get_full_image_url(show.get('poster_path')),
                 'vote_average': show.get('vote_average', 0),
-                'popularity': show.get('popularity', 0)
+                'popularity': show.get('popularity', 0),
+                'number_of_seasons': show_details.get('number_of_seasons', 1)
             })
         
         return {
