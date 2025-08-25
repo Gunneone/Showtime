@@ -587,8 +587,8 @@ body {
 
 .watched-show-remove {
     position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
+    top: 0.5rem;
+    right: 0.5rem;
     width: 20px;
     height: 20px;
     border-radius: 50%;
@@ -598,20 +598,24 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     transition: all 0.2s ease;
     z-index: 10;
+    border: none;
 }
 
 .watched-show-remove:hover {
-    background: rgba(229, 62, 62, 0.2);
-    color: rgba(229, 62, 62, 0.9);
-    transform: scale(1.1);
+    background: rgba(160, 174, 192, 0.2);
+    color: rgba(226, 232, 240, 0.9);
+    transform: scale(1.05);
 }
 
 .watched-show-info h4 {
     color: #e2e8f0;
     margin-bottom: 0.5rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    margin-right: 2rem; /* Leave space for remove button */
 }
 
 .watched-show-seasons {
@@ -623,6 +627,8 @@ body {
     color: #63b3ed;
     font-weight: 600;
     font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* Inline season editing */
