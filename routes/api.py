@@ -45,16 +45,24 @@ def search():
 
 @api_bp.route('/watched', methods=['GET'])
 def get_watched():
-    """Get watched list from cookies."""
+    """Get watched list from localStorage (via request body) or fallback to cookies for migration."""
     try:
-        watched_cookie = request.cookies.get('watched_shows', '[]')
+        watched_shows = []
         
-        # URL decode the cookie value if needed
-        import urllib.parse
-        if watched_cookie.startswith('%'):
-            watched_cookie = urllib.parse.unquote(watched_cookie)
-        
-        watched_shows = json.loads(watched_cookie)
+        # Try to get data from request body (localStorage data sent by frontend)
+        if request.is_json and request.get_json():
+            data = request.get_json()
+            watched_shows = data.get('watched_shows', [])
+        else:
+            # Fallback to cookies for backward compatibility / migration
+            watched_cookie = request.cookies.get('watched_shows', '[]')
+            
+            # URL decode the cookie value if needed
+            import urllib.parse
+            if watched_cookie.startswith('%'):
+                watched_cookie = urllib.parse.unquote(watched_cookie)
+            
+            watched_shows = json.loads(watched_cookie)
         
         # Calculate total watch time
         calc_service = get_calc_service()
@@ -70,15 +78,22 @@ def get_watched():
 
 @api_bp.route('/watched', methods=['POST'])
 def add_watched():
-    """Add watched content (stored in cookies)."""
+    """Add watched content (stored in localStorage, with migration support from cookies)."""
     try:
         data = request.get_json()
         if not data or 'id' not in data:
             return jsonify({'error': 'Show ID is required'}), 400
         
-        # Get current watched shows from cookies
-        watched_cookie = request.cookies.get('watched_shows', '[]')
-        watched_shows = json.loads(watched_cookie)
+        # Get current watched shows from request body (localStorage) or fallback to cookies
+        watched_shows = []
+        
+        if 'current_watched_shows' in data:
+            # Frontend sent current localStorage data
+            watched_shows = data['current_watched_shows']
+        else:
+            # Fallback to cookies for migration
+            watched_cookie = request.cookies.get('watched_shows', '[]')
+            watched_shows = json.loads(watched_cookie)
         
         # Get show details from TMDB
         tmdb_service = get_tmdb_service()
@@ -116,15 +131,17 @@ def add_watched():
             }
             watched_shows.append(new_show)
         
-        # Create response with updated cookie
-        response = make_response(jsonify({'success': True, 'show': show_details}))
-        response.set_cookie(
-            'watched_shows',
-            json.dumps(watched_shows),
-            max_age=365*24*60*60,  # 1 year
-            httponly=True,
-            samesite='Lax'
-        )
+        # Return updated data for localStorage storage (no cookies)
+        response_data = {
+            'success': True, 
+            'show': show_details,
+            'updated_watched_shows': watched_shows
+        }
+        
+        # Clear legacy cookie if it exists (migration)
+        response = make_response(jsonify(response_data))
+        if request.cookies.get('watched_shows'):
+            response.set_cookie('watched_shows', '', expires=0, httponly=True, samesite='Lax')
         
         return response
     except Exception as e:
@@ -138,9 +155,16 @@ def update_watched(show_id):
         if not data:
             return jsonify({'error': 'Request data is required'}), 400
         
-        # Get current watched shows from cookies
-        watched_cookie = request.cookies.get('watched_shows', '[]')
-        watched_shows = json.loads(watched_cookie)
+        # Get current watched shows from request body (localStorage) or fallback to cookies
+        watched_shows = []
+        
+        if 'current_watched_shows' in data:
+            # Frontend sent current localStorage data
+            watched_shows = data['current_watched_shows']
+        else:
+            # Fallback to cookies for migration
+            watched_cookie = request.cookies.get('watched_shows', '[]')
+            watched_shows = json.loads(watched_cookie)
         
         # Find and update the show
         show_to_update = next((show for show in watched_shows if show['id'] == show_id), None)
@@ -151,15 +175,17 @@ def update_watched(show_id):
         if 'seasons_watched' in data:
             show_to_update['seasons_watched'] = data['seasons_watched']
         
-        # Create response with updated cookie
-        response = make_response(jsonify({'success': True, 'show': show_to_update}))
-        response.set_cookie(
-            'watched_shows',
-            json.dumps(watched_shows),
-            max_age=365*24*60*60,  # 1 year
-            httponly=True,
-            samesite='Lax'
-        )
+        # Return updated data for localStorage storage (no cookies)
+        response_data = {
+            'success': True, 
+            'show': show_to_update,
+            'updated_watched_shows': watched_shows
+        }
+        
+        # Clear legacy cookie if it exists (migration)
+        response = make_response(jsonify(response_data))
+        if request.cookies.get('watched_shows'):
+            response.set_cookie('watched_shows', '', expires=0, httponly=True, samesite='Lax')
         
         return response
     except Exception as e:
@@ -169,22 +195,32 @@ def update_watched(show_id):
 def remove_watched(show_id):
     """Remove watched content."""
     try:
-        # Get current watched shows from cookies
-        watched_cookie = request.cookies.get('watched_shows', '[]')
-        watched_shows = json.loads(watched_cookie)
+        data = request.get_json() or {}
+        
+        # Get current watched shows from request body (localStorage) or fallback to cookies
+        watched_shows = []
+        
+        if 'current_watched_shows' in data:
+            # Frontend sent current localStorage data
+            watched_shows = data['current_watched_shows']
+        else:
+            # Fallback to cookies for migration
+            watched_cookie = request.cookies.get('watched_shows', '[]')
+            watched_shows = json.loads(watched_cookie)
         
         # Remove the show
         watched_shows = [show for show in watched_shows if show['id'] != show_id]
         
-        # Create response with updated cookie
-        response = make_response(jsonify({'success': True}))
-        response.set_cookie(
-            'watched_shows',
-            json.dumps(watched_shows),
-            max_age=365*24*60*60,  # 1 year
-            httponly=True,
-            samesite='Lax'
-        )
+        # Return updated data for localStorage storage (no cookies)
+        response_data = {
+            'success': True,
+            'updated_watched_shows': watched_shows
+        }
+        
+        # Clear legacy cookie if it exists (migration)
+        response = make_response(jsonify(response_data))
+        if request.cookies.get('watched_shows'):
+            response.set_cookie('watched_shows', '', expires=0, httponly=True, samesite='Lax')
         
         return response
     except Exception as e:
@@ -197,7 +233,7 @@ def clear_all_watched():
         # Create response that clears both watched shows and sort preference cookies
         response = make_response(jsonify({'success': True, 'message': 'All data cleared successfully'}))
         
-        # Clear the watched shows cookie by setting it to empty and expiring it
+        # Clear the watched shows cookie by setting it to empty and expiring it (migration cleanup)
         response.set_cookie(
             'watched_shows',
             '',
@@ -218,18 +254,37 @@ def clear_all_watched():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@api_bp.route('/stats')
-def get_stats():
-    """Get viewing statistics."""
+@api_bp.route('/watched/calculate', methods=['POST'])
+def calculate_watched():
+    """Calculate watched shows statistics from localStorage data."""
     try:
-        watched_cookie = request.cookies.get('watched_shows', '[]')
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Request data is required'}), 400
         
-        # URL decode the cookie value if needed
-        import urllib.parse
-        if watched_cookie.startswith('%'):
-            watched_cookie = urllib.parse.unquote(watched_cookie)
+        watched_shows = data.get('watched_shows', [])
         
-        watched_shows = json.loads(watched_cookie)
+        # Calculate total watch time
+        calc_service = get_calc_service()
+        total_time = calc_service.calculate_total_time(watched_shows)
+        
+        return jsonify({
+            'watched_shows': watched_shows,
+            'total_time_minutes': total_time,
+            'total_time_formatted': calc_service.format_time(total_time)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/stats/calculate', methods=['POST'])
+def calculate_stats():
+    """Calculate viewing statistics from localStorage data."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Request data is required'}), 400
+        
+        watched_shows = data.get('watched_shows', [])
         
         calc_service = get_calc_service()
         stats = calc_service.calculate_stats(watched_shows)

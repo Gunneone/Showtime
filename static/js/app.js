@@ -1,5 +1,119 @@
 // Days Watched - Main Application JavaScript
 
+// Data Storage Service for localStorage management
+const DataStorage = {
+    WATCHED_SHOWS_KEY: 'days_watched_shows',
+    SORT_PREFERENCE_KEY: 'days_watched_sort_preference',
+
+    // Get watched shows from localStorage
+    getWatchedShows() {
+        try {
+            const data = localStorage.getItem(this.WATCHED_SHOWS_KEY);
+            return data ? JSON.parse(data) : [];
+        } catch (error) {
+            console.error('Error reading from localStorage:', error);
+            return [];
+        }
+    },
+
+    // Save watched shows to localStorage
+    setWatchedShows(watchedShows) {
+        try {
+            localStorage.setItem(this.WATCHED_SHOWS_KEY, JSON.stringify(watchedShows));
+            return true;
+        } catch (error) {
+            console.error('Error writing to localStorage:', error);
+            return false;
+        }
+    },
+
+    // Clear all data from localStorage
+    clearAll() {
+        try {
+            localStorage.removeItem(this.WATCHED_SHOWS_KEY);
+            localStorage.removeItem(this.SORT_PREFERENCE_KEY);
+            return true;
+        } catch (error) {
+            console.error('Error clearing localStorage:', error);
+            return false;
+        }
+    },
+
+    // Get sort preference
+    getSortPreference() {
+        try {
+            return localStorage.getItem(this.SORT_PREFERENCE_KEY) || 'alphabet-asc';
+        } catch (error) {
+            console.error('Error reading sort preference:', error);
+            return 'alphabet-asc';
+        }
+    },
+
+    // Save sort preference
+    setSortPreference(sortValue) {
+        try {
+            localStorage.setItem(this.SORT_PREFERENCE_KEY, sortValue);
+            return true;
+        } catch (error) {
+            console.error('Error saving sort preference:', error);
+            return false;
+        }
+    },
+
+    // Migrate data from cookies to localStorage (one-time migration)
+    migrateFromCookies() {
+        try {
+            // Check if we already have data in localStorage
+            const existingData = this.getWatchedShows();
+            if (existingData.length > 0) {
+                return; // Already have localStorage data, no migration needed
+            }
+
+            // Try to get data from cookie
+            const cookies = document.cookie.split(';');
+            const watchedCookie = cookies.find(cookie => cookie.trim().startsWith('watched_shows='));
+            
+            if (watchedCookie) {
+                const cookieValue = decodeURIComponent(watchedCookie.split('=')[1]);
+                const watchedShows = JSON.parse(cookieValue);
+                
+                if (watchedShows.length > 0) {
+                    console.log('Migrating', watchedShows.length, 'shows from cookies to localStorage');
+                    this.setWatchedShows(watchedShows);
+                    
+                    // Clear the cookie after successful migration
+                    document.cookie = 'watched_shows=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+                }
+            }
+
+            // Migrate sort preference too
+            const sortCookie = cookies.find(cookie => cookie.trim().startsWith('sort_preference='));
+            if (sortCookie) {
+                const sortValue = sortCookie.split('=')[1];
+                this.setSortPreference(sortValue);
+                
+                // Clear the cookie after successful migration
+                document.cookie = 'sort_preference=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+            }
+        } catch (error) {
+            console.error('Error during cookie migration:', error);
+        }
+    },
+
+    // Check localStorage availability and capacity
+    checkStorageAvailability() {
+        try {
+            const testKey = 'days_watched_test';
+            localStorage.setItem(testKey, 'test');
+            localStorage.removeItem(testKey);
+            return true;
+        } catch (error) {
+            console.error('localStorage is not available:', error);
+            return false;
+        }
+    }
+};
+
 // Application object
 const App = {
     // Application state
@@ -31,10 +145,18 @@ const App = {
 
     // Initialize the application
     init() {
+        // Check localStorage availability
+        if (!DataStorage.checkStorageAvailability()) {
+            this.showToast('Browser storage is not available. Some features may not work properly.', 'error');
+        }
+
+        // Migrate data from cookies if needed
+        DataStorage.migrateFromCookies();
+
         this.initElements();
         this.bindEvents();
         this.loadWatchedShows();
-        console.log('Days Watched app initialized');
+        console.log('Days Watched app initialized with localStorage');
     },
 
     // Initialize DOM elements
@@ -70,7 +192,7 @@ const App = {
         
         // Sort functionality
         if (this.elements.sortSelect) {
-            // Load saved sort preference
+            // Load saved sort preference from localStorage
             this.loadSortPreference();
             
             this.elements.sortSelect.addEventListener('change', () => {
@@ -479,6 +601,9 @@ const App = {
         this.showLoading();
 
         try {
+            // Get current watched shows from localStorage
+            const currentWatchedShows = DataStorage.getWatchedShows();
+
             const response = await fetch('/api/watched', {
                 method: 'POST',
                 headers: {
@@ -486,7 +611,8 @@ const App = {
                 },
                 body: JSON.stringify({
                     id: show.id,
-                    seasons_watched: seasonsWatched
+                    seasons_watched: seasonsWatched,
+                    current_watched_shows: currentWatchedShows
                 })
             });
 
@@ -494,6 +620,11 @@ const App = {
 
             if (!response.ok) {
                 throw new Error(data.error || 'Failed to add show');
+            }
+
+            // Update localStorage with the new data
+            if (data.updated_watched_shows) {
+                DataStorage.setWatchedShows(data.updated_watched_shows);
             }
 
             this.showToast(`Added "${showName}" with ${seasonsWatched} season${seasonsWatched !== 1 ? 's' : ''} to your watched list!`);
@@ -561,6 +692,9 @@ const App = {
         this.showLoading();
 
         try {
+            // Get current watched shows from localStorage
+            const currentWatchedShows = DataStorage.getWatchedShows();
+
             const response = await fetch('/api/watched', {
                 method: 'POST',
                 headers: {
@@ -568,7 +702,8 @@ const App = {
                 },
                 body: JSON.stringify({
                     id: this.state.selectedShow.id,
-                    seasons_watched: seasonsWatched
+                    seasons_watched: seasonsWatched,
+                    current_watched_shows: currentWatchedShows
                 })
             });
 
@@ -576,6 +711,11 @@ const App = {
 
             if (!response.ok) {
                 throw new Error(data.error || 'Failed to add show');
+            }
+
+            // Update localStorage with the new data
+            if (data.updated_watched_shows) {
+                DataStorage.setWatchedShows(data.updated_watched_shows);
             }
 
             this.showToast(`Added "${this.state.selectedShow.name}" to your watched list!`);
@@ -591,10 +731,22 @@ const App = {
         }
     },
 
-    // Load watched shows from API
+    // Load watched shows from localStorage and API
     async loadWatchedShows() {
         try {
-            const response = await fetch('/api/watched');
+            // Get watched shows from localStorage
+            const watchedShows = DataStorage.getWatchedShows();
+
+            // Send data to API for calculation using POST to /api/watched/calculate
+            const response = await fetch('/api/watched/calculate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    watched_shows: watchedShows
+                })
+            });
             const data = await response.json();
 
             if (!response.ok) {
@@ -613,7 +765,10 @@ const App = {
             this.displayWatchedShows();
         } catch (error) {
             console.error('Error loading watched shows:', error);
-            this.showToast('Failed to load watched shows', 'error');
+            // Fallback to localStorage data only
+            this.state.watchedShows = DataStorage.getWatchedShows();
+            this.displayWatchedShows();
+            this.showToast('Loaded shows from local storage', 'warning');
         }
     },
 
@@ -1060,13 +1215,17 @@ const App = {
         this.showLoading();
 
         try {
+            // Get current watched shows from localStorage
+            const currentWatchedShows = DataStorage.getWatchedShows();
+
             const response = await fetch(`/api/watched/${showId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    seasons_watched: selectedSeasons
+                    seasons_watched: selectedSeasons,
+                    current_watched_shows: currentWatchedShows
                 })
             });
 
@@ -1074,6 +1233,11 @@ const App = {
 
             if (!response.ok) {
                 throw new Error(data.error || 'Failed to update show');
+            }
+
+            // Update localStorage with the new data
+            if (data.updated_watched_shows) {
+                DataStorage.setWatchedShows(data.updated_watched_shows);
             }
 
             this.showToast(`Updated "${show ? show.name : 'show'}"!`);
@@ -1099,14 +1263,28 @@ const App = {
         this.showLoading();
 
         try {
+            // Get current watched shows from localStorage
+            const currentWatchedShows = DataStorage.getWatchedShows();
+
             const response = await fetch(`/api/watched/${showId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    current_watched_shows: currentWatchedShows
+                })
             });
 
             const data = await response.json();
 
             if (!response.ok) {
                 throw new Error(data.error || 'Failed to remove show');
+            }
+
+            // Update localStorage with the new data
+            if (data.updated_watched_shows) {
+                DataStorage.setWatchedShows(data.updated_watched_shows);
             }
 
             this.showToast(`Removed "${show.name}" from your watched list`);
@@ -1147,21 +1325,18 @@ const App = {
         }, 5000);
     },
 
-    // Save sort preference to cookies
+    // Save sort preference to localStorage
     saveSortPreference() {
         if (this.elements.sortSelect) {
             const sortValue = this.elements.sortSelect.value;
-            document.cookie = `sort_preference=${sortValue}; max-age=${365*24*60*60}; path=/`;
+            DataStorage.setSortPreference(sortValue);
         }
     },
 
-    // Load sort preference from cookies
+    // Load sort preference from localStorage
     loadSortPreference() {
-        const cookies = document.cookie.split(';');
-        const sortCookie = cookies.find(cookie => cookie.trim().startsWith('sort_preference='));
-        
-        if (sortCookie && this.elements.sortSelect) {
-            const sortValue = sortCookie.split('=')[1];
+        if (this.elements.sortSelect) {
+            const sortValue = DataStorage.getSortPreference();
             this.elements.sortSelect.value = sortValue;
         }
     },
@@ -1180,7 +1355,7 @@ const App = {
         try {
             this.showLoading();
             
-            // Call the API to clear all watched shows data (including HTTP-only cookies)
+            // Call the API to clear all watched shows data (including any remaining cookies)
             const response = await fetch('/api/watched', {
                 method: 'DELETE'
             });
@@ -1191,8 +1366,8 @@ const App = {
                 throw new Error(data.error || 'Failed to clear data');
             }
             
-            // Clear client-side sort preference cookie as backup
-            document.cookie = 'sort_preference=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+            // Clear localStorage data
+            DataStorage.clearAll();
             
             // Reset application state
             this.state.watchedShows = [];
@@ -1234,7 +1409,19 @@ const StatsApp = {
         try {
             loadingElement.classList.remove('hidden');
 
-            const response = await fetch('/api/stats');
+            // Get watched shows from localStorage
+            const watchedShows = DataStorage.getWatchedShows();
+
+            // Send data to API for calculation using POST to /api/stats/calculate
+            const response = await fetch('/api/stats/calculate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    watched_shows: watchedShows
+                })
+            });
             const data = await response.json();
 
             if (!response.ok) {
