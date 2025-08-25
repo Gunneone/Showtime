@@ -1207,6 +1207,8 @@ body {
 
 .chart-container {
     margin-bottom: 1.5rem;
+    margin-left: 40px;
+    margin-right: 40px;
 }
 
 .chart-container h4 {

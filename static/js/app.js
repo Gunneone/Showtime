@@ -1178,8 +1178,8 @@ const StatsApp = {
                     width: 0
                 }
             },
-            hovertemplate: '<b>%{x}</b><br>%{customdata} days (%{y} hours)<extra></extra>',
-            customdata: filledHours.map(h => Math.round(h / 24 * 10) / 10)
+            hovertemplate: '<b>%{x}</b><br>%{customdata}<extra></extra>',
+            customdata: filledHours.map(h => this.formatTimeCompact(h))
         };
 
         const layout = {
@@ -1266,7 +1266,7 @@ const StatsApp = {
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
                     <div style="background: #63b3ed; width: 100%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
                          data-year="${year}" data-days="${days}" data-hours="${hours}"
-                         onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'yearly-tooltip', '${year}: ${days} days (${hours} hours)')"
+                         onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'yearly-tooltip', '${year}: ${StatsApp.formatTimeCompact(hours)}')"
                          onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('yearly-tooltip')"
                          onmousemove="StatsApp.moveTooltip(event, 'yearly-tooltip')"></div>
                     <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; visibility: ${showYear ? 'visible' : 'hidden'};">${year}</div>
@@ -1313,8 +1313,8 @@ const StatsApp = {
                     width: 0
                 }
             },
-            hovertemplate: '<b>%{x}</b><br>%{customdata} days (%{y} hours)<extra></extra>',
-            customdata: hours.map(h => Math.round(h / 24 * 10) / 10)
+            hovertemplate: '<b>%{x}</b><br>%{customdata}<extra></extra>',
+            customdata: hours.map(h => this.formatTimeCompact(h))
         };
 
         const layout = {
@@ -1380,7 +1380,7 @@ const StatsApp = {
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
                     <div style="background: #63b3ed; width: 80%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
                          data-genre="${genre}" data-days="${days}" data-hours="${hours}"
-                         onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'genre-tooltip', '${genre}: ${days} days (${hours} hours)')"
+                         onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'genre-tooltip', '${genre}: ${StatsApp.formatTimeCompact(hours)}')"
                          onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('genre-tooltip')"
                          onmousemove="StatsApp.moveTooltip(event, 'genre-tooltip')"></div>
                     <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
@@ -1504,16 +1504,32 @@ const StatsApp = {
         }
     },
 
-    // Move tooltip with mouse
+    // Move tooltip with mouse (closer to pointer)
     moveTooltip(event, tooltipId) {
         const tooltip = document.getElementById(tooltipId);
         if (tooltip) {
             const rect = event.target.closest('.chart-container').getBoundingClientRect();
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
-            tooltip.style.left = (x + 10) + 'px';
-            tooltip.style.top = (y - 10) + 'px';
+            tooltip.style.left = (x + 5) + 'px';  // Closer to mouse
+            tooltip.style.top = (y - 5) + 'px';   // Closer to mouse
         }
+    },
+
+    // Format time for hover tooltips (compact format: 28d 8h)
+    formatTimeCompact(totalHours) {
+        if (totalHours < 24) {
+            return `${Math.round(totalHours)}h`;
+        }
+        
+        const days = Math.floor(totalHours / 24);
+        const remainingHours = Math.round(totalHours % 24);
+        
+        if (remainingHours === 0) {
+            return `${days}d`;
+        }
+        
+        return `${days}d ${remainingHours}h`;
     }
 };
 
