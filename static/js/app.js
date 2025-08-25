@@ -778,10 +778,22 @@ const App = {
 
     // Calculate show time in minutes for sorting
     calculateShowTimeInMinutes(show) {
-        const episodesPerSeason = 20; // Default assumption (same as calculateShowTime)
+        // Use actual episode counts from TMDB when available
+        const totalEpisodesInShow = show.total_episodes || 0;
+        const totalSeasonsInShow = show.total_seasons || 1;
+        
+        let episodesPerSeason;
+        if (totalEpisodesInShow > 0 && totalSeasonsInShow > 0) {
+            // Calculate actual episodes per season from TMDB data
+            episodesPerSeason = totalEpisodesInShow / totalSeasonsInShow;
+        } else {
+            // Fallback to assumption of 20 episodes per season for shows without episode count data
+            episodesPerSeason = 20;
+        }
+        
         const totalEpisodes = show.seasons_watched * episodesPerSeason;
         const totalMinutes = totalEpisodes * (show.episode_run_time || 45);
-        return totalMinutes;
+        return Math.round(totalMinutes);
     },
 
     // Display watched shows
@@ -854,11 +866,23 @@ const App = {
 
     // Calculate show time in formatted string
     calculateShowTime(show) {
-        const episodesPerSeason = 20; // Default assumption
+        // Use actual episode counts from TMDB when available
+        const totalEpisodesInShow = show.total_episodes || 0;
+        const totalSeasonsInShow = show.total_seasons || 1;
+        
+        let episodesPerSeason;
+        if (totalEpisodesInShow > 0 && totalSeasonsInShow > 0) {
+            // Calculate actual episodes per season from TMDB data
+            episodesPerSeason = totalEpisodesInShow / totalSeasonsInShow;
+        } else {
+            // Fallback to assumption of 20 episodes per season for shows without episode count data
+            episodesPerSeason = 20;
+        }
+        
         const totalEpisodes = show.seasons_watched * episodesPerSeason;
         const totalMinutes = totalEpisodes * (show.episode_run_time || 45);
         
-        return this.formatTime(totalMinutes);
+        return this.formatTime(Math.round(totalMinutes));
     },
 
     // Format time in minutes to human readable string

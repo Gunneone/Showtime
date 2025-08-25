@@ -109,6 +109,7 @@ def add_watched():
                 'first_air_date': show_details.get('first_air_date'),
                 'seasons_watched': data.get('seasons_watched', 1),
                 'total_seasons': show_details.get('number_of_seasons', 1),
+                'total_episodes': show_details.get('number_of_episodes', 0),
                 'episode_run_time': episode_runtime,
                 'genres': show_details.get('genres', [])
             }

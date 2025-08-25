@@ -9,14 +9,21 @@ class CalculationService:
         seasons_watched = show.get('seasons_watched', 0)
         episode_run_time = show.get('episode_run_time', 45)  # Default 45 minutes
         
-        # For simplicity, assume average of 20 episodes per season
-        # In a real implementation, we would fetch actual episode counts from TMDB
-        episodes_per_season = 20
+        # Use actual episode counts from TMDB when available
+        total_episodes_in_show = show.get('total_episodes', 0)
+        total_seasons_in_show = show.get('total_seasons', 1)
+        
+        if total_episodes_in_show > 0 and total_seasons_in_show > 0:
+            # Calculate actual episodes per season from TMDB data
+            episodes_per_season = total_episodes_in_show / total_seasons_in_show
+        else:
+            # Fallback to assumption of 20 episodes per season for shows without episode count data
+            episodes_per_season = 20
         
         total_episodes = seasons_watched * episodes_per_season
         total_time_minutes = total_episodes * episode_run_time
         
-        return total_time_minutes
+        return int(total_time_minutes)
     
     def calculate_total_time(self, watched_shows):
         """Calculate total watch time across all shows."""
