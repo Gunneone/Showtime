@@ -797,6 +797,11 @@ const App = {
             <div class="watched-show-remove" onclick="App.removeShow(${show.id})" title="Remove show">
                 <i class="fas fa-times"></i>
             </div>
+            <div class="watched-show-poster">
+                <img src="${posterUrl}" alt="${show.name}" 
+                     onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
+                     loading="lazy">
+            </div>
             <div class="watched-show-content">
                 <div class="watched-show-header">
                     <div class="watched-show-info">
@@ -1147,24 +1152,34 @@ const StatsApp = {
         const minutes = sortedYears.map(([, time]) => time);
         const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
 
+        // Fill in missing years with zero data for continuous chart
+        const allYears = [];
+        if (years.length > 0) {
+            const minYear = Math.min(...years.map(y => parseInt(y)));
+            const maxYear = Math.max(...years.map(y => parseInt(y)));
+            for (let year = minYear; year <= maxYear; year++) {
+                allYears.push(year.toString());
+            }
+        }
+
+        // Create data arrays with zeros for missing years
+        const filledHours = allYears.map(year => {
+            const index = years.indexOf(year);
+            return index !== -1 ? hours[index] : 0;
+        });
+
         const trace = {
-            x: years,
-            y: hours,
-            type: 'scatter',
-            mode: 'lines+markers',
-            line: {
-                color: '#63b3ed',
-                width: 3
-            },
+            x: allYears,
+            y: filledHours,
+            type: 'bar',
             marker: {
                 color: '#63b3ed',
-                size: 8,
                 line: {
-                    color: '#e2e8f0',
-                    width: 1
+                    width: 0
                 }
             },
-            hovertemplate: '<b>%{x}</b><br>Watch Time: %{y} hours<extra></extra>'
+            hovertemplate: '<b>%{x}</b><br>%{customdata}<extra></extra>',
+            customdata: filledHours.map(h => this.formatTimeCompact(h))
         };
 
         const layout = {
@@ -1173,16 +1188,21 @@ const StatsApp = {
                 font: { color: '#e2e8f0' }
             },
             xaxis: {
-                title: 'Release Year',
+                title: '',
                 color: '#e2e8f0',
-                gridcolor: 'rgba(226, 232, 240, 0.1)',
-                tickfont: { color: '#cbd5e0' }
+                showgrid: false,
+                showline: false,
+                tickvals: allYears.length > 0 ? [allYears[0], allYears[allYears.length - 1]] : [],
+                ticktext: allYears.length > 0 ? [allYears[0], allYears[allYears.length - 1]] : [],
+                tickfont: { color: '#a0aec0' }
             },
             yaxis: {
-                title: 'Hours Watched',
+                title: '',
                 color: '#e2e8f0',
-                gridcolor: 'rgba(226, 232, 240, 0.1)',
-                tickfont: { color: '#cbd5e0' }
+                showgrid: false,
+                showline: false,
+                showticklabels: false,
+                tickfont: { color: '#9ca3af' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1191,9 +1211,10 @@ const StatsApp = {
         };
 
         const config = {
-            displayModeBar: true,
-            modeBarButtonsToRemove: ['autoScale2d', 'lasso2d', 'select2d'],
-            displaylogo: false
+            displayModeBar: false,
+            staticPlot: false,
+            displaylogo: false,
+            responsive: true
         };
 
         Plotly.newPlot('yearlyChart', [trace], layout, config);
@@ -1210,25 +1231,50 @@ const StatsApp = {
             .filter(([year]) => year !== 'Unknown')
             .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
 
-        const maxHours = Math.max(...sortedYears.map(([, minutes]) => minutes / 60));
+        // Fill in missing years with zero data for continuous chart
+        const allYearsData = [];
+        if (sortedYears.length > 0) {
+            const minYear = Math.min(...sortedYears.map(([year]) => parseInt(year)));
+            const maxYear = Math.max(...sortedYears.map(([year]) => parseInt(year)));
+            
+            for (let year = minYear; year <= maxYear; year++) {
+                const existingYear = sortedYears.find(([y]) => parseInt(y) === year);
+                if (existingYear) {
+                    allYearsData.push([year.toString(), existingYear[1]]);
+                } else {
+                    allYearsData.push([year.toString(), 0]);
+                }
+            }
+        }
+
+        const maxHours = Math.max(...allYearsData.map(([, minutes]) => minutes / 60));
         
-        let chartHTML = '<div style="padding: 1rem;"><div style="display: flex; align-items: end; gap: 8px; height: 200px; padding: 20px 0; border-bottom: 1px solid rgba(226, 232, 240, 0.1);">';
+        let chartHTML = '<div style="padding: 1rem; position: relative;"><div style="position: relative; display: flex; align-items: end; gap: 8px; height: 200px; padding: 20px 0;">';
         
-        sortedYears.forEach(([year, minutes]) => {
+        // Add tooltip element
+        chartHTML += '<div id="yearly-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
+        
+        allYearsData.forEach(([year, minutes], index) => {
             const hours = Math.round(minutes / 60 * 10) / 10;
-            const heightPercent = (hours / maxHours) * 100;
+            const days = Math.round(hours / 24 * 10) / 10;
+            const heightPixels = Math.max(4, (hours / maxHours) * 160); // 160px max height within 200px container
+            
+            // Only show year labels for first and last
+            const showYear = index === 0 || index === allYearsData.length - 1;
             
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="background: #63b3ed; width: 100%; height: ${heightPercent}%; min-height: 4px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched in ${year}"></div>
-                    <div style="color: #cbd5e0; font-size: 0.8rem; text-align: center;">${year}</div>
+                    <div style="background: #63b3ed; width: 100%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
+                         data-year="${year}" data-days="${days}" data-hours="${hours}"
+                         onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'yearly-tooltip', '${year}: ${StatsApp.formatTimeCompact(hours)}')"
+                         onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('yearly-tooltip')"
+                         onmousemove="StatsApp.moveTooltip(event, 'yearly-tooltip')"></div>
+                    <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; visibility: ${showYear ? 'visible' : 'hidden'};">${year}</div>
                 </div>
             `;
         });
         
-        chartHTML += '</div>';
-        chartHTML += '<div style="text-align: center; color: #cbd5e0; font-size: 0.9rem; margin-top: 1rem;">Hours watched by release year</div>';
-        chartHTML += '</div>';
+        chartHTML += '</div></div>';
         
         container.innerHTML = chartHTML;
     },
@@ -1248,10 +1294,10 @@ const StatsApp = {
             return;
         }
 
-        // Get top 3 genres
+        // Get top 5 genres
         const sortedGenres = Object.entries(genreData)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 3);
+            .slice(0, 5);
 
         const genres = sortedGenres.map(([genre]) => genre);
         const minutes = sortedGenres.map(([, time]) => time);
@@ -1262,13 +1308,13 @@ const StatsApp = {
             y: hours,
             type: 'bar',
             marker: {
-                color: ['#63b3ed', '#4299e1', '#3182ce'],
+                color: '#63b3ed',
                 line: {
-                    color: '#e2e8f0',
-                    width: 1
+                    width: 0
                 }
             },
-            hovertemplate: '<b>%{x}</b><br>Watch Time: %{y} hours<extra></extra>'
+            hovertemplate: '<b>%{x}</b><br>%{customdata}<extra></extra>',
+            customdata: hours.map(h => this.formatTimeCompact(h))
         };
 
         const layout = {
@@ -1277,15 +1323,19 @@ const StatsApp = {
                 font: { color: '#e2e8f0' }
             },
             xaxis: {
-                title: 'Genre',
+                title: '',
                 color: '#e2e8f0',
-                tickfont: { color: '#cbd5e0' }
+                showgrid: false,
+                showline: false,
+                tickfont: { color: '#a0aec0' }
             },
             yaxis: {
-                title: 'Hours Watched',
+                title: '',
                 color: '#e2e8f0',
-                gridcolor: 'rgba(226, 232, 240, 0.1)',
-                tickfont: { color: '#cbd5e0' }
+                showgrid: false,
+                showline: false,
+                showticklabels: false,
+                tickfont: { color: '#9ca3af' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1294,9 +1344,10 @@ const StatsApp = {
         };
 
         const config = {
-            displayModeBar: true,
-            modeBarButtonsToRemove: ['autoScale2d', 'lasso2d', 'select2d'],
-            displaylogo: false
+            displayModeBar: false,
+            staticPlot: false,
+            displaylogo: false,
+            responsive: true
         };
 
         Plotly.newPlot('topGenresChart', [trace], layout, config);
@@ -1311,22 +1362,28 @@ const StatsApp = {
 
         const sortedGenres = Object.entries(genreData)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 3);
+            .slice(0, 5);
 
         const maxHours = Math.max(...sortedGenres.map(([, minutes]) => minutes / 60));
-        const colors = ['#63b3ed', '#4299e1', '#3182ce'];
         
-        let chartHTML = '<div style="padding: 1rem;"><div style="display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
+        let chartHTML = '<div style="padding: 1rem; position: relative;"><div style="position: relative; display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
+        
+        // Add tooltip element
+        chartHTML += '<div id="genre-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
         
         sortedGenres.forEach(([genre, minutes], index) => {
             const hours = Math.round(minutes / 60 * 10) / 10;
-            const heightPercent = (hours / maxHours) * 100;
+            const days = Math.round(hours / 24 * 10) / 10;
+            const heightPixels = Math.max(8, (hours / maxHours) * 160); // 160px max height within 200px container
             
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="background: ${colors[index]}; width: 80%; height: ${heightPercent}%; min-height: 8px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched"></div>
-                    <div style="color: #cbd5e0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
-                    <div style="color: #63b3ed; font-size: 0.7rem; font-weight: bold;">${hours}h</div>
+                    <div style="background: #63b3ed; width: 80%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
+                         data-genre="${genre}" data-days="${days}" data-hours="${hours}"
+                         onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'genre-tooltip', '${genre}: ${StatsApp.formatTimeCompact(hours)}')"
+                         onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('genre-tooltip')"
+                         onmousemove="StatsApp.moveTooltip(event, 'genre-tooltip')"></div>
+                    <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
                 </div>
             `;
         });
@@ -1353,8 +1410,8 @@ const StatsApp = {
                 <div class="conversion-icon">
                     <i class="${conversion.icon}"></i>
                 </div>
-                <div class="conversion-value">${conversion.value}</div>
-                <div class="conversion-description">${conversion.description}</div>
+                <div class="conversion-activity">${conversion.description}</div>
+                <div class="conversion-value">${conversion.value} <span class="times-text">${conversion.times_text}</span></div>
             `;
             container.appendChild(card);
         });
@@ -1427,6 +1484,52 @@ const StatsApp = {
         const remainingHours = hours % 24;
         
         return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
+    },
+
+    // Show custom tooltip
+    showTooltip(event, tooltipId, content) {
+        const tooltip = document.getElementById(tooltipId);
+        if (tooltip) {
+            tooltip.innerHTML = content;
+            tooltip.style.opacity = '1';
+            this.moveTooltip(event, tooltipId);
+        }
+    },
+
+    // Hide custom tooltip
+    hideTooltip(tooltipId) {
+        const tooltip = document.getElementById(tooltipId);
+        if (tooltip) {
+            tooltip.style.opacity = '0';
+        }
+    },
+
+    // Move tooltip with mouse (closer to pointer)
+    moveTooltip(event, tooltipId) {
+        const tooltip = document.getElementById(tooltipId);
+        if (tooltip) {
+            const rect = event.target.closest('.chart-container').getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            tooltip.style.left = (x + 5) + 'px';  // Closer to mouse
+            tooltip.style.top = (y - 5) + 'px';   // Closer to mouse
+        }
+    },
+
+    // Format time for hover tooltips (compact format: 28d 8h)
+    formatTimeCompact(totalHours) {
+        if (totalHours < 24) {
+            return `${Math.round(totalHours)}h`;
+        }
+        
+        const days = Math.floor(totalHours / 24);
+        const remainingHours = Math.round(totalHours % 24);
+        
+        if (remainingHours === 0) {
+            return `${days}d`;
+        }
+        
+        return `${days}d ${remainingHours}h`;
     }
 };
 

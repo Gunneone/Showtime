@@ -32,6 +32,12 @@ def get_watched():
     """Get watched list from cookies."""
     try:
         watched_cookie = request.cookies.get('watched_shows', '[]')
+        
+        # URL decode the cookie value if needed
+        import urllib.parse
+        if watched_cookie.startswith('%'):
+            watched_cookie = urllib.parse.unquote(watched_cookie)
+        
         watched_shows = json.loads(watched_cookie)
         
         # Calculate total watch time
@@ -171,6 +177,12 @@ def get_stats():
     """Get viewing statistics."""
     try:
         watched_cookie = request.cookies.get('watched_shows', '[]')
+        
+        # URL decode the cookie value if needed
+        import urllib.parse
+        if watched_cookie.startswith('%'):
+            watched_cookie = urllib.parse.unquote(watched_cookie)
+        
         watched_shows = json.loads(watched_cookie)
         
         calc_service = get_calc_service()
