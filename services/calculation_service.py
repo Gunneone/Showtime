@@ -9,6 +9,38 @@ class CalculationService:
         seasons_watched = show.get('seasons_watched', 0)
         episode_run_time = show.get('episode_run_time', 45)  # Default 45 minutes
         
+        # Check if we have precise episode runtime data
+        episode_runtimes = show.get('episode_runtimes', {})
+        
+        if episode_runtimes:
+            # Use precise episode-by-episode runtime data
+            total_minutes = 0
+            
+            for season_num in range(1, seasons_watched + 1):
+                season_runtimes = episode_runtimes.get(str(season_num), [])
+                if season_runtimes:
+                    # Sum up actual episode runtimes for this season
+                    for runtime in season_runtimes:
+                        if runtime is not None:
+                            total_minutes += runtime
+                        else:
+                            # Fallback to default episode runtime for missing episode data
+                            total_minutes += episode_run_time
+                else:
+                    # If no episode data for this season, use fallback calculation
+                    total_episodes_in_show = show.get('total_episodes', 0)
+                    total_seasons_in_show = show.get('total_seasons', 1)
+                    
+                    if total_episodes_in_show > 0 and total_seasons_in_show > 0:
+                        episodes_per_season = total_episodes_in_show / total_seasons_in_show
+                    else:
+                        episodes_per_season = 20
+                    
+                    total_minutes += episodes_per_season * episode_run_time
+            
+            return int(total_minutes)
+        
+        # Fallback to original calculation method when no precise episode data
         # Use actual episode counts from TMDB when available
         total_episodes_in_show = show.get('total_episodes', 0)
         total_seasons_in_show = show.get('total_seasons', 1)

@@ -102,6 +102,16 @@ def add_watched():
                 elif isinstance(runtime_data, int):
                     episode_runtime = runtime_data
             
+            # Get precise episode runtime data
+            episode_runtimes = {}
+            total_seasons = show_details.get('number_of_seasons', 1)
+            
+            try:
+                episode_runtimes = tmdb_service.get_show_episode_runtimes(data['id'], total_seasons)
+            except Exception as e:
+                print(f"Failed to get episode runtimes for show {data['id']}: {e}")
+                # Continue without episode runtime data - will use fallback calculation
+            
             new_show = {
                 'id': show_details['id'],
                 'name': show_details['name'],
@@ -111,6 +121,7 @@ def add_watched():
                 'total_seasons': show_details.get('number_of_seasons', 1),
                 'total_episodes': show_details.get('number_of_episodes', 0),
                 'episode_run_time': episode_runtime,
+                'episode_runtimes': episode_runtimes,  # Store precise episode runtime data
                 'genres': show_details.get('genres', [])
             }
             watched_shows.append(new_show)
