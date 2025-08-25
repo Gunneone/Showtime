@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, make_response
 import json
 from services.tmdb_service import TMDBService
 from services.calculation_service import CalculationService
+from services.search_cache_service import get_search_cache
 
 api_bp = Blueprint('api', __name__)
 
@@ -15,14 +16,29 @@ def get_calc_service():
 
 @api_bp.route('/search')
 def search():
-    """Search for shows/movies using TMDB API."""
+    """Search for shows/movies using TMDB API with caching."""
     query = request.args.get('query', '').strip()
     if not query:
         return jsonify({'error': 'Query parameter is required'}), 400
     
     try:
+        # Check cache first
+        cache = get_search_cache()
+        cached_result = cache.get(query)
+        
+        if cached_result:
+            # Return cached result
+            print(f"Cache hit for query: {query}")
+            return jsonify(cached_result)
+        
+        # Cache miss - call TMDB API
+        print(f"Cache miss for query: {query}")
         tmdb_service = get_tmdb_service()
         results = tmdb_service.search_shows(query)
+        
+        # Cache the result
+        cache.set(query, results)
+        
         return jsonify(results)
     except Exception as e:
         return jsonify({'error': str(e)}), 500

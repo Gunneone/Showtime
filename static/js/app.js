@@ -9,7 +9,9 @@ const App = {
         totalTime: 0,
         previousTotalTime: 0,
         isLoading: false,
-        selectedShow: null
+        selectedShow: null,
+        searchRequestId: 0,
+        pendingSearchController: null
     },
 
     // DOM elements
@@ -113,11 +115,11 @@ const App = {
                 return;
             }
             
-            // Trigger instant search after 300ms delay for queries >= 2 characters
+            // Trigger instant search after 100ms delay for queries >= 2 characters
             if (query.length >= 2) {
                 searchTimeout = setTimeout(() => {
                     this.performSearch(query, true);
-                }, 300);
+                }, 100);
             }
         });
 
@@ -164,11 +166,25 @@ const App = {
 
         console.log('Performing search for:', query, 'isInstantSearch:', isInstantSearch);
 
+        // Cancel any pending search request
+        if (this.state.pendingSearchController) {
+            this.state.pendingSearchController.abort();
+        }
+
+        // Generate a unique request ID to track this search
+        const requestId = ++this.state.searchRequestId;
+        
+        // Create a new AbortController for this request
+        const controller = new AbortController();
+        this.state.pendingSearchController = controller;
+
         try {
             // Show loading state
             this.showSearchLoading();
 
-            const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+            const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`, {
+                signal: controller.signal
+            });
             const data = await response.json();
             
             console.log('Search response:', data);
@@ -177,17 +193,29 @@ const App = {
                 throw new Error(data.error || 'Search failed');
             }
 
-            // For instant search, limit to 5 results. For manual search, show more
-            const maxResults = isInstantSearch ? 5 : 10;
-            const results = data.results.slice(0, maxResults);
-            
-            this.displaySearchResults(results, isInstantSearch);
-            this.state.currentSearch = data;
+            // Only process this response if it's the most recent request
+            if (requestId === this.state.searchRequestId) {
+                // For instant search, limit to 5 results. For manual search, show more
+                const maxResults = isInstantSearch ? 5 : 10;
+                const results = data.results.slice(0, maxResults);
+                
+                this.displaySearchResults(results, isInstantSearch);
+                this.state.currentSearch = data;
+                
+                // Clear the pending controller since this request completed successfully
+                this.state.pendingSearchController = null;
+            } else {
+                console.log('Ignoring outdated search response for:', query);
+            }
             
         } catch (error) {
-            console.error('Search error:', error);
-            this.showToast('Search failed. Please try again.', 'error');
-            this.hideSearchResults();
+            // Only show error if the request wasn't aborted and it's the most recent request
+            if (error.name !== 'AbortError' && requestId === this.state.searchRequestId) {
+                console.error('Search error:', error);
+                this.showToast('Search failed. Please try again.', 'error');
+                this.hideSearchResults();
+                this.state.pendingSearchController = null;
+            }
         }
     },
 
