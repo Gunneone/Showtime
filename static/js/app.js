@@ -1155,15 +1155,9 @@ const StatsApp = {
         const trace = {
             x: years,
             y: hours,
-            type: 'scatter',
-            mode: 'lines+markers',
-            line: {
-                color: '#63b3ed',
-                width: 3
-            },
+            type: 'bar',
             marker: {
                 color: '#63b3ed',
-                size: 8,
                 line: {
                     color: '#e2e8f0',
                     width: 1
@@ -1253,10 +1247,10 @@ const StatsApp = {
             return;
         }
 
-        // Get top 3 genres
+        // Get top 5 genres
         const sortedGenres = Object.entries(genreData)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 3);
+            .slice(0, 5);
 
         const genres = sortedGenres.map(([genre]) => genre);
         const minutes = sortedGenres.map(([, time]) => time);
@@ -1316,10 +1310,10 @@ const StatsApp = {
 
         const sortedGenres = Object.entries(genreData)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 3);
+            .slice(0, 5);
 
         const maxHours = Math.max(...sortedGenres.map(([, minutes]) => minutes / 60));
-        const colors = ['#63b3ed', '#4299e1', '#3182ce'];
+        const colors = ['#63b3ed', '#4299e1', '#3182ce', '#2b6cb0', '#2c5282'];
         
         let chartHTML = '<div style="padding: 1rem;"><div style="display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
         
@@ -1329,7 +1323,7 @@ const StatsApp = {
             
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="background: ${colors[index]}; width: 80%; height: ${heightPercent}%; min-height: 8px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched"></div>
+                    <div style="background: ${colors[index] || '#63b3ed'}; width: 80%; height: ${heightPercent}%; min-height: 8px; border-radius: 4px 4px 0 0; transition: all 0.3s ease;" title="${hours}h watched"></div>
                     <div style="color: #cbd5e0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
                     <div style="color: #63b3ed; font-size: 0.7rem; font-weight: bold;">${hours}h</div>
                 </div>
@@ -1358,9 +1352,8 @@ const StatsApp = {
                 <div class="conversion-icon">
                     <i class="${conversion.icon}"></i>
                 </div>
-                <div class="conversion-description">Instead of watching TV shows you could have...</div>
                 <div class="conversion-activity">${conversion.description}</div>
-                <div class="conversion-value">${conversion.value} ${conversion.times_text}</div>
+                <div class="conversion-value">${conversion.value} <span class="times-text">${conversion.times_text}</span></div>
             `;
             container.appendChild(card);
         });

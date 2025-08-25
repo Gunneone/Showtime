@@ -278,7 +278,6 @@ body {
 }
 
 .search-button:hover {
-    transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
     background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
@@ -314,7 +313,6 @@ body {
 }
 
 .search-btn:hover {
-    transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(103, 126, 234, 0.4);
     background: rgba(103, 126, 234, 1);
 }
@@ -390,7 +388,6 @@ body {
 
 .search-result:hover {
     background: rgba(99, 179, 237, 0.2);
-    transform: translateX(4px);
 }
 
 .search-result-content {
@@ -635,7 +632,6 @@ body {
 .watched-show-remove:hover {
     background: rgba(160, 174, 192, 0.2);
     color: rgba(226, 232, 240, 0.9);
-    transform: scale(1.05);
 }
 
 .watched-show-info h4 {
@@ -709,7 +705,6 @@ body {
 .edit-season-bar.hover-highlighted {
     background: rgba(99, 179, 237, 0.6);
     color: white;
-    transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(99, 179, 237, 0.3);
 }
 
@@ -765,7 +760,6 @@ body {
 }
 
 .btn:hover {
-    transform: translateY(-1px);
 }
 
 /* Empty state */
@@ -1008,7 +1002,6 @@ body {
 }
 
 .stat-card:hover {
-    transform: translateY(-3px);
 }
 
 .stat-icon {
@@ -1213,9 +1206,9 @@ body {
 }
 
 .chart-container h4 {
-    color: #e2e8f0;
+    color: #4a5568;
     margin-bottom: 1.5rem;
-    text-align: center;
+    text-align: left;
     font-size: 1.2rem;
 }
 
@@ -1241,14 +1234,8 @@ body {
     text-align: center;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(99, 179, 237, 0.3);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.conversion-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(99, 179, 237, 0.2);
-    border-color: rgba(99, 179, 237, 0.5);
-}
 
 .conversion-icon {
     font-size: 2.5rem;
@@ -1259,7 +1246,11 @@ body {
 .conversion-value {
     font-size: 1.8rem;
     font-weight: bold;
-    color: #63b3ed;
+    color: #e2e8f0;
+}
+
+.times-text {
+    color: #e2e8f0;
 }
 
 .conversion-description {
