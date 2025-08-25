@@ -39,11 +39,12 @@ def test_format_time_minutes():
     """Test formatting time in minutes."""
     service = CalculationService()
     
+    assert service.format_time(0) == "0h"
     assert service.format_time(30) == "30 minutes"
     assert service.format_time(90) == "1h 30m"
     assert service.format_time(120) == "2h"
     assert service.format_time(1500) == "1d 1h"  # 25 hours
-    assert service.format_time(1440) == "1d"     # 24 hours
+    assert service.format_time(1440) == "1d 0h"  # 24 hours - always show hours
 
 def test_calculate_stats_empty():
     """Test calculating stats with no shows."""
