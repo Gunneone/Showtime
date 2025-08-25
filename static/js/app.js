@@ -797,6 +797,11 @@ const App = {
             <div class="watched-show-remove" onclick="App.removeShow(${show.id})" title="Remove show">
                 <i class="fas fa-times"></i>
             </div>
+            <div class="watched-show-poster">
+                <img src="${posterUrl}" alt="${show.name}" 
+                     onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
+                     loading="lazy">
+            </div>
             <div class="watched-show-content">
                 <div class="watched-show-header">
                     <div class="watched-show-info">
@@ -1353,8 +1358,9 @@ const StatsApp = {
                 <div class="conversion-icon">
                     <i class="${conversion.icon}"></i>
                 </div>
-                <div class="conversion-value">${conversion.value}</div>
-                <div class="conversion-description">${conversion.description}</div>
+                <div class="conversion-description">Instead of watching TV shows you could have...</div>
+                <div class="conversion-activity">${conversion.description}</div>
+                <div class="conversion-value">${conversion.value} ${conversion.times_text}</div>
             `;
             container.appendChild(card);
         });
