@@ -778,10 +778,61 @@ const App = {
 
     // Calculate show time in minutes for sorting
     calculateShowTimeInMinutes(show) {
-        const episodesPerSeason = 20; // Default assumption (same as calculateShowTime)
+        // Check if we have precise episode runtime data
+        const episodeRuntimes = show.episode_runtimes || {};
+        
+        if (Object.keys(episodeRuntimes).length > 0) {
+            // Use precise episode-by-episode runtime data
+            let totalMinutes = 0;
+            
+            for (let seasonNum = 1; seasonNum <= show.seasons_watched; seasonNum++) {
+                const seasonRuntimes = episodeRuntimes[seasonNum.toString()] || [];
+                if (seasonRuntimes.length > 0) {
+                    // Sum up actual episode runtimes for this season
+                    for (const runtime of seasonRuntimes) {
+                        if (runtime !== null && runtime !== undefined) {
+                            totalMinutes += runtime;
+                        } else {
+                            // Fallback to default episode runtime for missing episode data
+                            totalMinutes += (show.episode_run_time || 45);
+                        }
+                    }
+                } else {
+                    // If no episode data for this season, use fallback calculation
+                    const totalEpisodesInShow = show.total_episodes || 0;
+                    const totalSeasonsInShow = show.total_seasons || 1;
+                    
+                    let episodesPerSeason;
+                    if (totalEpisodesInShow > 0 && totalSeasonsInShow > 0) {
+                        episodesPerSeason = totalEpisodesInShow / totalSeasonsInShow;
+                    } else {
+                        episodesPerSeason = 20;
+                    }
+                    
+                    totalMinutes += episodesPerSeason * (show.episode_run_time || 45);
+                }
+            }
+            
+            return Math.round(totalMinutes);
+        }
+        
+        // Fallback to original calculation method when no precise episode data
+        // Use actual episode counts from TMDB when available
+        const totalEpisodesInShow = show.total_episodes || 0;
+        const totalSeasonsInShow = show.total_seasons || 1;
+        
+        let episodesPerSeason;
+        if (totalEpisodesInShow > 0 && totalSeasonsInShow > 0) {
+            // Calculate actual episodes per season from TMDB data
+            episodesPerSeason = totalEpisodesInShow / totalSeasonsInShow;
+        } else {
+            // Fallback to assumption of 20 episodes per season for shows without episode count data
+            episodesPerSeason = 20;
+        }
+        
         const totalEpisodes = show.seasons_watched * episodesPerSeason;
         const totalMinutes = totalEpisodes * (show.episode_run_time || 45);
-        return totalMinutes;
+        return Math.round(totalMinutes);
     },
 
     // Display watched shows
@@ -854,10 +905,7 @@ const App = {
 
     // Calculate show time in formatted string
     calculateShowTime(show) {
-        const episodesPerSeason = 20; // Default assumption
-        const totalEpisodes = show.seasons_watched * episodesPerSeason;
-        const totalMinutes = totalEpisodes * (show.episode_run_time || 45);
-        
+        const totalMinutes = this.calculateShowTimeInMinutes(show);
         return this.formatTime(totalMinutes);
     },
 

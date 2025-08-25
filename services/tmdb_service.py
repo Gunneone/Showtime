@@ -100,6 +100,76 @@ class TMDBService:
                 'page': 1
             }
             
+        elif endpoint.startswith("tv/") and "/season/" in endpoint:
+            # Handle season details requests
+            parts = endpoint.split('/')
+            show_id = int(parts[1])
+            season_num = int(parts[3])
+            
+            # Mock episode data for different shows
+            mock_episodes = {
+                1: {  # Breaking Bad
+                    1: [  # Season 1 - 7 episodes
+                        {'episode_number': 1, 'name': 'Pilot', 'runtime': 58},
+                        {'episode_number': 2, 'name': 'Cat\'s in the Bag...', 'runtime': 48},
+                        {'episode_number': 3, 'name': '...And the Bag\'s in the River', 'runtime': 48},
+                        {'episode_number': 4, 'name': 'Cancer Man', 'runtime': 48},
+                        {'episode_number': 5, 'name': 'Gray Matter', 'runtime': 48},
+                        {'episode_number': 6, 'name': 'Crazy Handful of Nothin\'', 'runtime': 48},
+                        {'episode_number': 7, 'name': 'A No-Rough-Stuff-Type Deal', 'runtime': 48}
+                    ],
+                    2: [  # Season 2 - 13 episodes  
+                        {'episode_number': 1, 'name': 'Seven Thirty-Seven', 'runtime': 47},
+                        {'episode_number': 2, 'name': 'Grilled', 'runtime': 47},
+                        {'episode_number': 3, 'name': 'Bit by a Dead Bee', 'runtime': 47},
+                        {'episode_number': 4, 'name': 'Down', 'runtime': 47},
+                        {'episode_number': 5, 'name': 'Breakage', 'runtime': 47},
+                        {'episode_number': 6, 'name': 'Peekaboo', 'runtime': 47},
+                        {'episode_number': 7, 'name': 'Negro y Azul', 'runtime': 47},
+                        {'episode_number': 8, 'name': 'Better Call Saul', 'runtime': 47},
+                        {'episode_number': 9, 'name': '4 Days Out', 'runtime': 47},
+                        {'episode_number': 10, 'name': 'Over', 'runtime': 47},
+                        {'episode_number': 11, 'name': 'Mandala', 'runtime': 47},
+                        {'episode_number': 12, 'name': 'Phoenix', 'runtime': 47},
+                        {'episode_number': 13, 'name': 'ABQ', 'runtime': 47}
+                    ]
+                },
+                2: {  # The Office
+                    1: [  # Season 1 - 6 episodes
+                        {'episode_number': 1, 'name': 'Pilot', 'runtime': 22},
+                        {'episode_number': 2, 'name': 'Diversity Day', 'runtime': 22},
+                        {'episode_number': 3, 'name': 'Health Care', 'runtime': 22},
+                        {'episode_number': 4, 'name': 'The Alliance', 'runtime': 22},
+                        {'episode_number': 5, 'name': 'Basketball', 'runtime': 22},
+                        {'episode_number': 6, 'name': 'Hot Girl', 'runtime': 22}
+                    ]
+                },
+                5: {  # The Mandalorian
+                    1: [  # Season 1 - 8 episodes with varying runtimes
+                        {'episode_number': 1, 'name': 'Chapter 1: The Mandalorian', 'runtime': 39},
+                        {'episode_number': 2, 'name': 'Chapter 2: The Child', 'runtime': 32},
+                        {'episode_number': 3, 'name': 'Chapter 3: The Sin', 'runtime': 37},
+                        {'episode_number': 4, 'name': 'Chapter 4: Sanctuary', 'runtime': 40},
+                        {'episode_number': 5, 'name': 'Chapter 5: The Gunslinger', 'runtime': 33},
+                        {'episode_number': 6, 'name': 'Chapter 6: The Prisoner', 'runtime': 43},
+                        {'episode_number': 7, 'name': 'Chapter 7: The Reckoning', 'runtime': 40},
+                        {'episode_number': 8, 'name': 'Chapter 8: Redemption', 'runtime': 48}
+                    ]
+                }
+            }
+            
+            # Get episodes for this season
+            episodes = mock_episodes.get(show_id, {}).get(season_num, [])
+            
+            return {
+                'id': f'{show_id}_{season_num}',
+                'season_number': season_num,
+                'name': f'Season {season_num}',
+                'overview': f'Season {season_num} overview',
+                'air_date': '2020-01-01',
+                'episodes': episodes
+            }
+            
         elif endpoint.startswith("tv/"):
             show_id = int(endpoint.split('/')[1])
             
@@ -312,6 +382,32 @@ class TMDBService:
             'poster_path': self._get_full_image_url(season.get('poster_path')),
             'episodes': season.get('episodes', [])
         }
+    
+    def get_show_episode_runtimes(self, show_id, num_seasons):
+        """Get runtime data for all episodes across all seasons of a show."""
+        episode_runtimes = {}
+        
+        for season_num in range(1, num_seasons + 1):
+            try:
+                season_data = self.get_season_details(show_id, season_num)
+                season_runtimes = []
+                
+                for episode in season_data.get('episodes', []):
+                    runtime = episode.get('runtime')
+                    if runtime and runtime > 0:
+                        season_runtimes.append(runtime)
+                    else:
+                        # Fallback to show's default runtime if episode runtime is missing
+                        season_runtimes.append(None)
+                
+                if season_runtimes:
+                    episode_runtimes[season_num] = season_runtimes
+                    
+            except Exception as e:
+                print(f"Failed to get episode runtimes for season {season_num} of show {show_id}: {e}")
+                continue
+        
+        return episode_runtimes
     
     def _get_full_image_url(self, image_path):
         """Convert a relative image path to a full URL."""
