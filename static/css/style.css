@@ -77,7 +77,7 @@ body {
 /* Watch time section */
 .watch-time-section {
     margin-top: 1rem;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
 }
 
 .watch-time-card {
@@ -231,8 +231,9 @@ body {
 }
 
 /* Search section */
+/* Search section */
 .search-section {
-    margin-bottom: 3rem;
+    margin-bottom: 1rem;
 }
 
 .search-container h3 {
@@ -524,7 +525,7 @@ body {
 
 .watched-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     margin-bottom: 1rem;
 }
