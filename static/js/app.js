@@ -1529,7 +1529,7 @@ const StatsApp = {
         Plotly.newPlot('yearlyChart', [trace], layout, config);
     },
 
-    // Fallback simple yearly chart using CSS
+    // Fallback simple yearly chart using CSS - Truly flexible version
     createSimpleYearlyChart(yearlyData, container) {
         if (Object.keys(yearlyData).length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No yearly data available</p>';
@@ -1558,29 +1558,13 @@ const StatsApp = {
 
         const maxHours = Math.max(...allYearsData.map(([, minutes]) => minutes / 60));
         
-        // Calculate dynamic bar width based on number of years and container constraints
-        const yearCount = allYearsData.length;
-        const minBarWidth = 3;  // Much smaller minimum for many years scenarios
-        const maxBarWidth = yearCount <= 10 ? 120 : 60; // Larger max width for fewer years
-        const gapWidth = Math.max(1, Math.min(12, yearCount <= 5 ? 12 : Math.max(1, 40 / yearCount))); // Dynamic gap
-        
-        // Calculate optimal bar width that fills the container
-        // Use more aggressive width calculation for fewer years
-        const estimatedContainerWidth = 700; // Conservative estimate for calculation
-        const availableWidth = estimatedContainerWidth - (40); // Account for padding
-        const totalGapWidth = (yearCount - 1) * gapWidth;
-        const availableBarWidth = availableWidth - totalGapWidth;
-        const calculatedBarWidth = Math.floor(availableBarWidth / yearCount);
-        
-        // Apply constraints to bar width, much smaller minimums for many years
-        const barWidth = Math.max(minBarWidth, Math.min(maxBarWidth, Math.max(calculatedBarWidth, yearCount <= 10 ? 20 : 5)));
-        
         // Get first and last years for labels
         const firstYear = allYearsData.length > 0 ? allYearsData[0][0] : '';
         const lastYear = allYearsData.length > 0 ? allYearsData[allYearsData.length - 1][0] : '';
         
+        // Create truly flexible chart that uses 100% width with no width constraints
         let chartHTML = `<div style="padding: 1rem; position: relative; width: 100%;">
-            <div style="position: relative; display: flex; align-items: end; justify-content: center; gap: ${gapWidth}px; height: 200px; padding: 20px 0; width: 100%;">`;
+            <div style="position: relative; display: flex; align-items: end; height: 200px; padding: 20px 0; width: 100%; gap: 2px;">`;
         
         // Add tooltip element
         chartHTML += '<div id="yearly-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
@@ -1591,8 +1575,8 @@ const StatsApp = {
             const heightPixels = Math.max(4, (hours / maxHours) * 160); // 160px max height within 200px container
             
             chartHTML += `
-                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: ${barWidth + 4}px; min-width: ${Math.max(barWidth, 4)}px;">
-                    <div style="background: #63b3ed; width: ${barWidth}px; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer; margin: 0 auto;" 
+                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
+                    <div style="background: #63b3ed; width: 100%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
                          data-year="${year}" data-days="${days}" data-hours="${hours}"
                          onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'yearly-tooltip', '${year}: ${StatsApp.formatTimeCompact(hours)}')"
                          onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('yearly-tooltip')"
