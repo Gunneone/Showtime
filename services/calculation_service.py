@@ -73,9 +73,19 @@ class CalculationService:
         """Calculate fun time conversions ordered by size (smallest to largest time periods)."""
         conversions = []
         
-        # Order by size: Teen Spirit (5min) -> 30-min walk -> LotR Extended (715min) -> Harry Potter (73h) -> Trans-Siberian (7 days) -> Learn Language (675h) -> Pregnancy (9 months)
+        # Order by size: Hyperbullet Chess (1min) -> Teen Spirit (5min) -> 30-min walk -> Flight (150min) -> LotR Extended (715min) -> Harry Potter (73h) -> Trans-Siberian (7 days) -> Learn Language (675h) -> Pregnancy (9 months)
         
-        # 1. Smells Like Teen Spirit (5 minutes 1 second ≈ 5.02 minutes)
+        # 1. Play a round of hyperbullet chess (1 minute)
+        chess_times = total_minutes / 1
+        value = self._format_conversion_number(chess_times)
+        conversions.append({
+            'icon': 'fas fa-chess-pawn',
+            'value': value,
+            'description': 'played a round of hyperbullet chess',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
+        })
+        
+        # 2. Smells Like Teen Spirit (5 minutes 1 second ≈ 5.02 minutes)
         teen_spirit_times = total_minutes / 5.02
         value = self._format_conversion_number(teen_spirit_times)
         conversions.append({
@@ -85,7 +95,7 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 2. 30-minute walk
+        # 3. 30-minute walk
         walk_times = total_minutes / 30
         value = self._format_conversion_number(walk_times)
         conversions.append({
@@ -95,7 +105,17 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 3. Watched extended LotR Trilogy (715 minutes)
+        # 4. Flight between NY and Chicago (2h 30m = 150 minutes)
+        flight_times = total_minutes / 150
+        value = self._format_conversion_number(flight_times)
+        conversions.append({
+            'icon': 'fas fa-plane',
+            'value': value,
+            'description': 'taken a flight between NY and Chicago',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
+        })
+        
+        # 5. Watched extended LotR Trilogy (715 minutes)
         lotr_times = total_minutes / 715
         value = self._format_conversion_number(lotr_times)
         conversions.append({
@@ -105,7 +125,7 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 4. Reading Harry Potter series (about 73 hours ≈ 4,380 minutes)
+        # 6. Reading Harry Potter series (about 73 hours ≈ 4,380 minutes)
         hp_times = total_minutes / 4380
         value = self._format_conversion_number(hp_times)
         conversions.append({
@@ -115,7 +135,7 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 5. Trans-Siberian Railway trip (about 7 days ≈ 10,080 minutes)
+        # 7. Trans-Siberian Railway trip (about 7 days ≈ 10,080 minutes)
         trans_siberian_times = total_minutes / 10080
         value = self._format_conversion_number(trans_siberian_times)
         conversions.append({
@@ -125,7 +145,7 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 6. Learn a Language (675 hours = 40,500 minutes)
+        # 8. Learn a Language (675 hours = 40,500 minutes)
         language_times = total_minutes / 40500
         value = self._format_conversion_number(language_times)
         conversions.append({
@@ -135,7 +155,7 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 7. Carried out a baby (9 months = 270 days = 388,800 minutes)
+        # 9. Carried out a baby (9 months = 270 days = 388,800 minutes)
         pregnancy_times = total_minutes / 388800
         value = self._format_conversion_number(pregnancy_times)
         conversions.append({
@@ -213,20 +233,88 @@ class CalculationService:
                 show_time = self.calculate_show_time(show)
                 genre_breakdown[genre_name] += show_time
         
-        # Yearly breakdown (based on first air date)
+        # Yearly breakdown (based on season release years)
         yearly_breakdown = defaultdict(int)
         for show in watched_shows:
-            first_air_date = show.get('first_air_date', '')
-            if first_air_date:
-                try:
-                    year = datetime.strptime(first_air_date, '%Y-%m-%d').year
-                    show_time = self.calculate_show_time(show)
-                    yearly_breakdown[str(year)] += show_time
-                except ValueError:
-                    # Handle invalid date formats
+            show_id = show.get('tmdb_id') or show.get('id')
+            seasons_watched = show.get('seasons_watched', 0)
+            
+            if not show_id or seasons_watched == 0:
+                # Fallback to show release year if no season data available
+                first_air_date = show.get('first_air_date', '')
+                if first_air_date:
+                    try:
+                        year = datetime.strptime(first_air_date, '%Y-%m-%d').year
+                        show_time = self.calculate_show_time(show)
+                        yearly_breakdown[str(year)] += show_time
+                    except ValueError:
+                        yearly_breakdown['Unknown'] += self.calculate_show_time(show)
+                else:
                     yearly_breakdown['Unknown'] += self.calculate_show_time(show)
-            else:
-                yearly_breakdown['Unknown'] += self.calculate_show_time(show)
+                continue
+            
+            # Calculate time per season for distribution across years
+            show_time = self.calculate_show_time(show)
+            time_per_season = show_time / seasons_watched if seasons_watched > 0 else 0
+            
+            # Get season air dates and distribute time accordingly
+            try:
+                from services.tmdb_service import TMDBService
+                tmdb_service = TMDBService()
+                
+                for season_num in range(1, seasons_watched + 1):
+                    try:
+                        season_details = tmdb_service.get_season_details(show_id, season_num)
+                        season_air_date = season_details.get('air_date', '')
+                        
+                        if season_air_date:
+                            try:
+                                year = datetime.strptime(season_air_date, '%Y-%m-%d').year
+                                yearly_breakdown[str(year)] += time_per_season
+                            except ValueError:
+                                # If season air date is invalid, fallback to show air date
+                                first_air_date = show.get('first_air_date', '')
+                                if first_air_date:
+                                    try:
+                                        year = datetime.strptime(first_air_date, '%Y-%m-%d').year
+                                        yearly_breakdown[str(year)] += time_per_season
+                                    except ValueError:
+                                        yearly_breakdown['Unknown'] += time_per_season
+                                else:
+                                    yearly_breakdown['Unknown'] += time_per_season
+                        else:
+                            # If no season air date, fallback to show air date
+                            first_air_date = show.get('first_air_date', '')
+                            if first_air_date:
+                                try:
+                                    year = datetime.strptime(first_air_date, '%Y-%m-%d').year
+                                    yearly_breakdown[str(year)] += time_per_season
+                                except ValueError:
+                                    yearly_breakdown['Unknown'] += time_per_season
+                            else:
+                                yearly_breakdown['Unknown'] += time_per_season
+                    except Exception:
+                        # If we can't get season details, fallback to show air date
+                        first_air_date = show.get('first_air_date', '')
+                        if first_air_date:
+                            try:
+                                year = datetime.strptime(first_air_date, '%Y-%m-%d').year
+                                yearly_breakdown[str(year)] += time_per_season
+                            except ValueError:
+                                yearly_breakdown['Unknown'] += time_per_season
+                        else:
+                            yearly_breakdown['Unknown'] += time_per_season
+            except Exception:
+                # If TMDB service is not available, fallback to show release year
+                first_air_date = show.get('first_air_date', '')
+                if first_air_date:
+                    try:
+                        year = datetime.strptime(first_air_date, '%Y-%m-%d').year
+                        yearly_breakdown[str(year)] += show_time
+                    except ValueError:
+                        yearly_breakdown['Unknown'] += show_time
+                else:
+                    yearly_breakdown['Unknown'] += show_time
         
         # Completion statistics
         completed_shows = 0
