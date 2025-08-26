@@ -1433,6 +1433,7 @@ const StatsApp = {
         // New interactive charts
         this.createYearlyChart(stats.yearly_breakdown);
         this.createTopGenresChart(stats.genre_breakdown);
+        this.createTopNetworksChart(stats.network_breakdown);
         this.displayFunConversions(stats.fun_conversions);
     },
 
@@ -1516,7 +1517,7 @@ const StatsApp = {
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
             font: { color: '#e2e8f0' },
             margin: { l: 60, r: 30, t: 30, b: 60 },
-            bargap: allYears.length <= 3 ? 0.6 : 0.8 // Adjust gap based on number of years for better spacing
+            bargap: allYears.length <= 3 ? 0.7 : 0.85 // Increased gap for better spacing
         };
 
         const config = {
@@ -1623,26 +1624,27 @@ const StatsApp = {
             return;
         }
 
-        // Get top 5 genres
+        // Get top 10 genres
         const sortedGenres = Object.entries(genreData)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 5);
+            .slice(0, 10);
 
         const genres = sortedGenres.map(([genre]) => genre);
         const minutes = sortedGenres.map(([, time]) => time);
         const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
 
         const trace = {
-            x: genres,
-            y: hours,
+            x: hours,
+            y: genres,
             type: 'bar',
+            orientation: 'h',
             marker: {
                 color: '#63b3ed',
                 line: {
                     width: 0
                 }
             },
-            hovertemplate: '<b>%{x}</b><br>%{customdata}<extra></extra>',
+            hovertemplate: '<b>%{y}</b><br>%{customdata}<extra></extra>',
             customdata: hours.map(h => this.formatTimeCompact(h))
         };
 
@@ -1656,6 +1658,7 @@ const StatsApp = {
                 color: '#e2e8f0',
                 showgrid: false,
                 showline: false,
+                showticklabels: false,
                 tickfont: { color: '#a0aec0' }
             },
             yaxis: {
@@ -1663,13 +1666,12 @@ const StatsApp = {
                 color: '#e2e8f0',
                 showgrid: false,
                 showline: false,
-                showticklabels: false,
                 tickfont: { color: '#9ca3af' }
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
             font: { color: '#e2e8f0' },
-            margin: { l: 60, r: 30, t: 30, b: 100 }
+            margin: { l: 100, r: 30, t: 30, b: 40 }
         };
 
         const config = {
@@ -1680,6 +1682,123 @@ const StatsApp = {
         };
 
         Plotly.newPlot('topGenresChart', [trace], layout, config);
+    },
+
+    // Create top 10 networks horizontal bar chart
+    createTopNetworksChart(networkData) {
+        const chartDiv = document.getElementById('topNetworksChart');
+        
+        if (typeof Plotly === 'undefined') {
+            // Fallback to simple HTML chart
+            this.createSimpleNetworksChart(networkData, chartDiv);
+            return;
+        }
+        
+        if (Object.keys(networkData).length === 0) {
+            chartDiv.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No network data available</p>';
+            return;
+        }
+
+        // Get top 10 networks
+        const sortedNetworks = Object.entries(networkData)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+
+        const networks = sortedNetworks.map(([network]) => network);
+        const minutes = sortedNetworks.map(([, time]) => time);
+        const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
+
+        const trace = {
+            x: hours,
+            y: networks,
+            type: 'bar',
+            orientation: 'h',
+            marker: {
+                color: '#4fd1c7',
+                line: {
+                    width: 0
+                }
+            },
+            hovertemplate: '<b>%{y}</b><br>%{customdata}<extra></extra>',
+            customdata: hours.map(h => this.formatTimeCompact(h))
+        };
+
+        const layout = {
+            title: {
+                text: '',
+                font: { color: '#e2e8f0' }
+            },
+            xaxis: {
+                title: '',
+                color: '#e2e8f0',
+                showgrid: false,
+                showline: false,
+                showticklabels: false,
+                tickfont: { color: '#a0aec0' }
+            },
+            yaxis: {
+                title: '',
+                color: '#e2e8f0',
+                showgrid: false,
+                showline: false,
+                tickfont: { color: '#9ca3af' }
+            },
+            plot_bgcolor: 'rgba(0, 0, 0, 0)',
+            paper_bgcolor: 'rgba(0, 0, 0, 0)',
+            font: { color: '#e2e8f0' },
+            margin: { l: 100, r: 30, t: 30, b: 40 }
+        };
+
+        const config = {
+            displayModeBar: false,
+            staticPlot: false,
+            displaylogo: false,
+            responsive: true
+        };
+
+        Plotly.newPlot('topNetworksChart', [trace], layout, config);
+    },
+
+    // Fallback simple networks chart using CSS
+    createSimpleNetworksChart(networkData, container) {
+        if (Object.keys(networkData).length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No network data available</p>';
+            return;
+        }
+
+        // Get top 10 networks
+        const sortedNetworks = Object.entries(networkData)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+
+        if (sortedNetworks.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No network data available</p>';
+            return;
+        }
+
+        const maxTime = Math.max(...sortedNetworks.map(([, time]) => time));
+        
+        let chartHTML = '<div style="padding: 1rem; background: rgba(45, 55, 72, 0.3); border-radius: 8px;">';
+        chartHTML += '<div style="display: flex; flex-direction: column; gap: 8px;">';
+        
+        sortedNetworks.forEach(([network, minutes]) => {
+            const hours = Math.round(minutes / 60 * 10) / 10;
+            const percentage = (minutes / maxTime) * 100;
+            
+            chartHTML += `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="min-width: 80px; text-align: right; color: #a0aec0; font-size: 0.9rem;">${network}</div>
+                    <div style="flex: 1; background: rgba(45, 55, 72, 0.5); border-radius: 4px; height: 24px; position: relative;">
+                        <div style="background: #4fd1c7; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease;"></div>
+                    </div>
+                    <div style="min-width: 60px; color: #63b3ed; font-size: 0.9rem; font-weight: 500;">${this.formatTimeCompact(hours)}</div>
+                </div>
+            `;
+        });
+        
+        chartHTML += '</div></div>';
+        
+        container.innerHTML = chartHTML;
     },
 
     // Fallback simple genres chart using CSS

@@ -193,7 +193,9 @@ class TMDBService:
                         {'id': 80, 'name': 'Crime'}
                     ],
                     'status': 'Ended',
-                    'networks': []
+                    'networks': [
+                        {'id': 1, 'name': 'AMC'}
+                    ]
                 },
                 2: {
                     'id': 2,
@@ -212,7 +214,9 @@ class TMDBService:
                         {'id': 35, 'name': 'Comedy'}
                     ],
                     'status': 'Ended',
-                    'networks': []
+                    'networks': [
+                        {'id': 2, 'name': 'NBC'}
+                    ]
                 },
                 3: {
                     'id': 3,
@@ -233,7 +237,9 @@ class TMDBService:
                         {'id': 10765, 'name': 'Sci-Fi & Fantasy'}
                     ],
                     'status': 'Ended',
-                    'networks': []
+                    'networks': [
+                        {'id': 3, 'name': 'HBO'}
+                    ]
                 },
                 4: {
                     'id': 4,
@@ -254,7 +260,9 @@ class TMDBService:
                         {'id': 9648, 'name': 'Mystery'}
                     ],
                     'status': 'Ended',
-                    'networks': []
+                    'networks': [
+                        {'id': 4, 'name': 'Netflix'}
+                    ]
                 },
                 5: {
                     'id': 5,
@@ -275,7 +283,9 @@ class TMDBService:
                         {'id': 10765, 'name': 'Sci-Fi & Fantasy'}
                     ],
                     'status': 'Ended',
-                    'networks': []
+                    'networks': [
+                        {'id': 5, 'name': 'Disney+'}
+                    ]
                 }
             }
             

@@ -192,7 +192,9 @@ def add_watched():
                 'episode_run_time': episode_runtime,
                 'calculated_runtime_minutes': calculated_runtime,
                 # Store only genre names as compact array to save space
-                'genres': [genre['name'] for genre in show_details.get('genres', [])]
+                'genres': [genre['name'] for genre in show_details.get('genres', [])],
+                # Store only network names as compact array to save space
+                'networks': [network['name'] for network in show_details.get('networks', [])]
             }
             watched_shows.append(new_show)
         

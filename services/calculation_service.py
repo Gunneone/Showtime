@@ -210,6 +210,7 @@ class CalculationService:
                 'total_time_formatted': '0h',
                 'average_time_per_show': 0,
                 'genre_breakdown': {},
+                'network_breakdown': {},
                 'yearly_breakdown': {},
                 'completion_stats': {
                     'completed_shows': 0,
@@ -232,6 +233,14 @@ class CalculationService:
                 genre_name = genre.get('name', 'Unknown') if isinstance(genre, dict) else str(genre)
                 show_time = self.calculate_show_time(show)
                 genre_breakdown[genre_name] += show_time
+        
+        # Network breakdown
+        network_breakdown = defaultdict(int)
+        for show in watched_shows:
+            for network in show.get('networks', []):
+                network_name = network.get('name', 'Unknown') if isinstance(network, dict) else str(network)
+                show_time = self.calculate_show_time(show)
+                network_breakdown[network_name] += show_time
         
         # Yearly breakdown (based on season release years)
         yearly_breakdown = defaultdict(int)
@@ -339,6 +348,7 @@ class CalculationService:
             'average_time_per_show': average_time_per_show,
             'average_time_per_show_formatted': self.format_time(average_time_per_show),
             'genre_breakdown': dict(genre_breakdown),
+            'network_breakdown': dict(network_breakdown),
             'yearly_breakdown': dict(yearly_breakdown),
             'completion_stats': {
                 'completed_shows': completed_shows,
