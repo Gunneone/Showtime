@@ -1516,8 +1516,7 @@ const StatsApp = {
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
             font: { color: '#e2e8f0' },
             margin: { l: 60, r: 30, t: 30, b: 60 },
-            bargap: 0.8, // Increase gap between bars to make them narrower
-            width: Math.min(800, Math.max(300, allYears.length * 15)) // Dynamic width based on number of years
+            bargap: allYears.length <= 3 ? 0.6 : 0.8 // Adjust gap based on number of years for better spacing
         };
 
         const config = {
@@ -1559,10 +1558,7 @@ const StatsApp = {
 
         const maxHours = Math.max(...allYearsData.map(([, minutes]) => minutes / 60));
         
-        // Calculate dynamic width based on number of years
-        const chartWidth = Math.min(800, Math.max(300, allYearsData.length * 15));
-        
-        let chartHTML = `<div style="padding: 1rem; position: relative; max-width: ${chartWidth}px; margin: 0 auto;"><div style="position: relative; display: flex; align-items: end; gap: 4px; height: 200px; padding: 20px 0;">`;
+        let chartHTML = '<div style="padding: 1rem; position: relative;"><div style="position: relative; display: flex; align-items: end; justify-content: center; gap: 8px; height: 200px; padding: 20px 0;">';
         
         // Add tooltip element
         chartHTML += '<div id="yearly-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
@@ -1576,8 +1572,8 @@ const StatsApp = {
             const showYear = index === 0 || index === allYearsData.length - 1;
             
             chartHTML += `
-                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 20px;">
-                    <div style="background: #63b3ed; width: 12px; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer; margin: 0 auto;" 
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 20px;">
+                    <div style="background: #63b3ed; width: 16px; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
                          data-year="${year}" data-days="${days}" data-hours="${hours}"
                          onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'yearly-tooltip', '${year}: ${StatsApp.formatTimeCompact(hours)}')"
                          onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('yearly-tooltip')"
