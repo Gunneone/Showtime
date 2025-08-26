@@ -1560,9 +1560,9 @@ const StatsApp = {
         
         // Calculate dynamic bar width based on number of years and container constraints
         const yearCount = allYearsData.length;
-        const minBarWidth = 8;  // Minimum bar width for readability
+        const minBarWidth = 3;  // Much smaller minimum for many years scenarios
         const maxBarWidth = yearCount <= 10 ? 120 : 60; // Larger max width for fewer years
-        const gapWidth = Math.max(2, Math.min(12, yearCount <= 5 ? 12 : Math.max(2, 60 / yearCount))); // Dynamic gap
+        const gapWidth = Math.max(1, Math.min(12, yearCount <= 5 ? 12 : Math.max(1, 40 / yearCount))); // Dynamic gap
         
         // Calculate optimal bar width that fills the container
         // Use more aggressive width calculation for fewer years
@@ -1572,10 +1572,15 @@ const StatsApp = {
         const availableBarWidth = availableWidth - totalGapWidth;
         const calculatedBarWidth = Math.floor(availableBarWidth / yearCount);
         
-        // Apply constraints to bar width, but be more generous for fewer years
-        const barWidth = Math.max(minBarWidth, Math.min(maxBarWidth, Math.max(calculatedBarWidth, yearCount <= 10 ? 40 : 20)));
+        // Apply constraints to bar width, much smaller minimums for many years
+        const barWidth = Math.max(minBarWidth, Math.min(maxBarWidth, Math.max(calculatedBarWidth, yearCount <= 10 ? 20 : 5)));
         
-        let chartHTML = `<div style="padding: 1rem; position: relative; width: 100%;"><div style="position: relative; display: flex; align-items: end; justify-content: center; gap: ${gapWidth}px; height: 200px; padding: 20px 0; width: 100%;">`;
+        // Get first and last years for labels
+        const firstYear = allYearsData.length > 0 ? allYearsData[0][0] : '';
+        const lastYear = allYearsData.length > 0 ? allYearsData[allYearsData.length - 1][0] : '';
+        
+        let chartHTML = `<div style="padding: 1rem; position: relative; width: 100%;">
+            <div style="position: relative; display: flex; align-items: end; justify-content: center; gap: ${gapWidth}px; height: 200px; padding: 20px 0; width: 100%;">`;
         
         // Add tooltip element
         chartHTML += '<div id="yearly-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
@@ -1585,22 +1590,36 @@ const StatsApp = {
             const days = Math.round(hours / 24 * 10) / 10;
             const heightPixels = Math.max(4, (hours / maxHours) * 160); // 160px max height within 200px container
             
-            // Only show year labels for first and last
-            const showYear = index === 0 || index === allYearsData.length - 1;
-            
             chartHTML += `
-                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: ${barWidth + 20}px; min-width: ${Math.max(barWidth, 16)}px;">
+                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: ${barWidth + 4}px; min-width: ${Math.max(barWidth, 4)}px;">
                     <div style="background: #63b3ed; width: ${barWidth}px; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer; margin: 0 auto;" 
                          data-year="${year}" data-days="${days}" data-hours="${hours}"
                          onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'yearly-tooltip', '${year}: ${StatsApp.formatTimeCompact(hours)}')"
                          onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('yearly-tooltip')"
                          onmousemove="StatsApp.moveTooltip(event, 'yearly-tooltip')"></div>
-                    <div style="color: #a0aec0; font-size: 0.7rem; text-align: center; visibility: ${showYear ? 'visible' : 'hidden'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">${year}</div>
                 </div>
             `;
         });
         
-        chartHTML += '</div></div>';
+        chartHTML += '</div>';
+        
+        // Add year labels positioned at chart edges (not tied to individual bars)
+        if (firstYear && lastYear && firstYear !== lastYear) {
+            chartHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 0 20px;">
+                    <div style="color: #a0aec0; font-size: 0.8rem;">${firstYear}</div>
+                    <div style="color: #a0aec0; font-size: 0.8rem;">${lastYear}</div>
+                </div>
+            `;
+        } else if (firstYear) {
+            chartHTML += `
+                <div style="display: flex; justify-content: center; align-items: center; margin-top: 8px; padding: 0 20px;">
+                    <div style="color: #a0aec0; font-size: 0.8rem;">${firstYear}</div>
+                </div>
+            `;
+        }
+        
+        chartHTML += '</div>';
         
         container.innerHTML = chartHTML;
     },
