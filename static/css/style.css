@@ -1330,6 +1330,11 @@ body {
         margin-bottom: 1.5rem;
     }
     
+    .chart-container.horizontal-charts {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
     .plotly-chart {
         min-height: 300px;
     }
