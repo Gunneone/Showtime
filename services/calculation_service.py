@@ -10,7 +10,38 @@ class CalculationService:
         if 'calculated_runtime_minutes' in show:
             return int(show['calculated_runtime_minutes'])
         
-        # Legacy calculation for existing shows without pre-calculated runtime
+        # Check if we have per-episode runtime data (test/legacy approach)
+        episode_runtimes = show.get('episode_runtimes', {})
+        if episode_runtimes:
+            total_time = 0
+            seasons_watched = show.get('seasons_watched', 0)
+            default_runtime = show.get('episode_run_time', 45)
+            
+            for season_num in range(1, seasons_watched + 1):
+                season_key = str(season_num)
+                if season_key in episode_runtimes:
+                    # Use precise episode runtimes for this season
+                    season_runtimes = episode_runtimes[season_key]
+                    for runtime in season_runtimes:
+                        if runtime is not None:
+                            total_time += runtime
+                        else:
+                            total_time += default_runtime  # Fallback for missing episode data
+                else:
+                    # Fall back to average calculation for seasons without precise data
+                    total_episodes_in_show = show.get('total_episodes', 0)
+                    total_seasons_in_show = show.get('total_seasons', 1)
+                    
+                    if total_episodes_in_show > 0 and total_seasons_in_show > 0:
+                        episodes_per_season = total_episodes_in_show / total_seasons_in_show
+                    else:
+                        episodes_per_season = 20  # Default assumption
+                    
+                    total_time += int(episodes_per_season * default_runtime)
+            
+            return int(total_time)
+        
+        # Legacy calculation for existing shows without pre-calculated runtime or episode runtimes
         seasons_watched = show.get('seasons_watched', 0)
         episode_run_time = show.get('episode_run_time', 45)  # Default 45 minutes
         
@@ -242,80 +273,33 @@ class CalculationService:
                 show_time = self.calculate_show_time(show)
                 network_breakdown[network_name] += show_time
         
-        # Yearly breakdown (based on season release years)
+        # Yearly breakdown (based on stored season details - no API calls needed)
         yearly_breakdown = defaultdict(int)
         for show in watched_shows:
-            show_id = show.get('tmdb_id') or show.get('id')
-            seasons_watched = show.get('seasons_watched', 0)
+            # Check if we have detailed season information stored
+            season_details = show.get('season_details', [])
             
-            if not show_id or seasons_watched == 0:
-                # Fallback to show release year if no season data available
+            if season_details:
+                # Use stored per-season data (precise runtime and air date)
+                for season_detail in season_details:
+                    season_runtime = season_detail.get('runtime_minutes', 0)
+                    season_air_date = season_detail.get('air_date', '')
+                    
+                    if season_air_date:
+                        try:
+                            year = datetime.strptime(season_air_date, '%Y-%m-%d').year
+                            yearly_breakdown[str(year)] += season_runtime
+                        except ValueError:
+                            # If air date is invalid, use 'Unknown'
+                            yearly_breakdown['Unknown'] += season_runtime
+                    else:
+                        yearly_breakdown['Unknown'] += season_runtime
+            else:
+                # Fallback for shows without detailed season data (legacy shows)
+                # Use show release year for the entire show time
                 first_air_date = show.get('first_air_date', '')
-                if first_air_date:
-                    try:
-                        year = datetime.strptime(first_air_date, '%Y-%m-%d').year
-                        show_time = self.calculate_show_time(show)
-                        yearly_breakdown[str(year)] += show_time
-                    except ValueError:
-                        yearly_breakdown['Unknown'] += self.calculate_show_time(show)
-                else:
-                    yearly_breakdown['Unknown'] += self.calculate_show_time(show)
-                continue
-            
-            # Calculate time per season for distribution across years
-            show_time = self.calculate_show_time(show)
-            time_per_season = show_time / seasons_watched if seasons_watched > 0 else 0
-            
-            # Get season air dates and distribute time accordingly
-            try:
-                from services.tmdb_service import TMDBService
-                tmdb_service = TMDBService()
+                show_time = self.calculate_show_time(show)
                 
-                for season_num in range(1, seasons_watched + 1):
-                    try:
-                        season_details = tmdb_service.get_season_details(show_id, season_num)
-                        season_air_date = season_details.get('air_date', '')
-                        
-                        if season_air_date:
-                            try:
-                                year = datetime.strptime(season_air_date, '%Y-%m-%d').year
-                                yearly_breakdown[str(year)] += time_per_season
-                            except ValueError:
-                                # If season air date is invalid, fallback to show air date
-                                first_air_date = show.get('first_air_date', '')
-                                if first_air_date:
-                                    try:
-                                        year = datetime.strptime(first_air_date, '%Y-%m-%d').year
-                                        yearly_breakdown[str(year)] += time_per_season
-                                    except ValueError:
-                                        yearly_breakdown['Unknown'] += time_per_season
-                                else:
-                                    yearly_breakdown['Unknown'] += time_per_season
-                        else:
-                            # If no season air date, fallback to show air date
-                            first_air_date = show.get('first_air_date', '')
-                            if first_air_date:
-                                try:
-                                    year = datetime.strptime(first_air_date, '%Y-%m-%d').year
-                                    yearly_breakdown[str(year)] += time_per_season
-                                except ValueError:
-                                    yearly_breakdown['Unknown'] += time_per_season
-                            else:
-                                yearly_breakdown['Unknown'] += time_per_season
-                    except Exception:
-                        # If we can't get season details, fallback to show air date
-                        first_air_date = show.get('first_air_date', '')
-                        if first_air_date:
-                            try:
-                                year = datetime.strptime(first_air_date, '%Y-%m-%d').year
-                                yearly_breakdown[str(year)] += time_per_season
-                            except ValueError:
-                                yearly_breakdown['Unknown'] += time_per_season
-                        else:
-                            yearly_breakdown['Unknown'] += time_per_season
-            except Exception:
-                # If TMDB service is not available, fallback to show release year
-                first_air_date = show.get('first_air_date', '')
                 if first_air_date:
                     try:
                         year = datetime.strptime(first_air_date, '%Y-%m-%d').year
