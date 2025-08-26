@@ -193,7 +193,18 @@ class TMDBService:
                         {'id': 80, 'name': 'Crime'}
                     ],
                     'status': 'Ended',
-                    'networks': []
+                    'networks': [
+                        {'id': 174, 'name': 'AMC'}
+                    ],
+                    'keywords': {
+                        'results': [
+                            {'id': 1, 'name': 'chemistry'},
+                            {'id': 2, 'name': 'drug dealer'},
+                            {'id': 3, 'name': 'family'},
+                            {'id': 4, 'name': 'cancer'},
+                            {'id': 5, 'name': 'teacher'}
+                        ]
+                    }
                 },
                 2: {
                     'id': 2,
@@ -212,7 +223,18 @@ class TMDBService:
                         {'id': 35, 'name': 'Comedy'}
                     ],
                     'status': 'Ended',
-                    'networks': []
+                    'networks': [
+                        {'id': 1024, 'name': 'NBC'}
+                    ],
+                    'keywords': {
+                        'results': [
+                            {'id': 6, 'name': 'office'},
+                            {'id': 7, 'name': 'workplace'},
+                            {'id': 8, 'name': 'mockumentary'},
+                            {'id': 9, 'name': 'sitcom'},
+                            {'id': 10, 'name': 'friendship'}
+                        ]
+                    }
                 },
                 3: {
                     'id': 3,
@@ -233,7 +255,18 @@ class TMDBService:
                         {'id': 10765, 'name': 'Sci-Fi & Fantasy'}
                     ],
                     'status': 'Ended',
-                    'networks': []
+                    'networks': [
+                        {'id': 49, 'name': 'HBO'}
+                    ],
+                    'keywords': {
+                        'results': [
+                            {'id': 11, 'name': 'dragons'},
+                            {'id': 12, 'name': 'medieval'},
+                            {'id': 13, 'name': 'politics'},
+                            {'id': 14, 'name': 'war'},
+                            {'id': 15, 'name': 'fantasy'}
+                        ]
+                    }
                 },
                 4: {
                     'id': 4,
@@ -254,7 +287,18 @@ class TMDBService:
                         {'id': 9648, 'name': 'Mystery'}
                     ],
                     'status': 'Ended',
-                    'networks': []
+                    'networks': [
+                        {'id': 213, 'name': 'Netflix'}
+                    ],
+                    'keywords': {
+                        'results': [
+                            {'id': 16, 'name': 'supernatural'},
+                            {'id': 17, 'name': 'friendship'},
+                            {'id': 18, 'name': 'monster'},
+                            {'id': 19, 'name': 'government conspiracy'},
+                            {'id': 20, 'name': '1980s'}
+                        ]
+                    }
                 },
                 5: {
                     'id': 5,
@@ -275,7 +319,18 @@ class TMDBService:
                         {'id': 10765, 'name': 'Sci-Fi & Fantasy'}
                     ],
                     'status': 'Ended',
-                    'networks': []
+                    'networks': [
+                        {'id': 2739, 'name': 'Disney+'}
+                    ],
+                    'keywords': {
+                        'results': [
+                            {'id': 21, 'name': 'bounty hunter'},
+                            {'id': 22, 'name': 'space'},
+                            {'id': 23, 'name': 'star wars'},
+                            {'id': 24, 'name': 'baby'},
+                            {'id': 25, 'name': 'western'}
+                        ]
+                    }
                 }
             }
             
@@ -360,7 +415,8 @@ class TMDBService:
             'episode_run_time': episode_run_time,
             'genres': show.get('genres', []),
             'status': show.get('status', ''),
-            'networks': show.get('networks', [])
+            'networks': show.get('networks', []),
+            'keywords': show.get('keywords', {})
         }
     
     def get_season_details(self, show_id, season_number):

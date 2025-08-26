@@ -163,6 +163,11 @@ def add_watched():
             existing_show['calculated_runtime_minutes'] = calculate_precise_show_runtime(
                 tmdb_service, data['id'], seasons_watched, show_details
             )
+            # Update networks and keywords if not present
+            if 'networks' not in existing_show:
+                existing_show['networks'] = show_details.get('networks', [])
+            if 'keywords' not in existing_show:
+                existing_show['keywords'] = show_details.get('keywords', {})
         else:
             # Add new show with precise runtime calculation
             seasons_watched = data.get('seasons_watched', 1)
@@ -192,7 +197,10 @@ def add_watched():
                 'episode_run_time': episode_runtime,
                 'calculated_runtime_minutes': calculated_runtime,
                 # Store only genre names as compact array to save space
-                'genres': [genre['name'] for genre in show_details.get('genres', [])]
+                'genres': [genre['name'] for genre in show_details.get('genres', [])],
+                # Store networks and keywords for charts
+                'networks': show_details.get('networks', []),
+                'keywords': show_details.get('keywords', {})
             }
             watched_shows.append(new_show)
         

@@ -3,7 +3,8 @@
 {% block title %}Statistics - Showtime{% endblock %}
 
 {% block head %}
-<!-- Using fallback charts instead of Plotly due to CDN restrictions -->
+<!-- Plotly.js for charts -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -90,10 +91,25 @@
         <div id="yearlyChart" class="plotly-chart"></div>
     </div>
     
-    <!-- Top 5 Genres -->
+    <!-- Top 10 Genres - Horizontal Bar Chart -->
     <div class="chart-container">
-        <h4>Top 5 Genres</h4>
+        <h4>Top 10 Genres</h4>
         <div id="topGenresChart" class="plotly-chart"></div>
+    </div>
+    
+    <!-- Vertical Bar Charts Row -->
+    <div class="vertical-charts-row">
+        <!-- Top 10 Networks -->
+        <div class="chart-container vertical-chart">
+            <h4>Top 10 Networks</h4>
+            <div id="topNetworksChart" class="plotly-chart"></div>
+        </div>
+        
+        <!-- Top 10 Keywords -->
+        <div class="chart-container vertical-chart">
+            <h4>Top 10 Keywords</h4>
+            <div id="topKeywordsChart" class="plotly-chart"></div>
+        </div>
     </div>
     
     <!-- Fun Time Conversions -->

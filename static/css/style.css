@@ -1248,6 +1248,24 @@ body {
     background: transparent;
 }
 
+/* Vertical Charts Row */
+.vertical-charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    margin-left: 40px;
+    margin-right: 40px;
+}
+
+.vertical-chart {
+    margin: 0;
+}
+
+.vertical-chart .plotly-chart {
+    min-height: 300px;
+}
+
 /* Time Conversions Grid */
 .time-conversions-grid {
     display: grid;
@@ -1315,6 +1333,13 @@ body {
     
     .plotly-chart {
         min-height: 300px;
+    }
+    
+    .vertical-charts-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-left: 20px;
+        margin-right: 20px;
     }
     
     .time-conversions-grid {

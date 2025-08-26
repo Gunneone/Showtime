@@ -210,6 +210,8 @@ class CalculationService:
                 'total_time_formatted': '0h',
                 'average_time_per_show': 0,
                 'genre_breakdown': {},
+                'networks_breakdown': {},
+                'keywords_breakdown': {},
                 'yearly_breakdown': {},
                 'completion_stats': {
                     'completed_shows': 0,
@@ -232,6 +234,28 @@ class CalculationService:
                 genre_name = genre.get('name', 'Unknown') if isinstance(genre, dict) else str(genre)
                 show_time = self.calculate_show_time(show)
                 genre_breakdown[genre_name] += show_time
+        
+        # Networks breakdown
+        networks_breakdown = defaultdict(int)
+        for show in watched_shows:
+            for network in show.get('networks', []):
+                network_name = network.get('name', 'Unknown') if isinstance(network, dict) else str(network)
+                show_time = self.calculate_show_time(show)
+                networks_breakdown[network_name] += show_time
+        
+        # Keywords breakdown
+        keywords_breakdown = defaultdict(int)
+        for show in watched_shows:
+            keywords_data = show.get('keywords', {})
+            if isinstance(keywords_data, dict):
+                keywords_list = keywords_data.get('results', [])
+            else:
+                keywords_list = keywords_data if isinstance(keywords_data, list) else []
+            
+            for keyword in keywords_list:
+                keyword_name = keyword.get('name', 'Unknown') if isinstance(keyword, dict) else str(keyword)
+                show_time = self.calculate_show_time(show)
+                keywords_breakdown[keyword_name] += show_time
         
         # Yearly breakdown (based on season release years)
         yearly_breakdown = defaultdict(int)
@@ -339,6 +363,8 @@ class CalculationService:
             'average_time_per_show': average_time_per_show,
             'average_time_per_show_formatted': self.format_time(average_time_per_show),
             'genre_breakdown': dict(genre_breakdown),
+            'networks_breakdown': dict(networks_breakdown),
+            'keywords_breakdown': dict(keywords_breakdown),
             'yearly_breakdown': dict(yearly_breakdown),
             'completion_stats': {
                 'completed_shows': completed_shows,
