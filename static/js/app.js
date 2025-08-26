@@ -1778,7 +1778,7 @@ const StatsApp = {
 
         const maxTime = Math.max(...sortedNetworks.map(([, time]) => time));
         
-        let chartHTML = '<div style="padding: 1rem; background: rgba(45, 55, 72, 0.3); border-radius: 8px;">';
+        let chartHTML = '<div style="padding: 1rem;">';
         chartHTML += '<div style="display: flex; flex-direction: column; gap: 8px;">';
         
         sortedNetworks.forEach(([network, minutes]) => {
@@ -1801,37 +1801,39 @@ const StatsApp = {
         container.innerHTML = chartHTML;
     },
 
-    // Fallback simple genres chart using CSS
+    // Fallback simple genres chart using CSS - Horizontal bars to match network chart
     createSimpleGenresChart(genreData, container) {
         if (Object.keys(genreData).length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No genre data available</p>';
             return;
         }
 
+        // Get top 10 genres to match the Plotly version
         const sortedGenres = Object.entries(genreData)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 5);
+            .slice(0, 10);
 
-        const maxHours = Math.max(...sortedGenres.map(([, minutes]) => minutes / 60));
+        if (sortedGenres.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No genre data available</p>';
+            return;
+        }
+
+        const maxTime = Math.max(...sortedGenres.map(([, time]) => time));
         
-        let chartHTML = '<div style="padding: 1rem; position: relative;"><div style="position: relative; display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
+        let chartHTML = '<div style="padding: 1rem;">';
+        chartHTML += '<div style="display: flex; flex-direction: column; gap: 8px;">';
         
-        // Add tooltip element
-        chartHTML += '<div id="genre-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
-        
-        sortedGenres.forEach(([genre, minutes], index) => {
+        sortedGenres.forEach(([genre, minutes]) => {
             const hours = Math.round(minutes / 60 * 10) / 10;
-            const days = Math.round(hours / 24 * 10) / 10;
-            const heightPixels = Math.max(8, (hours / maxHours) * 160); // 160px max height within 200px container
+            const percentage = (minutes / maxTime) * 100;
             
             chartHTML += `
-                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="background: #63b3ed; width: 80%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
-                         data-genre="${genre}" data-days="${days}" data-hours="${hours}"
-                         onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'genre-tooltip', '${genre}: ${StatsApp.formatTimeCompact(hours)}')"
-                         onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('genre-tooltip')"
-                         onmousemove="StatsApp.moveTooltip(event, 'genre-tooltip')"></div>
-                    <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="min-width: 80px; text-align: right; color: #a0aec0; font-size: 0.9rem;">${genre}</div>
+                    <div style="flex: 1; background: rgba(45, 55, 72, 0.5); border-radius: 4px; height: 24px; position: relative;">
+                        <div style="background: #63b3ed; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease;"></div>
+                    </div>
+                    <div style="min-width: 60px; color: #63b3ed; font-size: 0.9rem; font-weight: 500;">${this.formatTimeCompact(hours)}</div>
                 </div>
             `;
         });
