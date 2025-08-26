@@ -1558,7 +1558,24 @@ const StatsApp = {
 
         const maxHours = Math.max(...allYearsData.map(([, minutes]) => minutes / 60));
         
-        let chartHTML = '<div style="padding: 1rem; position: relative;"><div style="position: relative; display: flex; align-items: end; justify-content: center; gap: 8px; height: 200px; padding: 20px 0;">';
+        // Calculate dynamic bar width based on number of years and container constraints
+        const yearCount = allYearsData.length;
+        const minBarWidth = 8;  // Minimum bar width for readability
+        const maxBarWidth = 60; // Maximum bar width to prevent overly wide bars
+        const gapWidth = Math.max(2, Math.min(12, yearCount <= 5 ? 12 : Math.max(2, 60 / yearCount))); // Dynamic gap
+        
+        // Calculate optimal bar width that fills the container
+        // Assume container is roughly 100% width, estimate around 600-800px typical width
+        const estimatedContainerWidth = 700; // Conservative estimate for calculation
+        const availableWidth = estimatedContainerWidth - (40); // Account for padding
+        const totalGapWidth = (yearCount - 1) * gapWidth;
+        const availableBarWidth = availableWidth - totalGapWidth;
+        const calculatedBarWidth = Math.floor(availableBarWidth / yearCount);
+        
+        // Apply constraints to bar width
+        const barWidth = Math.max(minBarWidth, Math.min(maxBarWidth, calculatedBarWidth));
+        
+        let chartHTML = `<div style="padding: 1rem; position: relative; width: 100%;"><div style="position: relative; display: flex; align-items: end; justify-content: center; gap: ${gapWidth}px; height: 200px; padding: 20px 0; width: 100%;">`;
         
         // Add tooltip element
         chartHTML += '<div id="yearly-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
@@ -1568,17 +1585,17 @@ const StatsApp = {
             const days = Math.round(hours / 24 * 10) / 10;
             const heightPixels = Math.max(4, (hours / maxHours) * 160); // 160px max height within 200px container
             
-            // Only show year labels for first and last
-            const showYear = index === 0 || index === allYearsData.length - 1;
+            // Show year labels more intelligently based on bar count
+            const showYear = yearCount <= 10 || index === 0 || index === allYearsData.length - 1 || index % Math.ceil(yearCount / 8) === 0;
             
             chartHTML += `
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 20px;">
-                    <div style="background: #63b3ed; width: 16px; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
+                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: ${barWidth + 20}px; min-width: ${Math.max(barWidth, 16)}px;">
+                    <div style="background: #63b3ed; width: ${barWidth}px; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer; margin: 0 auto;" 
                          data-year="${year}" data-days="${days}" data-hours="${hours}"
                          onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'yearly-tooltip', '${year}: ${StatsApp.formatTimeCompact(hours)}')"
                          onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('yearly-tooltip')"
                          onmousemove="StatsApp.moveTooltip(event, 'yearly-tooltip')"></div>
-                    <div style="color: #a0aec0; font-size: 0.7rem; text-align: center; visibility: ${showYear ? 'visible' : 'hidden'}; white-space: nowrap;">${year}</div>
+                    <div style="color: #a0aec0; font-size: 0.7rem; text-align: center; visibility: ${showYear ? 'visible' : 'hidden'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">${year}</div>
                 </div>
             `;
         });
