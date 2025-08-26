@@ -1517,7 +1517,7 @@ const StatsApp = {
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
             font: { color: '#e2e8f0' },
             margin: { l: 60, r: 30, t: 30, b: 60 },
-            bargap: allYears.length <= 3 ? 0.7 : 0.85 // Increased gap for better spacing
+            bargap: allYears.length <= 3 ? 0.75 : 0.9 // Increased gap for better spacing
         };
 
         const config = {
@@ -1714,7 +1714,7 @@ const StatsApp = {
             type: 'bar',
             orientation: 'h',
             marker: {
-                color: '#4fd1c7',
+                color: '#63b3ed',
                 line: {
                     width: 0
                 }
@@ -1789,7 +1789,7 @@ const StatsApp = {
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <div style="min-width: 80px; text-align: right; color: #a0aec0; font-size: 0.9rem;">${network}</div>
                     <div style="flex: 1; background: rgba(45, 55, 72, 0.5); border-radius: 4px; height: 24px; position: relative;">
-                        <div style="background: #4fd1c7; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease;"></div>
+                        <div style="background: #63b3ed; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease;"></div>
                     </div>
                     <div style="min-width: 60px; color: #63b3ed; font-size: 0.9rem; font-weight: 500;">${this.formatTimeCompact(hours)}</div>
                 </div>
