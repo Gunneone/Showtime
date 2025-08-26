@@ -1609,6 +1609,21 @@ const StatsApp = {
         container.innerHTML = chartHTML;
     },
 
+    // Helper function to calculate text width dynamically
+    calculateTextWidth(text, fontSize = '14px', fontFamily = 'system-ui, -apple-system, sans-serif') {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        context.font = `${fontSize} ${fontFamily}`;
+        return context.measureText(text).width;
+    },
+
+    // Calculate dynamic left margin based on longest label
+    calculateDynamicMargin(labels) {
+        const maxWidth = Math.max(...labels.map(label => this.calculateTextWidth(label)));
+        // Add 20px padding to the longest label width
+        return Math.max(maxWidth + 20, 60); // Minimum 60px margin
+    },
+
     // Create top 3 genres bar chart
     createTopGenresChart(genreData) {
         const chartDiv = document.getElementById('topGenresChart');
@@ -1632,6 +1647,9 @@ const StatsApp = {
         const genres = sortedGenres.map(([genre]) => genre);
         const minutes = sortedGenres.map(([, time]) => time);
         const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
+
+        // Calculate dynamic left margin based on longest genre name
+        const dynamicMargin = this.calculateDynamicMargin(genres);
 
         const trace = {
             x: hours,
@@ -1672,7 +1690,7 @@ const StatsApp = {
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
             font: { color: '#e2e8f0' },
-            margin: { l: 100, r: 30, t: 30, b: 40 }
+            margin: { l: dynamicMargin, r: 30, t: 30, b: 40 }
         };
 
         const config = {
@@ -1708,6 +1726,9 @@ const StatsApp = {
         const networks = sortedNetworks.map(([network]) => network);
         const minutes = sortedNetworks.map(([, time]) => time);
         const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
+
+        // Calculate dynamic left margin based on longest network name
+        const dynamicMargin = this.calculateDynamicMargin(networks);
 
         const trace = {
             x: hours,
@@ -1748,7 +1769,7 @@ const StatsApp = {
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
             font: { color: '#e2e8f0' },
-            margin: { l: 100, r: 30, t: 30, b: 40 }
+            margin: { l: dynamicMargin, r: 30, t: 30, b: 40 }
         };
 
         const config = {
@@ -1778,7 +1799,12 @@ const StatsApp = {
             return;
         }
 
+        const networks = sortedNetworks.map(([network]) => network);
         const maxTime = Math.max(...sortedNetworks.map(([, time]) => time));
+        
+        // Calculate dynamic width for labels based on longest network name
+        const maxLabelWidth = Math.max(...networks.map(network => this.calculateTextWidth(network, '14.4px')));
+        const labelWidth = Math.max(maxLabelWidth + 12, 80); // Minimum 80px, add 12px padding
         
         let chartHTML = '<div style="padding: 1rem; position: relative;">';
         
@@ -1793,7 +1819,7 @@ const StatsApp = {
             
             chartHTML += `
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="min-width: 80px; text-align: left; color: #a0aec0; font-size: 0.9rem;">${network}</div>
+                    <div style="min-width: ${labelWidth}px; text-align: left; color: #a0aec0; font-size: 0.9rem;">${network}</div>
                     <div style="flex: 1; background: transparent; border-radius: 4px; height: 24px; position: relative;">
                         <div style="background: #63b3ed; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease; cursor: pointer;"
                              onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'network-tooltip', '${network}: ${StatsApp.formatTimeCompact(hours)}')"
@@ -1826,7 +1852,12 @@ const StatsApp = {
             return;
         }
 
+        const genres = sortedGenres.map(([genre]) => genre);
         const maxTime = Math.max(...sortedGenres.map(([, time]) => time));
+        
+        // Calculate dynamic width for labels based on longest genre name
+        const maxLabelWidth = Math.max(...genres.map(genre => this.calculateTextWidth(genre, '14.4px')));
+        const labelWidth = Math.max(maxLabelWidth + 12, 80); // Minimum 80px, add 12px padding
         
         let chartHTML = '<div style="padding: 1rem; position: relative;">';
         
@@ -1841,7 +1872,7 @@ const StatsApp = {
             
             chartHTML += `
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="min-width: 80px; text-align: left; color: #a0aec0; font-size: 0.9rem;">${genre}</div>
+                    <div style="min-width: ${labelWidth}px; text-align: left; color: #a0aec0; font-size: 0.9rem;">${genre}</div>
                     <div style="flex: 1; background: transparent; border-radius: 4px; height: 24px; position: relative;">
                         <div style="background: #63b3ed; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease; cursor: pointer;"
                              onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'genre-tooltip', '${genre}: ${StatsApp.formatTimeCompact(hours)}')"
