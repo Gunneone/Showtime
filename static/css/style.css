@@ -1248,8 +1248,8 @@ body {
     background: transparent;
 }
 
-/* Vertical Charts Row */
-.vertical-charts-row {
+/* Horizontal Charts Row */
+.horizontal-charts-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
@@ -1258,11 +1258,11 @@ body {
     margin-right: 40px;
 }
 
-.vertical-chart {
+.horizontal-chart {
     margin: 0;
 }
 
-.vertical-chart .plotly-chart {
+.horizontal-chart .plotly-chart {
     min-height: 300px;
 }
 
@@ -1335,7 +1335,7 @@ body {
         min-height: 300px;
     }
     
-    .vertical-charts-row {
+    .horizontal-charts-row {
         grid-template-columns: 1fr;
         gap: 1rem;
         margin-left: 20px;
