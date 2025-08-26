@@ -1666,7 +1666,8 @@ const StatsApp = {
                 color: '#e2e8f0',
                 showgrid: false,
                 showline: false,
-                tickfont: { color: '#9ca3af' }
+                tickfont: { color: '#9ca3af' },
+                side: 'left'
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1741,7 +1742,8 @@ const StatsApp = {
                 color: '#e2e8f0',
                 showgrid: false,
                 showline: false,
-                tickfont: { color: '#9ca3af' }
+                tickfont: { color: '#9ca3af' },
+                side: 'left'
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
@@ -1778,7 +1780,11 @@ const StatsApp = {
 
         const maxTime = Math.max(...sortedNetworks.map(([, time]) => time));
         
-        let chartHTML = '<div style="padding: 1rem;">';
+        let chartHTML = '<div style="padding: 1rem; position: relative;">';
+        
+        // Add tooltip element
+        chartHTML += '<div id="network-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
+        
         chartHTML += '<div style="display: flex; flex-direction: column; gap: 8px;">';
         
         sortedNetworks.forEach(([network, minutes]) => {
@@ -1787,11 +1793,13 @@ const StatsApp = {
             
             chartHTML += `
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="min-width: 80px; text-align: right; color: #a0aec0; font-size: 0.9rem;">${network}</div>
-                    <div style="flex: 1; background: rgba(45, 55, 72, 0.5); border-radius: 4px; height: 24px; position: relative;">
-                        <div style="background: #63b3ed; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease;"></div>
+                    <div style="min-width: 80px; text-align: left; color: #a0aec0; font-size: 0.9rem;">${network}</div>
+                    <div style="flex: 1; background: transparent; border-radius: 4px; height: 24px; position: relative;">
+                        <div style="background: #63b3ed; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease; cursor: pointer;"
+                             onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'network-tooltip', '${network}: ${StatsApp.formatTimeCompact(hours)}')"
+                             onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('network-tooltip')"
+                             onmousemove="StatsApp.moveTooltip(event, 'network-tooltip')"></div>
                     </div>
-                    <div style="min-width: 60px; color: #63b3ed; font-size: 0.9rem; font-weight: 500;">${this.formatTimeCompact(hours)}</div>
                 </div>
             `;
         });
@@ -1820,7 +1828,11 @@ const StatsApp = {
 
         const maxTime = Math.max(...sortedGenres.map(([, time]) => time));
         
-        let chartHTML = '<div style="padding: 1rem;">';
+        let chartHTML = '<div style="padding: 1rem; position: relative;">';
+        
+        // Add tooltip element
+        chartHTML += '<div id="genre-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
+        
         chartHTML += '<div style="display: flex; flex-direction: column; gap: 8px;">';
         
         sortedGenres.forEach(([genre, minutes]) => {
@@ -1829,11 +1841,13 @@ const StatsApp = {
             
             chartHTML += `
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="min-width: 80px; text-align: right; color: #a0aec0; font-size: 0.9rem;">${genre}</div>
-                    <div style="flex: 1; background: rgba(45, 55, 72, 0.5); border-radius: 4px; height: 24px; position: relative;">
-                        <div style="background: #63b3ed; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease;"></div>
+                    <div style="min-width: 80px; text-align: left; color: #a0aec0; font-size: 0.9rem;">${genre}</div>
+                    <div style="flex: 1; background: transparent; border-radius: 4px; height: 24px; position: relative;">
+                        <div style="background: #63b3ed; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease; cursor: pointer;"
+                             onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'genre-tooltip', '${genre}: ${StatsApp.formatTimeCompact(hours)}')"
+                             onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('genre-tooltip')"
+                             onmousemove="StatsApp.moveTooltip(event, 'genre-tooltip')"></div>
                     </div>
-                    <div style="min-width: 60px; color: #63b3ed; font-size: 0.9rem; font-weight: 500;">${this.formatTimeCompact(hours)}</div>
                 </div>
             `;
         });
