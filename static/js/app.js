@@ -1515,7 +1515,8 @@ const StatsApp = {
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
             font: { color: '#e2e8f0' },
-            margin: { l: 60, r: 30, t: 30, b: 60 }
+            margin: { l: 60, r: 30, t: 30, b: 60 },
+            bargap: allYears.length <= 3 ? 0.6 : 0.8 // Adjust gap based on number of years for better spacing
         };
 
         const config = {
@@ -1528,7 +1529,7 @@ const StatsApp = {
         Plotly.newPlot('yearlyChart', [trace], layout, config);
     },
 
-    // Fallback simple yearly chart using CSS
+    // Fallback simple yearly chart using CSS - Truly flexible version
     createSimpleYearlyChart(yearlyData, container) {
         if (Object.keys(yearlyData).length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No yearly data available</p>';
@@ -1557,7 +1558,13 @@ const StatsApp = {
 
         const maxHours = Math.max(...allYearsData.map(([, minutes]) => minutes / 60));
         
-        let chartHTML = '<div style="padding: 1rem; position: relative;"><div style="position: relative; display: flex; align-items: end; gap: 8px; height: 200px; padding: 20px 0;">';
+        // Get first and last years for labels
+        const firstYear = allYearsData.length > 0 ? allYearsData[0][0] : '';
+        const lastYear = allYearsData.length > 0 ? allYearsData[allYearsData.length - 1][0] : '';
+        
+        // Create truly flexible chart that uses 100% width with no width constraints
+        let chartHTML = `<div style="padding: 1rem; position: relative; width: 100%;">
+            <div style="position: relative; display: flex; align-items: end; height: 200px; padding: 20px 0; width: 100%; gap: 2px;">`;
         
         // Add tooltip element
         chartHTML += '<div id="yearly-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
@@ -1567,22 +1574,36 @@ const StatsApp = {
             const days = Math.round(hours / 24 * 10) / 10;
             const heightPixels = Math.max(4, (hours / maxHours) * 160); // 160px max height within 200px container
             
-            // Only show year labels for first and last
-            const showYear = index === 0 || index === allYearsData.length - 1;
-            
             chartHTML += `
-                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
                     <div style="background: #63b3ed; width: 100%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
                          data-year="${year}" data-days="${days}" data-hours="${hours}"
                          onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'yearly-tooltip', '${year}: ${StatsApp.formatTimeCompact(hours)}')"
                          onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('yearly-tooltip')"
                          onmousemove="StatsApp.moveTooltip(event, 'yearly-tooltip')"></div>
-                    <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; visibility: ${showYear ? 'visible' : 'hidden'};">${year}</div>
                 </div>
             `;
         });
         
-        chartHTML += '</div></div>';
+        chartHTML += '</div>';
+        
+        // Add year labels positioned at chart edges (not tied to individual bars)
+        if (firstYear && lastYear && firstYear !== lastYear) {
+            chartHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 0 20px;">
+                    <div style="color: #a0aec0; font-size: 0.8rem;">${firstYear}</div>
+                    <div style="color: #a0aec0; font-size: 0.8rem;">${lastYear}</div>
+                </div>
+            `;
+        } else if (firstYear) {
+            chartHTML += `
+                <div style="display: flex; justify-content: center; align-items: center; margin-top: 8px; padding: 0 20px;">
+                    <div style="color: #a0aec0; font-size: 0.8rem;">${firstYear}</div>
+                </div>
+            `;
+        }
+        
+        chartHTML += '</div>';
         
         container.innerHTML = chartHTML;
     },
