@@ -73,7 +73,7 @@ class CalculationService:
         """Calculate fun time conversions ordered by size (smallest to largest time periods)."""
         conversions = []
         
-        # Order by size: Teen Spirit (5min) -> 30-min walk -> Sleep (8h) -> Harry Potter (73h) -> Trans-Siberian (7 days) -> Pregnancy (9 months)
+        # Order by size: Teen Spirit (5min) -> 30-min walk -> LotR Extended (715min) -> Harry Potter (73h) -> Trans-Siberian (7 days) -> Learn Language (675h) -> Pregnancy (9 months)
         
         # 1. Smells Like Teen Spirit (5 minutes 1 second ≈ 5.02 minutes)
         teen_spirit_times = total_minutes / 5.02
@@ -95,13 +95,13 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 3. Full night's sleep (8 hours = 480 minutes)
-        sleep_nights = total_minutes / 480
-        value = self._format_conversion_number(sleep_nights)
+        # 3. Watched extended LotR Trilogy (715 minutes)
+        lotr_times = total_minutes / 715
+        value = self._format_conversion_number(lotr_times)
         conversions.append({
-            'icon': 'fas fa-bed',
+            'icon': 'fas fa-ring',
             'value': value,
-            'description': 'gotten full nights of sleep',
+            'description': 'watched extended LotR trilogy',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
@@ -125,7 +125,17 @@ class CalculationService:
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
         })
         
-        # 6. Carried out a baby (9 months = 270 days = 388,800 minutes)
+        # 6. Learn a Language (675 hours = 40,500 minutes)
+        language_times = total_minutes / 40500
+        value = self._format_conversion_number(language_times)
+        conversions.append({
+            'icon': 'fas fa-language',
+            'value': value,
+            'description': 'learned a language',
+            'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
+        })
+        
+        # 7. Carried out a baby (9 months = 270 days = 388,800 minutes)
         pregnancy_times = total_minutes / 388800
         value = self._format_conversion_number(pregnancy_times)
         conversions.append({

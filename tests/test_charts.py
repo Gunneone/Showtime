@@ -8,20 +8,22 @@ def test_fun_conversions_calculation():
     # Test with 2880 minutes (48 hours)
     conversions = calc_service.calculate_fun_conversions(2880)
     
-    assert len(conversions) == 6
-    # Check new order: Teen Spirit, 30-min walk, Sleep, Harry Potter, Baby, Trans-Siberian
+    assert len(conversions) == 7
+    # Check new order: Teen Spirit, 30-min walk, LotR Extended, Harry Potter, Trans-Siberian, Learn Language, Baby
     assert conversions[0]['icon'] == 'fas fa-music'
     assert 'Smells Like Teen Spirit' in conversions[0]['description']
     assert conversions[1]['icon'] == 'fas fa-walking'
     assert '30-minute walk' in conversions[1]['description']
-    assert conversions[2]['icon'] == 'fas fa-bed'
-    assert 'sleep' in conversions[2]['description']
+    assert conversions[2]['icon'] == 'fas fa-ring'
+    assert 'LotR trilogy' in conversions[2]['description']
     assert conversions[3]['icon'] == 'fas fa-book'
     assert 'Harry Potter' in conversions[3]['description']
-    assert conversions[4]['icon'] == 'fas fa-baby'
-    assert 'carried out a baby' in conversions[4]['description']
-    assert conversions[5]['icon'] == 'fas fa-train'
-    assert 'Trans-Siberian Railway' in conversions[5]['description']
+    assert conversions[4]['icon'] == 'fas fa-train'
+    assert 'Trans-Siberian Railway' in conversions[4]['description']
+    assert conversions[5]['icon'] == 'fas fa-language'
+    assert 'learned a language' in conversions[5]['description']
+    assert conversions[6]['icon'] == 'fas fa-baby'
+    assert 'carried out a baby' in conversions[6]['description']
 
 def test_show_length_distribution():
     """Test show length distribution calculation."""
@@ -79,7 +81,7 @@ def test_enhanced_stats_calculation():
     assert isinstance(stats['show_length_distribution'], dict)
     
     # Check fun conversions
-    assert len(stats['fun_conversions']) == 6
+    assert len(stats['fun_conversions']) == 7
     for conversion in stats['fun_conversions']:
         assert 'icon' in conversion
         assert 'value' in conversion
