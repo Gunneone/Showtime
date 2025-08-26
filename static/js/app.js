@@ -64,45 +64,7 @@ const DataStorage = {
         }
     },
 
-    // Migrate data from cookies to localStorage (one-time migration)
-    migrateFromCookies() {
-        try {
-            // Check if we already have data in localStorage
-            const existingData = this.getWatchedShows();
-            if (existingData.length > 0) {
-                return; // Already have localStorage data, no migration needed
-            }
 
-            // Try to get data from cookie
-            const cookies = document.cookie.split(';');
-            const watchedCookie = cookies.find(cookie => cookie.trim().startsWith('watched_shows='));
-            
-            if (watchedCookie) {
-                const cookieValue = decodeURIComponent(watchedCookie.split('=')[1]);
-                const watchedShows = JSON.parse(cookieValue);
-                
-                if (watchedShows.length > 0) {
-                    console.log('Migrating', watchedShows.length, 'shows from cookies to localStorage');
-                    this.setWatchedShows(watchedShows);
-                    
-                    // Clear the cookie after successful migration
-                    document.cookie = 'watched_shows=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
-                }
-            }
-
-            // Migrate sort preference too
-            const sortCookie = cookies.find(cookie => cookie.trim().startsWith('sort_preference='));
-            if (sortCookie) {
-                const sortValue = sortCookie.split('=')[1];
-                this.setSortPreference(sortValue);
-                
-                // Clear the cookie after successful migration
-                document.cookie = 'sort_preference=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
-            }
-        } catch (error) {
-            console.error('Error during cookie migration:', error);
-        }
-    },
 
     // Check localStorage availability and capacity
     checkStorageAvailability() {
@@ -223,9 +185,6 @@ const App = {
         if (!DataStorage.checkStorageAvailability()) {
             this.showToast('Browser storage is not available. Some features may not work properly.', 'error');
         }
-
-        // Migrate data from cookies if needed
-        DataStorage.migrateFromCookies();
 
         this.initElements();
         this.bindEvents();
