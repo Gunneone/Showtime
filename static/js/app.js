@@ -1561,19 +1561,19 @@ const StatsApp = {
         // Calculate dynamic bar width based on number of years and container constraints
         const yearCount = allYearsData.length;
         const minBarWidth = 8;  // Minimum bar width for readability
-        const maxBarWidth = 60; // Maximum bar width to prevent overly wide bars
+        const maxBarWidth = yearCount <= 10 ? 120 : 60; // Larger max width for fewer years
         const gapWidth = Math.max(2, Math.min(12, yearCount <= 5 ? 12 : Math.max(2, 60 / yearCount))); // Dynamic gap
         
         // Calculate optimal bar width that fills the container
-        // Assume container is roughly 100% width, estimate around 600-800px typical width
+        // Use more aggressive width calculation for fewer years
         const estimatedContainerWidth = 700; // Conservative estimate for calculation
         const availableWidth = estimatedContainerWidth - (40); // Account for padding
         const totalGapWidth = (yearCount - 1) * gapWidth;
         const availableBarWidth = availableWidth - totalGapWidth;
         const calculatedBarWidth = Math.floor(availableBarWidth / yearCount);
         
-        // Apply constraints to bar width
-        const barWidth = Math.max(minBarWidth, Math.min(maxBarWidth, calculatedBarWidth));
+        // Apply constraints to bar width, but be more generous for fewer years
+        const barWidth = Math.max(minBarWidth, Math.min(maxBarWidth, Math.max(calculatedBarWidth, yearCount <= 10 ? 40 : 20)));
         
         let chartHTML = `<div style="padding: 1rem; position: relative; width: 100%;"><div style="position: relative; display: flex; align-items: end; justify-content: center; gap: ${gapWidth}px; height: 200px; padding: 20px 0; width: 100%;">`;
         
@@ -1585,8 +1585,8 @@ const StatsApp = {
             const days = Math.round(hours / 24 * 10) / 10;
             const heightPixels = Math.max(4, (hours / maxHours) * 160); // 160px max height within 200px container
             
-            // Show year labels more intelligently based on bar count
-            const showYear = yearCount <= 10 || index === 0 || index === allYearsData.length - 1 || index % Math.ceil(yearCount / 8) === 0;
+            // Only show year labels for first and last
+            const showYear = index === 0 || index === allYearsData.length - 1;
             
             chartHTML += `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: ${barWidth + 20}px; min-width: ${Math.max(barWidth, 16)}px;">
