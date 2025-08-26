@@ -1433,6 +1433,7 @@ const StatsApp = {
         // New interactive charts
         this.createYearlyChart(stats.yearly_breakdown);
         this.createTopGenresChart(stats.genre_breakdown);
+        this.createTopNetworksChart(stats.network_breakdown);
         this.displayFunConversions(stats.fun_conversions);
     },
 
@@ -1516,7 +1517,7 @@ const StatsApp = {
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
             font: { color: '#e2e8f0' },
             margin: { l: 60, r: 30, t: 30, b: 60 },
-            bargap: allYears.length <= 3 ? 0.6 : 0.8 // Adjust gap based on number of years for better spacing
+            bargap: allYears.length <= 3 ? 0.75 : 0.9 // Increased gap for better spacing
         };
 
         const config = {
@@ -1608,6 +1609,21 @@ const StatsApp = {
         container.innerHTML = chartHTML;
     },
 
+    // Helper function to calculate text width dynamically
+    calculateTextWidth(text, fontSize = '14px', fontFamily = 'system-ui, -apple-system, sans-serif') {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        context.font = `${fontSize} ${fontFamily}`;
+        return context.measureText(text).width;
+    },
+
+    // Calculate dynamic left margin based on longest label
+    calculateDynamicMargin(labels) {
+        const maxWidth = Math.max(...labels.map(label => this.calculateTextWidth(label)));
+        // Add 20px padding to the longest label width
+        return Math.max(maxWidth + 20, 60); // Minimum 60px margin
+    },
+
     // Create top 3 genres bar chart
     createTopGenresChart(genreData) {
         const chartDiv = document.getElementById('topGenresChart');
@@ -1623,26 +1639,30 @@ const StatsApp = {
             return;
         }
 
-        // Get top 5 genres
+        // Get top 10 genres
         const sortedGenres = Object.entries(genreData)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 5);
+            .slice(0, 10);
 
         const genres = sortedGenres.map(([genre]) => genre);
         const minutes = sortedGenres.map(([, time]) => time);
         const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
 
+        // Calculate dynamic left margin based on longest genre name
+        const dynamicMargin = this.calculateDynamicMargin(genres);
+
         const trace = {
-            x: genres,
-            y: hours,
+            x: hours,
+            y: genres,
             type: 'bar',
+            orientation: 'h',
             marker: {
                 color: '#63b3ed',
                 line: {
                     width: 0
                 }
             },
-            hovertemplate: '<b>%{x}</b><br>%{customdata}<extra></extra>',
+            hovertemplate: '<b>%{y}</b><br>%{customdata}<extra></extra>',
             customdata: hours.map(h => this.formatTimeCompact(h))
         };
 
@@ -1656,6 +1676,7 @@ const StatsApp = {
                 color: '#e2e8f0',
                 showgrid: false,
                 showline: false,
+                showticklabels: false,
                 tickfont: { color: '#a0aec0' }
             },
             yaxis: {
@@ -1663,13 +1684,13 @@ const StatsApp = {
                 color: '#e2e8f0',
                 showgrid: false,
                 showline: false,
-                showticklabels: false,
-                tickfont: { color: '#9ca3af' }
+                tickfont: { color: '#9ca3af' },
+                side: 'left'
             },
             plot_bgcolor: 'rgba(0, 0, 0, 0)',
             paper_bgcolor: 'rgba(0, 0, 0, 0)',
             font: { color: '#e2e8f0' },
-            margin: { l: 60, r: 30, t: 30, b: 100 }
+            margin: { l: dynamicMargin, r: 30, t: 30, b: 40 }
         };
 
         const config = {
@@ -1682,37 +1703,182 @@ const StatsApp = {
         Plotly.newPlot('topGenresChart', [trace], layout, config);
     },
 
-    // Fallback simple genres chart using CSS
+    // Create top 10 networks horizontal bar chart
+    createTopNetworksChart(networkData) {
+        const chartDiv = document.getElementById('topNetworksChart');
+        
+        if (typeof Plotly === 'undefined') {
+            // Fallback to simple HTML chart
+            this.createSimpleNetworksChart(networkData, chartDiv);
+            return;
+        }
+        
+        if (Object.keys(networkData).length === 0) {
+            chartDiv.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No network data available</p>';
+            return;
+        }
+
+        // Get top 10 networks
+        const sortedNetworks = Object.entries(networkData)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+
+        const networks = sortedNetworks.map(([network]) => network);
+        const minutes = sortedNetworks.map(([, time]) => time);
+        const hours = minutes.map(min => Math.round(min / 60 * 10) / 10);
+
+        // Calculate dynamic left margin based on longest network name
+        const dynamicMargin = this.calculateDynamicMargin(networks);
+
+        const trace = {
+            x: hours,
+            y: networks,
+            type: 'bar',
+            orientation: 'h',
+            marker: {
+                color: '#63b3ed',
+                line: {
+                    width: 0
+                }
+            },
+            hovertemplate: '<b>%{y}</b><br>%{customdata}<extra></extra>',
+            customdata: hours.map(h => this.formatTimeCompact(h))
+        };
+
+        const layout = {
+            title: {
+                text: '',
+                font: { color: '#e2e8f0' }
+            },
+            xaxis: {
+                title: '',
+                color: '#e2e8f0',
+                showgrid: false,
+                showline: false,
+                showticklabels: false,
+                tickfont: { color: '#a0aec0' }
+            },
+            yaxis: {
+                title: '',
+                color: '#e2e8f0',
+                showgrid: false,
+                showline: false,
+                tickfont: { color: '#9ca3af' },
+                side: 'left'
+            },
+            plot_bgcolor: 'rgba(0, 0, 0, 0)',
+            paper_bgcolor: 'rgba(0, 0, 0, 0)',
+            font: { color: '#e2e8f0' },
+            margin: { l: dynamicMargin, r: 30, t: 30, b: 40 }
+        };
+
+        const config = {
+            displayModeBar: false,
+            staticPlot: false,
+            displaylogo: false,
+            responsive: true
+        };
+
+        Plotly.newPlot('topNetworksChart', [trace], layout, config);
+    },
+
+    // Fallback simple networks chart using CSS
+    createSimpleNetworksChart(networkData, container) {
+        if (Object.keys(networkData).length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No network data available</p>';
+            return;
+        }
+
+        // Get top 10 networks
+        const sortedNetworks = Object.entries(networkData)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+
+        if (sortedNetworks.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No network data available</p>';
+            return;
+        }
+
+        const networks = sortedNetworks.map(([network]) => network);
+        const maxTime = Math.max(...sortedNetworks.map(([, time]) => time));
+        
+        // Calculate dynamic width for labels based on longest network name
+        const maxLabelWidth = Math.max(...networks.map(network => this.calculateTextWidth(network, '14.4px')));
+        const labelWidth = Math.max(maxLabelWidth + 12, 80); // Minimum 80px, add 12px padding
+        
+        let chartHTML = '<div style="padding: 1rem; position: relative;">';
+        
+        // Add tooltip element
+        chartHTML += '<div id="network-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
+        
+        chartHTML += '<div style="display: flex; flex-direction: column; gap: 8px;">';
+        
+        sortedNetworks.forEach(([network, minutes]) => {
+            const hours = Math.round(minutes / 60 * 10) / 10;
+            const percentage = (minutes / maxTime) * 100;
+            
+            chartHTML += `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="min-width: ${labelWidth}px; text-align: left; color: #a0aec0; font-size: 0.9rem;">${network}</div>
+                    <div style="flex: 1; background: transparent; border-radius: 4px; height: 24px; position: relative;">
+                        <div style="background: #63b3ed; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease; cursor: pointer;"
+                             onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'network-tooltip', '${network}: ${StatsApp.formatTimeCompact(hours)}')"
+                             onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('network-tooltip')"
+                             onmousemove="StatsApp.moveTooltip(event, 'network-tooltip')"></div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        chartHTML += '</div></div>';
+        
+        container.innerHTML = chartHTML;
+    },
+
+    // Fallback simple genres chart using CSS - Horizontal bars to match network chart
     createSimpleGenresChart(genreData, container) {
         if (Object.keys(genreData).length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No genre data available</p>';
             return;
         }
 
+        // Get top 10 genres to match the Plotly version
         const sortedGenres = Object.entries(genreData)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 5);
+            .slice(0, 10);
 
-        const maxHours = Math.max(...sortedGenres.map(([, minutes]) => minutes / 60));
+        if (sortedGenres.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No genre data available</p>';
+            return;
+        }
+
+        const genres = sortedGenres.map(([genre]) => genre);
+        const maxTime = Math.max(...sortedGenres.map(([, time]) => time));
         
-        let chartHTML = '<div style="padding: 1rem; position: relative;"><div style="position: relative; display: flex; align-items: end; gap: 20px; height: 200px; padding: 20px 0;">';
+        // Calculate dynamic width for labels based on longest genre name
+        const maxLabelWidth = Math.max(...genres.map(genre => this.calculateTextWidth(genre, '14.4px')));
+        const labelWidth = Math.max(maxLabelWidth + 12, 80); // Minimum 80px, add 12px padding
+        
+        let chartHTML = '<div style="padding: 1rem; position: relative;">';
         
         // Add tooltip element
         chartHTML += '<div id="genre-tooltip" style="position: absolute; background: rgba(26, 32, 44, 0.95); color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid #63b3ed;"></div>';
         
-        sortedGenres.forEach(([genre, minutes], index) => {
+        chartHTML += '<div style="display: flex; flex-direction: column; gap: 8px;">';
+        
+        sortedGenres.forEach(([genre, minutes]) => {
             const hours = Math.round(minutes / 60 * 10) / 10;
-            const days = Math.round(hours / 24 * 10) / 10;
-            const heightPixels = Math.max(8, (hours / maxHours) * 160); // 160px max height within 200px container
+            const percentage = (minutes / maxTime) * 100;
             
             chartHTML += `
-                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                    <div style="background: #63b3ed; width: 80%; height: ${heightPixels}px; border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer;" 
-                         data-genre="${genre}" data-days="${days}" data-hours="${hours}"
-                         onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'genre-tooltip', '${genre}: ${StatsApp.formatTimeCompact(hours)}')"
-                         onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('genre-tooltip')"
-                         onmousemove="StatsApp.moveTooltip(event, 'genre-tooltip')"></div>
-                    <div style="color: #a0aec0; font-size: 0.8rem; text-align: center; word-wrap: break-word;">${genre}</div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="min-width: ${labelWidth}px; text-align: left; color: #a0aec0; font-size: 0.9rem;">${genre}</div>
+                    <div style="flex: 1; background: transparent; border-radius: 4px; height: 24px; position: relative;">
+                        <div style="background: #63b3ed; height: 100%; width: ${percentage}%; border-radius: 4px; transition: width 0.8s ease; cursor: pointer;"
+                             onmouseover="this.style.backgroundColor='#4299e1'; StatsApp.showTooltip(event, 'genre-tooltip', '${genre}: ${StatsApp.formatTimeCompact(hours)}')"
+                             onmouseout="this.style.backgroundColor='#63b3ed'; StatsApp.hideTooltip('genre-tooltip')"
+                             onmousemove="StatsApp.moveTooltip(event, 'genre-tooltip')"></div>
+                    </div>
                 </div>
             `;
         });
