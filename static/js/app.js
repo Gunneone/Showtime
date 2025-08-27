@@ -4,6 +4,8 @@
 const DataStorage = {
     WATCHED_SHOWS_KEY: 'days_watched_shows',
     SORT_PREFERENCE_KEY: 'days_watched_sort_preference',
+    STATS_CACHE_KEY: 'days_watched_stats_cache',
+    STATS_VERSION: '1.0', // Version for cache invalidation
 
     // Get watched shows from localStorage
     getWatchedShows() {
@@ -20,6 +22,8 @@ const DataStorage = {
     setWatchedShows(watchedShows) {
         try {
             localStorage.setItem(this.WATCHED_SHOWS_KEY, JSON.stringify(watchedShows));
+            // Clear stats cache when shows are modified
+            this.clearStatsCache();
             return true;
         } catch (error) {
             console.error('Error writing to localStorage:', error);
@@ -60,45 +64,7 @@ const DataStorage = {
         }
     },
 
-    // Migrate data from cookies to localStorage (one-time migration)
-    migrateFromCookies() {
-        try {
-            // Check if we already have data in localStorage
-            const existingData = this.getWatchedShows();
-            if (existingData.length > 0) {
-                return; // Already have localStorage data, no migration needed
-            }
 
-            // Try to get data from cookie
-            const cookies = document.cookie.split(';');
-            const watchedCookie = cookies.find(cookie => cookie.trim().startsWith('watched_shows='));
-            
-            if (watchedCookie) {
-                const cookieValue = decodeURIComponent(watchedCookie.split('=')[1]);
-                const watchedShows = JSON.parse(cookieValue);
-                
-                if (watchedShows.length > 0) {
-                    console.log('Migrating', watchedShows.length, 'shows from cookies to localStorage');
-                    this.setWatchedShows(watchedShows);
-                    
-                    // Clear the cookie after successful migration
-                    document.cookie = 'watched_shows=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
-                }
-            }
-
-            // Migrate sort preference too
-            const sortCookie = cookies.find(cookie => cookie.trim().startsWith('sort_preference='));
-            if (sortCookie) {
-                const sortValue = sortCookie.split('=')[1];
-                this.setSortPreference(sortValue);
-                
-                // Clear the cookie after successful migration
-                document.cookie = 'sort_preference=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
-            }
-        } catch (error) {
-            console.error('Error during cookie migration:', error);
-        }
-    },
 
     // Check localStorage availability and capacity
     checkStorageAvailability() {
@@ -111,6 +77,76 @@ const DataStorage = {
             console.error('localStorage is not available:', error);
             return false;
         }
+    },
+
+    // Get cached statistics
+    getStatsCache() {
+        try {
+            const data = localStorage.getItem(this.STATS_CACHE_KEY);
+            if (!data) return null;
+            
+            const cache = JSON.parse(data);
+            
+            // Check cache version and validity
+            if (cache.version !== this.STATS_VERSION) {
+                this.clearStatsCache();
+                return null;
+            }
+            
+            return cache;
+        } catch (error) {
+            console.error('Error reading stats cache:', error);
+            return null;
+        }
+    },
+
+    // Save statistics cache
+    setStatsCache(stats, watchedShowsHash) {
+        try {
+            const cache = {
+                version: this.STATS_VERSION,
+                timestamp: Date.now(),
+                hash: watchedShowsHash,
+                stats: stats
+            };
+            localStorage.setItem(this.STATS_CACHE_KEY, JSON.stringify(cache));
+            return true;
+        } catch (error) {
+            console.error('Error saving stats cache:', error);
+            return false;
+        }
+    },
+
+    // Clear statistics cache
+    clearStatsCache() {
+        try {
+            localStorage.removeItem(this.STATS_CACHE_KEY);
+            return true;
+        } catch (error) {
+            console.error('Error clearing stats cache:', error);
+            return false;
+        }
+    },
+
+    // Generate hash for watched shows to detect changes
+    generateWatchedShowsHash(watchedShows) {
+        if (!watchedShows || watchedShows.length === 0) return 'empty';
+        
+        // Create a simple hash based on show IDs and seasons watched
+        const hashData = watchedShows.map(show => `${show.id}-${show.seasons_watched}`).join(',');
+        return this.simpleHash(hashData);
+    },
+
+    // Simple hash function for change detection
+    simpleHash(str) {
+        let hash = 0;
+        if (str.length === 0) return hash;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return hash.toString();
     }
 };
 
@@ -149,9 +185,6 @@ const App = {
         if (!DataStorage.checkStorageAvailability()) {
             this.showToast('Browser storage is not available. Some features may not work properly.', 'error');
         }
-
-        // Migrate data from cookies if needed
-        DataStorage.migrateFromCookies();
 
         this.initElements();
         this.bindEvents();
@@ -1381,8 +1414,101 @@ const StatsApp = {
 
             // Get watched shows from localStorage
             const watchedShows = DataStorage.getWatchedShows();
+            
+            if (watchedShows.length === 0) {
+                loadingElement.classList.add('hidden');
+                emptyElement.classList.remove('hidden');
+                return;
+            }
 
-            // Send data to API for calculation using POST to /api/stats/calculate
+            // Check for cached statistics first
+            const watchedShowsHash = DataStorage.generateWatchedShowsHash(watchedShows);
+            const statsCache = DataStorage.getStatsCache();
+            
+            if (statsCache && statsCache.hash === watchedShowsHash) {
+                // Use cached statistics for instant loading
+                console.log('Using cached statistics');
+                loadingElement.classList.add('hidden');
+                this.displayStatsProgressive(statsCache.stats);
+                return;
+            }
+
+            // Cache miss - calculate fresh statistics
+            console.log('Calculating fresh statistics');
+            this.displayBasicStatsFromShows(watchedShows);
+            
+            // Load remaining statistics asynchronously
+            this.loadComplexStats(watchedShows, watchedShowsHash);
+
+        } catch (error) {
+            console.error('Error loading statistics:', error);
+            loadingElement.classList.add('hidden');
+            // Show error message or fallback to basic stats from localStorage
+            this.displayBasicStatsFromShows(DataStorage.getWatchedShows());
+        }
+    },
+
+    // Display basic statistics immediately from cached show data
+    displayBasicStatsFromShows(watchedShows) {
+        const loadingElement = document.getElementById('statsLoading');
+        loadingElement.classList.add('hidden');
+        
+        if (watchedShows.length === 0) {
+            document.getElementById('statsEmpty').classList.remove('hidden');
+            return;
+        }
+
+        // Calculate basic stats quickly (no API calls)
+        const totalShows = watchedShows.length;
+        const totalSeasons = watchedShows.reduce((sum, show) => sum + (show.seasons_watched || 0), 0);
+        
+        // Simple time calculation without expensive operations
+        let totalMinutes = 0;
+        let completedShows = 0;
+        let inProgressShows = 0;
+        
+        for (const show of watchedShows) {
+            const seasons = show.seasons_watched || 0;
+            const episodeRuntime = show.episode_run_time || 45;
+            const totalEpisodes = show.total_episodes || 0;
+            const totalSeasons = show.total_seasons || 1;
+            
+            // Use pre-calculated runtime if available, otherwise estimate
+            if (show.calculated_runtime_minutes) {
+                totalMinutes += show.calculated_runtime_minutes;
+            } else {
+                const episodesPerSeason = totalEpisodes > 0 ? totalEpisodes / totalSeasons : 20;
+                totalMinutes += seasons * episodesPerSeason * episodeRuntime;
+            }
+            
+            // Completion stats
+            if (seasons >= totalSeasons) {
+                completedShows++;
+            } else {
+                inProgressShows++;
+            }
+        }
+        
+        const averageTimePerShow = Math.floor(totalMinutes / totalShows);
+        const completionRate = Math.round((completedShows / totalShows) * 100 * 10) / 10;
+        
+        // Display basic stats immediately
+        document.getElementById('totalShows').textContent = totalShows;
+        document.getElementById('totalSeasons').textContent = totalSeasons;
+        document.getElementById('totalTime').textContent = this.formatTime(totalMinutes);
+        document.getElementById('averageTime').textContent = this.formatTime(averageTimePerShow);
+        document.getElementById('completedShows').textContent = completedShows;
+        document.getElementById('inProgressShows').textContent = inProgressShows;
+        document.getElementById('completionRate').textContent = `${completionRate}%`;
+        
+        // Show loading states for complex sections
+        this.showComplexSectionsLoading();
+    },
+
+    // Load complex statistics asynchronously
+    async loadComplexStats(watchedShows, watchedShowsHash) {
+        try {
+            // Calculate complex stats via API
             const response = await fetch('/api/stats/calculate', {
                 method: 'POST',
                 headers: {
@@ -1392,25 +1518,72 @@ const StatsApp = {
                     watched_shows: watchedShows
                 })
             });
+            
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to load statistics');
+                throw new Error(data.error || 'Failed to load complex statistics');
             }
 
-            loadingElement.classList.add('hidden');
-
-            if (data.total_shows === 0) {
-                emptyElement.classList.remove('hidden');
-                return;
-            }
-
-            this.displayStats(data);
+            // Cache the calculated statistics
+            DataStorage.setStatsCache(data, watchedShowsHash);
+            
+            // Display complex sections progressively
+            this.displayComplexStats(data);
+            
         } catch (error) {
-            console.error('Error loading statistics:', error);
-            loadingElement.classList.add('hidden');
-            emptyElement.classList.remove('hidden');
+            console.error('Error loading complex statistics:', error);
+            this.hideComplexSectionsLoading();
         }
+    },
+
+    // Show loading states for complex sections
+    showComplexSectionsLoading() {
+        // Add loading states to complex chart sections
+        const sections = [
+            'yearlyChart', 'topGenresChart', 'topNetworksChart', 
+            'timeConversions', 'genreBreakdown', 'yearlyBreakdown'
+        ];
+        
+        sections.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            }
+        });
+    },
+
+    // Hide loading states for complex sections
+    hideComplexSectionsLoading() {
+        const sections = [
+            'yearlyChart', 'topGenresChart', 'topNetworksChart', 
+            'timeConversions', 'genreBreakdown', 'yearlyBreakdown'
+        ];
+        
+        sections.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.innerHTML = '<p style="text-align: center; color: #cbd5e0;">Unable to load data</p>';
+            }
+        });
+    },
+
+    // Display statistics progressively (from cache)
+    displayStatsProgressive(stats) {
+        this.displayStats(stats);
+    },
+
+    // Display complex statistics sections
+    displayComplexStats(stats) {
+        // Charts and breakdowns
+        this.createYearlyChart(stats.yearly_breakdown);
+        this.createTopGenresChart(stats.genre_breakdown);
+        this.createTopNetworksChart(stats.network_breakdown);
+        this.displayFunConversions(stats.fun_conversions);
+        
+        // Legacy breakdowns for fallback
+        this.displayGenreBreakdown(stats.genre_breakdown);
+        this.displayYearlyBreakdown(stats.yearly_breakdown);
     },
 
     // Display statistics data
