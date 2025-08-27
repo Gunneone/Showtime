@@ -176,7 +176,8 @@ const App = {
         toastContainer: null,
         sortControls: null,
         sortSelect: null,
-        removeAllBtn: null
+        removeAllBtn: null,
+        shareBtn: null
     },
 
     // Initialize the application
@@ -205,6 +206,7 @@ const App = {
         this.elements.sortControls = document.getElementById('sortControls');
         this.elements.sortSelect = document.getElementById('sortSelect');
         this.elements.removeAllBtn = document.getElementById('removeAllBtn');
+        this.elements.shareBtn = document.getElementById('shareBtn');
         
         // Debug: Check if search results element is found
         console.log('Search results element found:', this.elements.searchResults);
@@ -238,6 +240,13 @@ const App = {
         if (this.elements.removeAllBtn) {
             this.elements.removeAllBtn.addEventListener('click', () => {
                 this.confirmRemoveAllData();
+            });
+        }
+        
+        // Share functionality
+        if (this.elements.shareBtn) {
+            this.elements.shareBtn.addEventListener('click', () => {
+                this.shareStats();
             });
         }
         
@@ -1392,6 +1401,84 @@ const App = {
             this.showToast('Failed to remove data. Please try again.', 'error');
         } finally {
             this.hideLoading();
+        }
+    },
+
+    // Share user's watching statistics
+    async shareStats() {
+        try {
+            const watchedShows = DataStorage.getWatchedShows();
+            const totalShows = watchedShows.length;
+            
+            if (totalShows === 0) {
+                this.showToast('Add some shows to your list first!', 'info');
+                return;
+            }
+
+            // Calculate total watch time
+            let totalMinutes = 0;
+            watchedShows.forEach(show => {
+                totalMinutes += show.total_time || 0;
+            });
+
+            const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
+            const totalDays = Math.round(totalHours / 24 * 10) / 10;
+
+            // Format the share message
+            let shareText = `🎬 My TV Stats on Showtime:\n\n`;
+            shareText += `📺 Shows watched: ${totalShows}\n`;
+            shareText += `⏱️ Total time: ${totalHours}h (${totalDays} days)\n\n`;
+            shareText += `Time well spent! 🍿\n\n`;
+            shareText += `Track your TV time at: ${window.location.origin}`;
+
+            // Try to use the Web Share API if available
+            if (navigator.share) {
+                await navigator.share({
+                    title: 'My TV Watching Stats',
+                    text: shareText,
+                    url: window.location.origin
+                });
+                this.showToast('Stats shared successfully!', 'success');
+            } else {
+                // Fallback to clipboard
+                await navigator.clipboard.writeText(shareText);
+                this.showToast('Stats copied to clipboard!', 'success');
+            }
+        } catch (error) {
+            console.error('Error sharing stats:', error);
+            
+            // Final fallback - create a temporary text area
+            try {
+                const watchedShows = DataStorage.getWatchedShows();
+                const totalShows = watchedShows.length;
+                
+                if (totalShows === 0) {
+                    this.showToast('Add some shows to your list first!', 'info');
+                    return;
+                }
+
+                let totalMinutes = 0;
+                watchedShows.forEach(show => {
+                    totalMinutes += show.total_time || 0;
+                });
+
+                const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
+                const totalDays = Math.round(totalHours / 24 * 10) / 10;
+
+                const shareText = `My TV Stats: ${totalShows} shows watched, ${totalHours}h total (${totalDays} days). Track your TV time at: ${window.location.origin}`;
+                
+                const textArea = document.createElement('textarea');
+                textArea.value = shareText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                this.showToast('Stats copied to clipboard!', 'success');
+            } catch (fallbackError) {
+                console.error('Fallback sharing failed:', fallbackError);
+                this.showToast('Unable to share stats. Please try again.', 'error');
+            }
         }
     }
 };
