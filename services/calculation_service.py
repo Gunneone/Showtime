@@ -332,9 +332,11 @@ class CalculationService:
         
         for show in watched_shows:
             seasons_watched = show.get('seasons_watched', 0)
-            show_total_seasons = show.get('total_seasons', 1)
+            # Use released seasons count for completion calculation
+            # Fall back to total_seasons for older shows that don't have released_seasons data
+            show_released_seasons = show.get('released_seasons', show.get('total_seasons', 1))
             
-            if seasons_watched >= show_total_seasons:
+            if seasons_watched >= show_released_seasons:
                 completed_shows += 1
             else:
                 in_progress_shows += 1

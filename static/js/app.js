@@ -491,11 +491,11 @@ const App = {
         const overview = show.overview || 'No description available.';
         const truncatedOverview = overview.length > 150 ? overview.substring(0, 150) + '...' : overview;
 
-        // Get total seasons from the show data returned by the API
-        const totalSeasons = show.number_of_seasons || 1;
+        // Get released seasons count from the show data returned by the API
+        const releasedSeasons = show.number_of_released_seasons || show.number_of_seasons || 1;
 
         // Create season selector bars
-        const seasonBars = this.createSeasonSelectorBars(totalSeasons, show);
+        const seasonBars = this.createSeasonSelectorBars(releasedSeasons, show);
 
         div.innerHTML = `
             <div class="search-result-content">
@@ -530,7 +530,7 @@ const App = {
         div.addEventListener('click', (e) => {
             // Don't trigger if clicking on season buttons
             if (!e.target.closest('.season-selector-bars')) {
-                this.addShowWithSeasons(show.id, totalSeasons, show.name);
+                this.addShowWithSeasons(show.id, releasedSeasons, show.name);
             }
         });
 
@@ -1056,10 +1056,10 @@ const App = {
 
         const posterUrl = show.poster_path || '/static/images/no-poster.png';
         const watchTime = this.calculateShowTime(show);
-        const totalSeasons = show.total_seasons || 1;
+        const releasedSeasons = show.released_seasons || show.total_seasons || 1;
 
         // Create edit season selector bars
-        const editSeasonBars = this.createEditSeasonSelectorBars(totalSeasons, show, show.seasons_watched);
+        const editSeasonBars = this.createEditSeasonSelectorBars(releasedSeasons, show, show.seasons_watched);
 
         div.innerHTML = `
             <div class="watched-show-remove" onclick="App.removeShow(${show.id})" title="Remove show">

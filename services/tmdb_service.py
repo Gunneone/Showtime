@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime, date
 from config import Config
 
 class TMDBService:
@@ -161,12 +162,61 @@ class TMDBService:
             # Get episodes for this season
             episodes = mock_episodes.get(show_id, {}).get(season_num, [])
             
+            # Mock season air dates by show and season
+            season_air_dates = {
+                1: {  # Breaking Bad - all seasons released
+                    1: '2008-01-20',
+                    2: '2009-03-08', 
+                    3: '2010-03-21',
+                    4: '2011-07-17',
+                    5: '2012-07-15'
+                },
+                2: {  # The Office - all seasons released  
+                    1: '2005-03-24',
+                    2: '2005-09-20',
+                    3: '2006-09-21',
+                    4: '2007-09-27',
+                    5: '2008-09-25',
+                    6: '2009-09-17',
+                    7: '2010-09-23',
+                    8: '2011-09-22',
+                    9: '2012-09-20'
+                },
+                3: {  # Game of Thrones - all seasons released
+                    1: '2011-04-17',
+                    2: '2012-04-01',
+                    3: '2013-03-31',
+                    4: '2014-04-06',
+                    5: '2015-04-12',
+                    6: '2016-04-24',
+                    7: '2017-07-16',
+                    8: '2019-04-14'
+                },
+                4: {  # Stranger Things - some future seasons
+                    1: '2016-07-15',
+                    2: '2017-10-27',
+                    3: '2019-07-04',
+                    4: '2022-05-27',
+                    5: '2026-01-01'  # Future season
+                },
+                5: {  # The Mandalorian - mix of released and future
+                    1: '2019-11-12',
+                    2: '2020-10-30',
+                    3: '2023-03-01',
+                    4: '2026-06-01'  # Future season
+                }
+            }
+            
+            # Get air date for this specific season
+            show_air_dates = season_air_dates.get(show_id, {})
+            season_air_date = show_air_dates.get(season_num, '2020-01-01')
+            
             return {
                 'id': f'{show_id}_{season_num}',
                 'season_number': season_num,
                 'name': f'Season {season_num}',
                 'overview': f'Season {season_num} overview',
-                'air_date': '2020-01-01',
+                'air_date': season_air_date,
                 'episodes': episodes
             }
             
@@ -252,7 +302,7 @@ class TMDBService:
                     'vote_average': 8.7,
                     'popularity': 92,
                     'number_of_episodes': 42,
-                    'number_of_seasons': 4,
+                    'number_of_seasons': 5,
                     'episode_run_time': [51],
                     'genres': [
                         {'id': 18, 'name': 'Drama'},
@@ -275,7 +325,7 @@ class TMDBService:
                     'vote_average': 8.5,
                     'popularity': 88,
                     'number_of_episodes': 24,
-                    'number_of_seasons': 3,
+                    'number_of_seasons': 4,
                     'episode_run_time': [36],
                     'genres': [
                         {'id': 10759, 'name': 'Action & Adventure'},
@@ -323,6 +373,9 @@ class TMDBService:
         for show in data.get('results', []):
             # Get detailed show info to include number of seasons
             show_details = self.get_show_details(show['id'])
+            total_seasons = show_details.get('number_of_seasons', 1)
+            released_seasons = self.get_released_seasons_count(show['id'], total_seasons)
+            
             results.append({
                 'id': show['id'],
                 'name': show['name'],
@@ -331,7 +384,8 @@ class TMDBService:
                 'poster_path': self._get_full_image_url(show.get('poster_path')),
                 'vote_average': show.get('vote_average', 0),
                 'popularity': show.get('popularity', 0),
-                'number_of_seasons': show_details.get('number_of_seasons', 1)
+                'number_of_seasons': total_seasons,
+                'number_of_released_seasons': released_seasons
             })
         
         return {
@@ -418,6 +472,39 @@ class TMDBService:
                 continue
         
         return episode_runtimes
+    
+    def _is_season_released(self, air_date_str):
+        """Check if a season is released based on its air date."""
+        if not air_date_str:
+            return False
+            
+        try:
+            air_date = datetime.strptime(air_date_str, '%Y-%m-%d').date()
+            return air_date <= date.today()
+        except ValueError:
+            # If air date is invalid, assume not released
+            return False
+    
+    def get_released_seasons_count(self, show_id, total_seasons):
+        """Get the number of released seasons for a show."""
+        released_count = 0
+        
+        for season_num in range(1, total_seasons + 1):
+            try:
+                season_details = self.get_season_details(show_id, season_num)
+                air_date = season_details.get('air_date', '')
+                
+                if self._is_season_released(air_date):
+                    released_count += 1
+                else:
+                    # Stop counting once we hit an unreleased season
+                    # (assuming seasons are released in order)
+                    break
+            except Exception:
+                # If we can't get season details, stop counting
+                break
+                
+        return released_count
     
     def _get_full_image_url(self, image_path):
         """Convert a relative image path to a full URL."""

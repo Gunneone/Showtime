@@ -181,6 +181,8 @@ def add_watched():
             )
             existing_show['calculated_runtime_minutes'] = calculated_runtime
             existing_show['season_details'] = season_details_array
+            # Update released seasons count (in case it changed since the show was added)
+            existing_show['released_seasons'] = tmdb_service.get_released_seasons_count(data['id'], show_details.get('number_of_seasons', 1))
         else:
             # Add new show with precise runtime calculation
             seasons_watched = data.get('seasons_watched', 1)
@@ -206,6 +208,7 @@ def add_watched():
                 'first_air_date': show_details.get('first_air_date'),
                 'seasons_watched': seasons_watched,
                 'total_seasons': show_details.get('number_of_seasons', 1),
+                'released_seasons': tmdb_service.get_released_seasons_count(data['id'], show_details.get('number_of_seasons', 1)),
                 'total_episodes': show_details.get('number_of_episodes', 0),
                 'episode_run_time': episode_runtime,
                 'calculated_runtime_minutes': calculated_runtime,
@@ -271,6 +274,8 @@ def update_watched(show_id):
                 )
                 show_to_update['calculated_runtime_minutes'] = calculated_runtime
                 show_to_update['season_details'] = season_details_array
+                # Update released seasons count (in case it changed since the show was added)
+                show_to_update['released_seasons'] = tmdb_service.get_released_seasons_count(show_id, show_details.get('number_of_seasons', 1))
         
         # Return updated data for localStorage storage (no cookies)
         response_data = {
