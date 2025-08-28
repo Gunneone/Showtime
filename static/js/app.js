@@ -161,7 +161,9 @@ const App = {
         isLoading: false,
         selectedShow: null,
         searchRequestId: 0,
-        pendingSearchController: null
+        pendingSearchController: null,
+        displayedSearchResults: 0,
+        maxSearchResults: 2
     },
 
     // DOM elements
@@ -403,12 +405,12 @@ const App = {
 
             // Only process this response if it's the most recent request
             if (requestId === this.state.searchRequestId) {
-                // For instant search, limit to 5 results. For manual search, show more
-                const maxResults = isInstantSearch ? 5 : 10;
-                const results = data.results.slice(0, maxResults);
-                
-                this.displaySearchResults(results, isInstantSearch);
+                // Store full search results and display only first 2
                 this.state.currentSearch = data;
+                this.state.displayedSearchResults = 0;
+                
+                // Display first 2 results
+                this.displaySearchResults(data.results, isInstantSearch, true);
                 
                 // Clear the pending controller since this request completed successfully
                 this.state.pendingSearchController = null;
@@ -448,15 +450,20 @@ const App = {
     hideSearchResults() {
         this.elements.searchResults.classList.add('hidden');
         this.elements.searchResults.innerHTML = '';
+        this.state.displayedSearchResults = 0;
     },
 
     // Display search results
-    displaySearchResults(results, isInstantSearch = false) {
-        console.log('Displaying search results:', results, 'isInstantSearch:', isInstantSearch);
+    displaySearchResults(allResults, isInstantSearch = false, isInitialLoad = false) {
+        console.log('Displaying search results:', allResults, 'isInstantSearch:', isInstantSearch, 'isInitialLoad:', isInitialLoad);
         console.log('Search results element:', this.elements.searchResults);
         
-        // Clear previous results
-        this.elements.searchResults.innerHTML = '';
+        // Clear previous results only on initial load
+        if (isInitialLoad) {
+            this.elements.searchResults.innerHTML = '';
+            this.state.displayedSearchResults = 0;
+        }
+        
         this.elements.searchResults.classList.remove('hidden');
 
         // Debug: Log the visibility and positioning
@@ -470,7 +477,7 @@ const App = {
             height: getComputedStyle(this.elements.searchResults).height
         });
 
-        if (!results || results.length === 0) {
+        if (!allResults || allResults.length === 0) {
             this.elements.searchResults.innerHTML = `
                 <div class="search-no-results">
                     <i class="fas fa-search"></i>
@@ -480,11 +487,24 @@ const App = {
             return;
         }
 
+        // Determine how many results to show
+        const startIndex = this.state.displayedSearchResults;
+        const endIndex = Math.min(startIndex + this.state.maxSearchResults, allResults.length);
+        const resultsToShow = allResults.slice(startIndex, endIndex);
+        
         // Create result elements
         const createResults = async () => {
-            for (const show of results) {
+            for (const show of resultsToShow) {
                 const resultElement = await this.createSearchResultElement(show, isInstantSearch);
                 this.elements.searchResults.appendChild(resultElement);
+            }
+            
+            // Update displayed count
+            this.state.displayedSearchResults = endIndex;
+            
+            // Add "Load More" button if there are more results
+            if (endIndex < allResults.length) {
+                this.addLoadMoreButton(allResults, isInstantSearch);
             }
         };
         
@@ -555,6 +575,32 @@ const App = {
         });
 
         return div;
+    },
+
+    // Add load more button to search results
+    addLoadMoreButton(allResults, isInstantSearch) {
+        const loadMoreDiv = document.createElement('div');
+        loadMoreDiv.className = 'search-load-more';
+        loadMoreDiv.innerHTML = `
+            <button class="load-more-btn" onclick="App.loadMoreSearchResults()">
+                <i class="fas fa-plus"></i> Load 2 more results
+            </button>
+        `;
+        this.elements.searchResults.appendChild(loadMoreDiv);
+    },
+
+    // Load more search results
+    loadMoreSearchResults() {
+        if (!this.state.currentSearch || !this.state.currentSearch.results) return;
+        
+        // Remove the load more button
+        const loadMoreBtn = this.elements.searchResults.querySelector('.search-load-more');
+        if (loadMoreBtn) {
+            loadMoreBtn.remove();
+        }
+        
+        // Display next batch of results (without clearing existing ones)
+        this.displaySearchResults(this.state.currentSearch.results, false, false);
     },
 
     // Create season selector bars
