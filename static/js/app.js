@@ -205,6 +205,7 @@ const App = {
         this.elements.sortControls = document.getElementById('sortControls');
         this.elements.sortSelect = document.getElementById('sortSelect');
         this.elements.removeAllBtn = document.getElementById('removeAllBtn');
+        this.elements.shareBtn = document.getElementById('shareBtn');
         
         // Debug: Check if search results element is found
         console.log('Search results element found:', this.elements.searchResults);
@@ -238,6 +239,13 @@ const App = {
         if (this.elements.removeAllBtn) {
             this.elements.removeAllBtn.addEventListener('click', () => {
                 this.confirmRemoveAllData();
+            });
+        }
+        
+        // Share functionality
+        if (this.elements.shareBtn) {
+            this.elements.shareBtn.addEventListener('click', () => {
+                this.shareWatchTime();
             });
         }
         
@@ -1392,6 +1400,83 @@ const App = {
             this.showToast('Failed to remove data. Please try again.', 'error');
         } finally {
             this.hideLoading();
+        }
+    },
+
+    // Share watch time functionality
+    async shareWatchTime() {
+        try {
+            const watchedShows = this.state.watchedShows || DataStorage.getWatchedShows();
+            const totalTimeMinutes = this.state.totalTime || 0;
+            const showCount = watchedShows.length;
+            
+            // Format time into days and hours
+            const totalHours = Math.floor(totalTimeMinutes / 60);
+            const days = Math.floor(totalHours / 24);
+            const hours = totalHours % 24;
+            
+            let timeText;
+            if (days > 0 && hours > 0) {
+                timeText = `${days} days ${hours} hours`;
+            } else if (days > 0) {
+                timeText = `${days} days`;
+            } else if (hours > 0) {
+                timeText = `${hours} hours`;
+            } else {
+                timeText = '0 hours';
+            }
+            
+            // Create the new share message format
+            const shareText = `I spend <b>${timeText}</b> of my life watching <b>${showCount}</b> TV Shows.\nTime well spent!\n\nWhat is <b>your result</b>?\n\n${window.location.origin}`;
+            
+            // Detect if device is mobile
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                             (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform));
+            
+            if (isMobile) {
+                // On mobile: Use Web Share API if available
+                const shareData = {
+                    title: 'My TV Show Watching Stats',
+                    text: shareText.replace(/<b>/g, '').replace(/<\/b>/g, ''),
+                    url: window.location.origin
+                };
+
+                if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                    this.showToast('Shared successfully!');
+                    return;
+                }
+            }
+            
+            // On desktop or if Web Share API is not available: Copy to clipboard
+            const clipboardText = shareText.replace(/<b>/g, '').replace(/<\/b>/g, '');
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(clipboardText);
+                this.showToast('Copied to clipboard!');
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = clipboardText;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    this.showToast('Copied to clipboard!');
+                } catch (err) {
+                    this.showToast('Unable to copy. Please copy manually.', 'error');
+                }
+                
+                document.body.removeChild(textArea);
+            }
+        } catch (error) {
+            console.error('Error sharing:', error);
+            this.showToast('Failed to share. Please try again.', 'error');
         }
     }
 };
