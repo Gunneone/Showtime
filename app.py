@@ -1,11 +1,19 @@
 from flask import Flask
 from flask_cors import CORS
 from config import Config
+import logging
 
 def create_app():
     """Create and configure the Flask application."""
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    # Configure logging for production
+    if Config.FLASK_ENV == 'production' and not app.config.get('TESTING', False):
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s %(levelname)s %(name)s %(message)s'
+        )
     
     # Enable CORS
     CORS(app)

@@ -18,6 +18,6 @@ class Config:
     
     # Application settings
     COOKIE_MAX_AGE = 365 * 24 * 60 * 60  # 1 year in seconds
-    COOKIE_SECURE = False  # Set to True in production with HTTPS
+    COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'  # Secure cookies in production
     COOKIE_HTTPONLY = True
     COOKIE_SAMESITE = 'Lax'

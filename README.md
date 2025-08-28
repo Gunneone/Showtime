@@ -169,8 +169,12 @@ docker run -d \
 
 * **Automatic Restart**: The container will automatically restart after server outages
 * **Health Checks**: Built-in health monitoring
+* **Production Server**: Uses Gunicorn WSGI server for optimal performance
 * **Isolated Environment**: Runs in a secure, isolated container
 * **Easy Updates**: Simple deployment and rollback process
+* **Configurable**: Customizable Gunicorn settings via environment variables
+
+**For detailed production configuration options, see [PRODUCTION.md](PRODUCTION.md).**
 
 ## 🎯 Usage
 

@@ -44,6 +44,8 @@ Required environment variables:
 # - Proper networking
 ```
 
+**For advanced production configuration options, see [PRODUCTION.md](PRODUCTION.md).**
+
 ### Manual Docker Run
 
 ```bash
