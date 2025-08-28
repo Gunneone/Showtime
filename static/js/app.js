@@ -1682,42 +1682,15 @@ const App = {
                 return;
             }
             
-            // Import the data with season count refresh
+            // Import the data immediately and display it
             if (importData.watchedShows) {
-                // First store the imported data
+                // Store the imported data immediately
                 const importedShows = importData.watchedShows;
-                
-                // Refresh season counts for all imported shows
-                try {
-                    const refreshResponse = await fetch('/api/refresh-seasons', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            watched_shows: importedShows
-                        })
-                    });
-                    
-                    if (refreshResponse.ok) {
-                        const refreshData = await refreshResponse.json();
-                        // Store the refreshed data
-                        DataStorage.setWatchedShows(refreshData.updated_watched_shows);
-                        this.state.watchedShows = refreshData.updated_watched_shows;
-                    } else {
-                        // If refresh fails, store original data
-                        DataStorage.setWatchedShows(importedShows);
-                        this.state.watchedShows = importedShows;
-                        this.showToast('Import successful, but season counts could not be refreshed', 'warning');
-                    }
-                } catch (refreshError) {
-                    console.error('Error refreshing season counts:', refreshError);
-                    // If refresh fails, store original data
-                    DataStorage.setWatchedShows(importedShows);
-                    this.state.watchedShows = importedShows;
-                    this.showToast('Import successful, but season counts could not be refreshed', 'warning');
-                }
+                DataStorage.setWatchedShows(importedShows);
+                this.state.watchedShows = importedShows;
             }
+            
+            // Load and display the imported shows immediately
             this.loadWatchedShows();
             
             // Clear file input
@@ -1725,10 +1698,17 @@ const App = {
             
             this.showToast(`Successfully imported ${showsCount} shows!`, 'success');
             
+            // Hide loading overlay immediately after import is complete
+            this.hideLoading();
+            
+            // Now refresh season counts silently in the background
+            setTimeout(() => {
+                this.refreshAllSeasons();
+            }, 500); // Small delay to let the UI update first
+            
         } catch (error) {
             console.error('Error importing data:', error);
             this.showToast(error.message || 'Failed to import data. Please try again.', 'error');
-        } finally {
             this.hideLoading();
         }
     },
