@@ -599,6 +599,12 @@ const App = {
 
     // Add load more button to search results
     addLoadMoreButton(allResults, isInstantSearch) {
+        // Remove any existing load more button first
+        const existingLoadMoreBtn = this.elements.searchResults.querySelector('.search-load-more');
+        if (existingLoadMoreBtn) {
+            existingLoadMoreBtn.remove();
+        }
+        
         const loadMoreDiv = document.createElement('div');
         loadMoreDiv.className = 'search-load-more';
         loadMoreDiv.innerHTML = `
