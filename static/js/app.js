@@ -191,6 +191,7 @@ const App = {
         this.initElements();
         this.bindEvents();
         this.loadWatchedShows();
+        this.handleMobileOptimizations();
         console.log('Showtime app initialized with localStorage');
     },
 
@@ -1612,6 +1613,22 @@ const App = {
             this.showToast('Failed to remove data. Please try again.', 'error');
         } finally {
             this.hideLoading();
+        }
+    },
+
+    // Handle mobile-specific optimizations
+    handleMobileOptimizations() {
+        // Detect if device is mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform)) ||
+                         window.innerWidth <= 768;
+        
+        if (isMobile && this.elements.shareBtn) {
+            // Change "Share Result" to "Share" on mobile
+            const shareSpan = this.elements.shareBtn.querySelector('span');
+            if (shareSpan && shareSpan.textContent === 'Share Result') {
+                shareSpan.textContent = 'Share';
+            }
         }
     },
 
