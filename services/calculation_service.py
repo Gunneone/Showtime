@@ -237,6 +237,7 @@ class CalculationService:
             return {
                 'total_shows': 0,
                 'total_seasons': 0,
+                'total_episodes': 0,
                 'total_time_minutes': 0,
                 'total_time_formatted': '0h',
                 'average_time_per_show': 0,
@@ -255,6 +256,22 @@ class CalculationService:
         total_shows = len(watched_shows)
         total_seasons = sum(show.get('seasons_watched', 0) for show in watched_shows)
         total_time_minutes = self.calculate_total_time(watched_shows)
+        
+        # Calculate total episodes
+        total_episodes = 0
+        for show in watched_shows:
+            seasons_watched = show.get('seasons_watched', 0)
+            total_episodes_in_show = show.get('total_episodes', 0)
+            total_seasons_in_show = show.get('total_seasons', 1)
+            
+            if total_episodes_in_show > 0 and total_seasons_in_show > 0:
+                episodes_per_season = total_episodes_in_show / total_seasons_in_show
+            else:
+                episodes_per_season = 20  # Default assumption
+            
+            episodes_watched = seasons_watched * episodes_per_season
+            total_episodes += round(episodes_watched)
+        
         average_time_per_show = total_time_minutes // total_shows if total_shows > 0 else 0
         
         # Genre breakdown
@@ -327,6 +344,7 @@ class CalculationService:
         return {
             'total_shows': total_shows,
             'total_seasons': total_seasons,
+            'total_episodes': total_episodes,
             'total_time_minutes': total_time_minutes,
             'total_time_formatted': self.format_time(total_time_minutes),
             'average_time_per_show': average_time_per_show,

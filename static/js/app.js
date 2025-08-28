@@ -1466,37 +1466,47 @@ const StatsApp = {
         let totalMinutes = 0;
         let completedShows = 0;
         let inProgressShows = 0;
+        let totalEpisodes = 0;
         
         for (const show of watchedShows) {
             const seasons = show.seasons_watched || 0;
             const episodeRuntime = show.episode_run_time || 45;
-            const totalEpisodes = show.total_episodes || 0;
-            const totalSeasons = show.total_seasons || 1;
+            const totalEpisodesInShow = show.total_episodes || 0;
+            const totalSeasonsInShow = show.total_seasons || 1;
+            
+            // Calculate episodes watched for this show
+            let episodesPerSeason;
+            if (totalEpisodesInShow > 0 && totalSeasonsInShow > 0) {
+                episodesPerSeason = totalEpisodesInShow / totalSeasonsInShow;
+            } else {
+                episodesPerSeason = 20; // Default assumption
+            }
+            
+            const episodesWatched = seasons * episodesPerSeason;
+            totalEpisodes += Math.round(episodesWatched);
             
             // Use pre-calculated runtime if available, otherwise estimate
             if (show.calculated_runtime_minutes) {
                 totalMinutes += show.calculated_runtime_minutes;
             } else {
-                const episodesPerSeason = totalEpisodes > 0 ? totalEpisodes / totalSeasons : 20;
-                totalMinutes += seasons * episodesPerSeason * episodeRuntime;
+                totalMinutes += episodesWatched * episodeRuntime;
             }
             
             // Completion stats
-            if (seasons >= totalSeasons) {
+            if (seasons >= totalSeasonsInShow) {
                 completedShows++;
             } else {
                 inProgressShows++;
             }
         }
         
-        const averageTimePerShow = Math.floor(totalMinutes / totalShows);
         const completionRate = Math.round((completedShows / totalShows) * 100 * 10) / 10;
         
         // Display basic stats immediately
+        document.getElementById('totalTime').textContent = this.formatTime(totalMinutes);
         document.getElementById('totalShows').textContent = totalShows;
         document.getElementById('totalSeasons').textContent = totalSeasons;
-        document.getElementById('totalTime').textContent = this.formatTime(totalMinutes);
-        document.getElementById('averageTime').textContent = this.formatTime(averageTimePerShow);
+        document.getElementById('totalEpisodes').textContent = totalEpisodes;
         document.getElementById('completedShows').textContent = completedShows;
         document.getElementById('inProgressShows').textContent = inProgressShows;
         document.getElementById('completionRate').textContent = `${completionRate}%`;
@@ -1589,10 +1599,10 @@ const StatsApp = {
     // Display statistics data
     displayStats(stats) {
         // Overview stats
+        document.getElementById('totalTime').textContent = stats.total_time_formatted;
         document.getElementById('totalShows').textContent = stats.total_shows;
         document.getElementById('totalSeasons').textContent = stats.total_seasons;
-        document.getElementById('totalTime').textContent = stats.total_time_formatted;
-        document.getElementById('averageTime').textContent = stats.average_time_per_show_formatted;
+        document.getElementById('totalEpisodes').textContent = stats.total_episodes;
 
         // Completion stats
         document.getElementById('completedShows').textContent = stats.completion_stats.completed_shows;
