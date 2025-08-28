@@ -532,8 +532,27 @@ const App = {
         const overview = show.overview || 'No description available.';
         const truncatedOverview = overview.length > 150 ? overview.substring(0, 150) + '...' : overview;
 
-        // Get released seasons count from the show data returned by the API
-        const releasedSeasons = show.number_of_released_seasons || show.number_of_seasons || 1;
+        // Fetch season data if not already available
+        let releasedSeasons = 1;
+        if (show.number_of_released_seasons !== null && show.number_of_released_seasons !== undefined) {
+            releasedSeasons = show.number_of_released_seasons;
+        } else {
+            // Fetch season data from API
+            try {
+                const response = await fetch(`/api/show/${show.id}/seasons`);
+                if (response.ok) {
+                    const seasonData = await response.json();
+                    releasedSeasons = seasonData.number_of_released_seasons || 1;
+                    // Cache the season data in the show object for future use
+                    show.number_of_seasons = seasonData.number_of_seasons;
+                    show.number_of_released_seasons = seasonData.number_of_released_seasons;
+                } else {
+                    console.warn(`Failed to fetch season data for show ${show.id}`);
+                }
+            } catch (error) {
+                console.warn(`Error fetching season data for show ${show.id}:`, error);
+            }
+        }
 
         // Create season selector bars
         const seasonBars = this.createSeasonSelectorBars(releasedSeasons, show);

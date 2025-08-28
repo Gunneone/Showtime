@@ -432,8 +432,8 @@ class TMDBService:
                 'networks': []
             })
     
-    def search_shows(self, query, page=1):
-        """Search for TV shows."""
+    def search_shows(self, query, page=1, include_season_data=True):
+        """Search for TV shows with optional season data fetching."""
         endpoint = "search/tv"
         params = {
             'query': query,
@@ -446,12 +446,7 @@ class TMDBService:
         # Format the results
         results = []
         for show in data.get('results', []):
-            # Get detailed show info to include number of seasons
-            show_details = self.get_show_details(show['id'])
-            total_seasons = show_details.get('number_of_seasons', 1)
-            released_seasons = self.get_released_seasons_count(show['id'], total_seasons)
-            
-            results.append({
+            show_data = {
                 'id': show['id'],
                 'name': show['name'],
                 'overview': show.get('overview', ''),
@@ -459,9 +454,32 @@ class TMDBService:
                 'poster_path': self._get_full_image_url(show.get('poster_path')),
                 'vote_average': show.get('vote_average', 0),
                 'popularity': show.get('popularity', 0),
-                'number_of_seasons': total_seasons,
-                'number_of_released_seasons': released_seasons
-            })
+                'number_of_seasons': None,
+                'number_of_released_seasons': None
+            }
+            
+            # Only fetch season data if requested (for backward compatibility with tests)
+            if include_season_data:
+                try:
+                    # Check cache first for better performance
+                    cached_data = self.persistent_cache.get_season_data(show['id'])
+                    if cached_data and 'total_seasons' in cached_data and 'released_seasons_count' in cached_data:
+                        show_data['number_of_seasons'] = cached_data['total_seasons']
+                        show_data['number_of_released_seasons'] = cached_data['released_seasons_count']
+                    else:
+                        # Fetch from API as fallback
+                        show_details = self.get_show_details(show['id'])
+                        total_seasons = show_details.get('number_of_seasons', 1)
+                        released_seasons = self.get_released_seasons_count(show['id'], total_seasons)
+                        show_data['number_of_seasons'] = total_seasons
+                        show_data['number_of_released_seasons'] = released_seasons
+                except Exception as e:
+                    print(f"Failed to get season data for show {show['id']}: {e}")
+                    # Use default values if fetching fails
+                    show_data['number_of_seasons'] = 1
+                    show_data['number_of_released_seasons'] = 1
+            
+            results.append(show_data)
         
         return {
             'results': results,
@@ -469,6 +487,33 @@ class TMDBService:
             'total_results': data.get('total_results', 0),
             'page': data.get('page', 1)
         }
+    
+    def get_show_season_data(self, show_id):
+        """Get season data for a specific show (for on-demand loading)."""
+        try:
+            # Check cache first
+            cached_data = self.persistent_cache.get_season_data(show_id)
+            if cached_data and 'total_seasons' in cached_data and 'released_seasons_count' in cached_data:
+                return {
+                    'number_of_seasons': cached_data['total_seasons'],
+                    'number_of_released_seasons': cached_data['released_seasons_count']
+                }
+            
+            # Fetch from API
+            show_details = self.get_show_details(show_id)
+            total_seasons = show_details.get('number_of_seasons', 1)
+            released_seasons = self.get_released_seasons_count(show_id, total_seasons)
+            
+            return {
+                'number_of_seasons': total_seasons,
+                'number_of_released_seasons': released_seasons
+            }
+        except Exception as e:
+            print(f"Failed to get season data for show {show_id}: {e}")
+            return {
+                'number_of_seasons': 1,
+                'number_of_released_seasons': 1
+            }
     
     def get_show_details(self, show_id):
         """Get detailed information about a specific TV show."""
