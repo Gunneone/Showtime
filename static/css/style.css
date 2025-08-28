@@ -5,6 +5,23 @@
     box-sizing: border-box;
 }
 
+:root {
+    /* Blue accent color palette */
+    --blue-primary: #63b3ed;
+    --blue-secondary: #667eea;
+    --blue-dark: #3182ce;
+    --blue-darker: #2c5282;
+    
+    /* Blue with opacity variants */
+    --blue-primary-alpha-20: rgba(99, 179, 237, 0.2);
+    --blue-primary-alpha-10: rgba(99, 179, 237, 0.1);
+    --blue-primary-alpha-30: rgba(99, 179, 237, 0.3);
+    --blue-primary-alpha-60: rgba(99, 179, 237, 0.6);
+    --blue-secondary-alpha-30: rgba(102, 126, 234, 0.3);
+    --blue-secondary-alpha-40: rgba(102, 126, 234, 0.4);
+    --blue-dark-alpha-30: rgba(49, 130, 206, 0.3);
+}
+
 html {
     background: #2d3748;
 }
@@ -134,7 +151,7 @@ body {
     }
     50% { 
         transform: scale(1.15); 
-        text-shadow: 0 0 20px rgba(99, 179, 237, 0.6);
+        text-shadow: 0 0 20px var(--blue-primary-alpha-60);
     }
     100% { 
         transform: scale(1); 
@@ -268,7 +285,7 @@ body {
 
 .search-button {
     padding: 1rem 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--blue-secondary) 0%, #764ba2 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -276,7 +293,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px var(--blue-secondary-alpha-30);
     backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
@@ -285,8 +302,8 @@ body {
 }
 
 .search-button:hover {
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    box-shadow: 0 8px 25px var(--blue-secondary-alpha-40);
+    background: linear-gradient(135deg, #764ba2 0%, var(--blue-secondary) 100%);
 }
 
 .search-button:active {
@@ -299,9 +316,9 @@ body {
 
 .search-input:focus {
     outline: none;
-    border-color: #63b3ed;
+    border-color: var(--blue-primary);
     background: rgba(45, 55, 72, 0.95);
-    box-shadow: 0 4px 16px rgba(99, 179, 237, 0.2);
+    box-shadow: 0 4px 16px var(--blue-primary-alpha-20);
 }
 
 .search-btn {
@@ -352,7 +369,7 @@ body {
 
 .search-loading i {
     margin-right: 0.5rem;
-    color: #667eea;
+    color: var(--blue-secondary);
 }
 
 .search-no-results {
@@ -365,7 +382,7 @@ body {
     font-size: 2rem;
     margin-bottom: 1rem;
     display: block;
-    color: #667eea;
+    color: var(--blue-secondary);
 }
 
 .search-no-results p {
@@ -394,12 +411,12 @@ body {
 }
 
 .search-result:hover {
-    background: rgba(99, 179, 237, 0.2);
+    background: var(--blue-primary-alpha-20);
 }
 
 .search-result-content {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .search-result-poster {
@@ -441,18 +458,18 @@ body {
 
 /* Instant search features */
 .search-results-header {
-    color: #63b3ed;
+    color: var(--blue-primary);
     font-size: 0.8rem;
     margin-bottom: 0.5rem;
     text-align: center;
     font-weight: 500;
     padding: 0.5rem;
-    background: rgba(99, 179, 237, 0.1);
+    background: var(--blue-primary-alpha-10);
     border-radius: 12px 12px 0 0;
 }
 
 .search-result-hint {
-    color: #63b3ed;
+    color: var(--blue-primary);
     font-size: 0.7rem;
     margin-top: 0.5rem;
     font-weight: 500;
@@ -482,10 +499,10 @@ body {
 }
 
 .season-bar {
-    background: rgba(99, 179, 237, 0.3);
+    background: var(--blue-primary-alpha-30);
     border: none;
     border-right: 1px solid rgba(99, 179, 237, 0.5);
-    color: #63b3ed;
+    color: var(--blue-primary);
     padding: 0.25rem 0.5rem;
     border-radius: 0;
     cursor: pointer;
@@ -509,9 +526,9 @@ body {
 
 .season-bar:hover,
 .season-bar.highlighted {
-    background: rgba(99, 179, 237, 0.6);
+    background: var(--blue-primary-alpha-60);
     color: white;
-    box-shadow: 0 2px 8px rgba(99, 179, 237, 0.3);
+    box-shadow: 0 2px 8px var(--blue-primary-alpha-30);
 }
 
 /* Watched shows section */
@@ -556,12 +573,12 @@ body {
 
 .sort-select:focus {
     outline: none;
-    border-color: #63b3ed;
-    box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.1);
+    border-color: var(--blue-primary);
+    box-shadow: 0 0 0 3px var(--blue-primary-alpha-10);
 }
 
 .sort-select:hover {
-    border-color: #63b3ed;
+    border-color: var(--blue-primary);
 }
 
 .watched-grid {
@@ -581,7 +598,7 @@ body {
     position: relative;
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .watched-show:hover {
@@ -630,7 +647,7 @@ body {
 
 .watched-show-content {
     flex: 1;
-    padding: 1.25rem 2rem 1.25rem 1.5rem;
+    padding: 1.25rem 1rem 1.25rem 1rem;
     min-height: 180px;
     display: flex;
     flex-direction: column;
@@ -656,7 +673,7 @@ body {
 }
 
 .watched-show-time {
-    color: #63b3ed;
+    color: var(--blue-primary);
     font-weight: 600;
     font-size: 0.9rem;
     white-space: nowrap;
@@ -669,10 +686,11 @@ body {
     padding: 0.25rem 0.5rem;
     border-radius: 6px;
     transition: background-color 0.2s;
+    display: inline-block;
 }
 
 .seasons-display:hover {
-    background: rgba(99, 179, 237, 0.1);
+    background: var(--blue-primary-alpha-10);
 }
 
 .seasons-edit {
@@ -690,10 +708,10 @@ body {
 }
 
 .edit-season-bar {
-    background: rgba(99, 179, 237, 0.2);
+    background: var(--blue-primary-alpha-20);
     border: none;
     border-right: 1px solid rgba(99, 179, 237, 0.4);
-    color: #63b3ed;
+    color: var(--blue-primary);
     padding: 0.25rem 0.5rem;
     border-radius: 0;
     cursor: pointer;
@@ -711,9 +729,9 @@ body {
 .edit-season-bar:hover,
 .edit-season-bar.highlighted,
 .edit-season-bar.hover-highlighted {
-    background: rgba(99, 179, 237, 0.6);
+    background: var(--blue-primary-alpha-60);
     color: white;
-    box-shadow: 0 2px 8px rgba(99, 179, 237, 0.3);
+    box-shadow: 0 2px 8px var(--blue-primary-alpha-30);
 }
 
 
@@ -736,7 +754,7 @@ body {
 
 .seasons-edit input:focus {
     outline: none;
-    border-color: #63b3ed;
+    border-color: var(--blue-primary);
 }
 
 .btn {
@@ -753,7 +771,7 @@ body {
 }
 
 .btn-primary {
-    background: #63b3ed;
+    background: var(--blue-primary);
     color: white;
 }
 
@@ -775,8 +793,8 @@ body {
     position: absolute;
     bottom: 1rem;
     right: 1rem;
-    background: #3182ce;
-    border: 1px solid #3182ce;
+    background: var(--blue-dark);
+    border: 1px solid var(--blue-dark);
     border-radius: 8px;
     color: white;
     padding: 0.5rem 1rem;
@@ -794,10 +812,10 @@ body {
 }
 
 .share-btn:hover {
-    background: #2c5282;
-    border-color: #2c5282;
+    background: var(--blue-darker);
+    border-color: var(--blue-darker);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
+    box-shadow: 0 4px 12px var(--blue-dark-alpha-30);
 }
 
 .share-btn:active {
@@ -833,13 +851,13 @@ body {
 .export-btn, .import-btn {
     font-size: 0.9rem;
     padding: 0.5rem 1rem;
-    background: #3182ce;
-    border: 1px solid #3182ce;
+    background: var(--blue-dark);
+    border: 1px solid var(--blue-dark);
 }
 
 .export-btn:hover, .import-btn:hover {
-    background: #2c5282 !important;
-    border-color: #2c5282;
+    background: var(--blue-darker) !important;
+    border-color: var(--blue-darker);
     transform: translateY(-1px);
 }
 
@@ -997,7 +1015,7 @@ body {
 
 .form-input:focus {
     outline: none;
-    border-color: #63b3ed;
+    border-color: var(--blue-primary);
 }
 
 .form-help {
@@ -1027,7 +1045,7 @@ body {
     width: 40px;
     height: 40px;
     border: 4px solid #4a5568;
-    border-top: 4px solid #63b3ed;
+    border-top: 4px solid var(--blue-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 1rem;
@@ -1053,7 +1071,7 @@ body {
     padding: 1rem;
     margin-bottom: 0.5rem;
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    border-left: 4px solid #63b3ed;
+    border-left: 4px solid var(--blue-primary);
     animation: slideIn 0.3s ease-out;
 }
 
@@ -1114,7 +1132,7 @@ body {
 .stat-icon {
     font-size: 2.5rem;
     margin-bottom: 1rem;
-    color: #63b3ed;
+    color: var(--blue-primary);
 }
 
 .stat-content h3 {
@@ -1195,7 +1213,7 @@ body {
 
 .genre-time,
 .year-time {
-    color: #667eea;
+    color: var(--blue-secondary);
     font-weight: 600;
 }
 
@@ -1359,14 +1377,14 @@ body {
     padding: 1.5rem;
     text-align: center;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(99, 179, 237, 0.3);
+    border: 1px solid var(--blue-primary-alpha-30);
 }
 
 
 .conversion-icon {
     font-size: 2.5rem;
     margin-bottom: 1rem;
-    color: #63b3ed;
+    color: var(--blue-primary);
 }
 
 .conversion-value {
