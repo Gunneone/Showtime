@@ -1061,6 +1061,7 @@ const App = {
     createWatchedShowElement(show) {
         const div = document.createElement('div');
         div.className = 'watched-show';
+        div.setAttribute('data-show-id', show.id); // Add data attribute for easy identification
 
         const posterUrl = show.poster_path || '/static/images/no-poster.png';
         const watchTime = this.calculateShowTime(show);
@@ -1135,11 +1136,28 @@ const App = {
         const displayElement = document.querySelector(`#seasonsEdit-${showId}`).previousElementSibling;
         const editElement = document.getElementById(`seasonsEdit-${showId}`);
         
-        // Show loading state
-        this.showToast('Refreshing season count...', 'info');
+        // Immediately show edit interface with current data (seamless experience)
+        displayElement.style.display = 'none';
+        editElement.style.display = 'flex';
         
+        // Initialize the selected seasons to current value
+        const show = this.state.watchedShows.find(s => s.id === showId);
+        if (show) {
+            editElement.setAttribute('data-selected-seasons', show.seasons_watched);
+            // Update bars to show current selection without saving
+            this.updateEditSeasonBars(showId, show.seasons_watched);
+            // Setup hover effects for edit season bars
+            this.setupEditSeasonHoverEffects(showId);
+        }
+        
+        // In the background, check for new seasons without any user-visible loading
+        this.backgroundRefreshShowSeasons(showId);
+    },
+
+    // Background refresh for individual show seasons (seamless, no messages)
+    async backgroundRefreshShowSeasons(showId) {
         try {
-            // Refresh season count for this specific show
+            // Refresh season count for this specific show in the background
             const response = await fetch(`/api/refresh-show-seasons/${showId}`, {
                 method: 'POST',
                 headers: {
@@ -1153,55 +1171,73 @@ const App = {
             if (response.ok) {
                 const data = await response.json();
                 if (data.success) {
-                    // Update the stored data and application state
-                    DataStorage.setWatchedShows(data.updated_watched_shows);
-                    this.state.watchedShows = data.updated_watched_shows;
+                    // Check if there are more seasons available now
+                    const originalShow = this.state.watchedShows.find(s => s.id === showId);
+                    const updatedShow = data.updated_watched_shows.find(s => s.id === showId);
                     
-                    // Reload the watched shows display to reflect updated season counts
-                    this.loadWatchedShows();
-                    
-                    this.showToast('Season count updated!', 'success');
-                    
-                    // Now open the edit interface with updated data
-                    setTimeout(() => {
-                        const updatedDisplayElement = document.querySelector(`#seasonsEdit-${showId}`).previousElementSibling;
-                        const updatedEditElement = document.getElementById(`seasonsEdit-${showId}`);
+                    if (originalShow && updatedShow) {
+                        const originalReleased = originalShow.released_seasons || originalShow.total_seasons || 1;
+                        const updatedReleased = updatedShow.released_seasons || updatedShow.total_seasons || 1;
                         
-                        updatedDisplayElement.style.display = 'none';
-                        updatedEditElement.style.display = 'flex';
-                        
-                        // Initialize the selected seasons to current value
-                        const updatedShow = this.state.watchedShows.find(s => s.id === showId);
-                        if (updatedShow) {
-                            updatedEditElement.setAttribute('data-selected-seasons', updatedShow.seasons_watched);
-                            // Update bars to show current selection without saving
-                            this.updateEditSeasonBars(showId, updatedShow.seasons_watched);
-                            // Setup hover effects for edit season bars
-                            this.setupEditSeasonHoverEffects(showId);
+                        // Only update if more seasons are now available
+                        if (updatedReleased > originalReleased) {
+                            // Update the stored data and application state
+                            DataStorage.setWatchedShows(data.updated_watched_shows);
+                            this.state.watchedShows = data.updated_watched_shows;
+                            
+                            // Update the edit interface seamlessly if it's still open
+                            const editElement = document.getElementById(`seasonsEdit-${showId}`);
+                            if (editElement && editElement.style.display === 'flex') {
+                                // Regenerate the season bars with new count
+                                const editSeasonBars = this.createEditSeasonSelectorBars(
+                                    updatedReleased, 
+                                    updatedShow, 
+                                    updatedShow.seasons_watched
+                                );
+                                const barsContainer = editElement.querySelector('.season-selector-bars');
+                                if (barsContainer) {
+                                    barsContainer.innerHTML = editSeasonBars;
+                                    // Re-setup hover effects
+                                    this.setupEditSeasonHoverEffects(showId);
+                                    // Restore current selection
+                                    this.updateEditSeasonBars(showId, updatedShow.seasons_watched);
+                                }
+                            }
+                            
+                            // Update the display view as well (seamlessly)
+                            this.updateShowDisplayInList(showId, updatedShow);
+                            
+                            // Update statistics if completion status changed
+                            this.updateStatisticsIfNeeded();
                         }
-                    }, 100);
-                    
-                    return;
+                    }
                 }
             }
         } catch (error) {
-            console.error('Error refreshing season count:', error);
-            this.showToast('Could not refresh season count, proceeding with cached data', 'warning');
+            // Silently fail - no user messages for background operations
+            console.error('Background season refresh failed for show', showId, ':', error);
         }
-        
-        // Fallback: open edit interface with current data if refresh fails
-        displayElement.style.display = 'none';
-        editElement.style.display = 'flex';
-        
-        // Initialize the selected seasons to current value
-        const show = this.state.watchedShows.find(s => s.id === showId);
-        if (show) {
-            editElement.setAttribute('data-selected-seasons', show.seasons_watched);
-            // Update bars to show current selection without saving
-            this.updateEditSeasonBars(showId, show.seasons_watched);
-            // Setup hover effects for edit season bars
-            this.setupEditSeasonHoverEffects(showId);
+    },
+
+    // Update a single show's display in the watched shows list
+    updateShowDisplayInList(showId, updatedShow) {
+        const showElement = document.querySelector(`[data-show-id="${showId}"]`);
+        if (showElement) {
+            const seasonsDisplay = showElement.querySelector('.seasons-display');
+            if (seasonsDisplay) {
+                const releasedSeasons = updatedShow.released_seasons || updatedShow.total_seasons || 1;
+                seasonsDisplay.innerHTML = `
+                    <i class="fas fa-eye"></i> ${updatedShow.seasons_watched} of ${releasedSeasons} season${releasedSeasons !== 1 ? 's' : ''} watched 
+                    <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
+                `;
+            }
         }
+    },
+
+    // Update statistics if completion status might have changed
+    updateStatisticsIfNeeded() {
+        // Trigger a recalculation of the total watch time display which includes completion stats
+        this.loadWatchedShows();
     },
 
     cancelEditSeasons(showId) {
@@ -1749,10 +1785,10 @@ const App = {
             return;
         }
 
-        try {
-            this.showLoading();
-            this.showToast('Refreshing season counts...', 'info');
+        // Show start message only
+        this.showToast('Checking for new seasons...', 'info');
 
+        try {
             const response = await fetch('/api/refresh-seasons', {
                 method: 'POST',
                 headers: {
@@ -1770,17 +1806,38 @@ const App = {
             const data = await response.json();
             
             if (data.success) {
-                // Update the stored data and application state
-                DataStorage.setWatchedShows(data.updated_watched_shows);
-                this.state.watchedShows = data.updated_watched_shows;
+                // Check if any shows actually got more seasons
+                let hasUpdates = false;
+                const originalShows = this.state.watchedShows;
+                const updatedShows = data.updated_watched_shows;
                 
-                // Reload the watched shows display
-                this.loadWatchedShows();
+                for (let i = 0; i < originalShows.length; i++) {
+                    const original = originalShows[i];
+                    const updated = updatedShows.find(s => s.id === original.id);
+                    
+                    if (updated) {
+                        const originalReleased = original.released_seasons || original.total_seasons || 1;
+                        const updatedReleased = updated.released_seasons || updated.total_seasons || 1;
+                        
+                        if (updatedReleased > originalReleased) {
+                            hasUpdates = true;
+                            break;
+                        }
+                    }
+                }
                 
-                // Update the total watch time display
-                this.updateTotalWatchTime();
-                
-                this.showToast('Season counts refreshed successfully!', 'success');
+                if (hasUpdates) {
+                    // Update the stored data and application state
+                    DataStorage.setWatchedShows(data.updated_watched_shows);
+                    this.state.watchedShows = data.updated_watched_shows;
+                    
+                    // Reload the watched shows display
+                    this.loadWatchedShows();
+                    
+                    this.showToast('New seasons found and updated!', 'success');
+                } else {
+                    this.showToast('All shows are up to date', 'info');
+                }
             } else {
                 throw new Error(data.error || 'Failed to refresh season counts');
             }
@@ -1788,9 +1845,8 @@ const App = {
         } catch (error) {
             console.error('Error refreshing seasons:', error);
             this.showToast('Failed to refresh season counts. Please try again.', 'error');
-        } finally {
-            this.hideLoading();
         }
+        // Note: No loading overlay, no hideLoading() call - keeps UI usable
     }
 };
 
