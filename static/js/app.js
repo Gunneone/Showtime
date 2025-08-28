@@ -1605,11 +1605,8 @@ const App = {
     // Export all data as JSON file
     exportData() {
         try {
-            // Gather all data to export (exclude released_seasons as it should be looked up on import)
-            const watchedShows = DataStorage.getWatchedShows().map(show => {
-                const { released_seasons, ...showWithoutReleasedSeasons } = show;
-                return showWithoutReleasedSeasons;
-            });
+            // Gather all data to export (include released_seasons but will be refreshed on import)
+            const watchedShows = DataStorage.getWatchedShows();
             
             const exportData = {
                 version: '1.0',
