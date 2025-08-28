@@ -209,6 +209,7 @@ const App = {
         this.elements.exportBtn = document.getElementById('exportBtn');
         this.elements.importBtn = document.getElementById('importBtn');
         this.elements.importFileInput = document.getElementById('importFileInput');
+        this.elements.refreshSeasonsBtn = document.getElementById('refreshSeasonsBtn');
         
         // Debug: Check if search results element is found
         console.log('Search results element found:', this.elements.searchResults);
@@ -269,6 +270,13 @@ const App = {
         if (this.elements.importFileInput) {
             this.elements.importFileInput.addEventListener('change', (e) => {
                 this.importData(e.target.files[0]);
+            });
+        }
+        
+        // Refresh Seasons functionality
+        if (this.elements.refreshSeasonsBtn) {
+            this.elements.refreshSeasonsBtn.addEventListener('click', () => {
+                this.refreshAllSeasons();
             });
         }
         
@@ -1123,10 +1131,65 @@ const App = {
     },
 
     // Inline season editing methods
-    editSeasons(showId) {
+    async editSeasons(showId) {
         const displayElement = document.querySelector(`#seasonsEdit-${showId}`).previousElementSibling;
         const editElement = document.getElementById(`seasonsEdit-${showId}`);
         
+        // Show loading state
+        this.showToast('Refreshing season count...', 'info');
+        
+        try {
+            // Refresh season count for this specific show
+            const response = await fetch(`/api/refresh-show-seasons/${showId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    watched_shows: this.state.watchedShows
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    // Update the stored data and application state
+                    DataStorage.setWatchedShows(data.updated_watched_shows);
+                    this.state.watchedShows = data.updated_watched_shows;
+                    
+                    // Reload the watched shows display to reflect updated season counts
+                    this.loadWatchedShows();
+                    
+                    this.showToast('Season count updated!', 'success');
+                    
+                    // Now open the edit interface with updated data
+                    setTimeout(() => {
+                        const updatedDisplayElement = document.querySelector(`#seasonsEdit-${showId}`).previousElementSibling;
+                        const updatedEditElement = document.getElementById(`seasonsEdit-${showId}`);
+                        
+                        updatedDisplayElement.style.display = 'none';
+                        updatedEditElement.style.display = 'flex';
+                        
+                        // Initialize the selected seasons to current value
+                        const updatedShow = this.state.watchedShows.find(s => s.id === showId);
+                        if (updatedShow) {
+                            updatedEditElement.setAttribute('data-selected-seasons', updatedShow.seasons_watched);
+                            // Update bars to show current selection without saving
+                            this.updateEditSeasonBars(showId, updatedShow.seasons_watched);
+                            // Setup hover effects for edit season bars
+                            this.setupEditSeasonHoverEffects(showId);
+                        }
+                    }, 100);
+                    
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Error refreshing season count:', error);
+            this.showToast('Could not refresh season count, proceeding with cached data', 'warning');
+        }
+        
+        // Fallback: open edit interface with current data if refresh fails
         displayElement.style.display = 'none';
         editElement.style.display = 'flex';
         
@@ -1506,11 +1569,16 @@ const App = {
     // Export all data as JSON file
     exportData() {
         try {
-            // Gather all data to export
+            // Gather all data to export (exclude released_seasons as it should be looked up on import)
+            const watchedShows = DataStorage.getWatchedShows().map(show => {
+                const { released_seasons, ...showWithoutReleasedSeasons } = show;
+                return showWithoutReleasedSeasons;
+            });
+            
             const exportData = {
                 version: '1.0',
                 exportDate: new Date().toISOString(),
-                watchedShows: DataStorage.getWatchedShows()
+                watchedShows: watchedShows
             };
 
             // Convert to JSON string
@@ -1581,13 +1649,42 @@ const App = {
                 return;
             }
             
-            // Import the data
+            // Import the data with season count refresh
             if (importData.watchedShows) {
-                DataStorage.setWatchedShows(importData.watchedShows);
+                // First store the imported data
+                const importedShows = importData.watchedShows;
+                
+                // Refresh season counts for all imported shows
+                try {
+                    const refreshResponse = await fetch('/api/refresh-seasons', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            watched_shows: importedShows
+                        })
+                    });
+                    
+                    if (refreshResponse.ok) {
+                        const refreshData = await refreshResponse.json();
+                        // Store the refreshed data
+                        DataStorage.setWatchedShows(refreshData.updated_watched_shows);
+                        this.state.watchedShows = refreshData.updated_watched_shows;
+                    } else {
+                        // If refresh fails, store original data
+                        DataStorage.setWatchedShows(importedShows);
+                        this.state.watchedShows = importedShows;
+                        this.showToast('Import successful, but season counts could not be refreshed', 'warning');
+                    }
+                } catch (refreshError) {
+                    console.error('Error refreshing season counts:', refreshError);
+                    // If refresh fails, store original data
+                    DataStorage.setWatchedShows(importedShows);
+                    this.state.watchedShows = importedShows;
+                    this.showToast('Import successful, but season counts could not be refreshed', 'warning');
+                }
             }
-            
-            // Update application state
-            this.state.watchedShows = importData.watchedShows || [];
             this.loadWatchedShows();
             
             // Clear file input
@@ -1641,6 +1738,59 @@ const App = {
         }
         
         return false;
+    },
+
+    // Refresh season counts for all shows
+    async refreshAllSeasons() {
+        const watchedShows = this.state.watchedShows;
+        
+        if (!watchedShows || watchedShows.length === 0) {
+            this.showToast('No shows to refresh', 'info');
+            return;
+        }
+
+        try {
+            this.showLoading();
+            this.showToast('Refreshing season counts...', 'info');
+
+            const response = await fetch('/api/refresh-seasons', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    watched_shows: watchedShows
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to refresh season counts');
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update the stored data and application state
+                DataStorage.setWatchedShows(data.updated_watched_shows);
+                this.state.watchedShows = data.updated_watched_shows;
+                
+                // Reload the watched shows display
+                this.loadWatchedShows();
+                
+                // Update the total watch time display
+                this.updateTotalWatchTime();
+                
+                this.showToast('Season counts refreshed successfully!', 'success');
+            } else {
+                throw new Error(data.error || 'Failed to refresh season counts');
+            }
+
+        } catch (error) {
+            console.error('Error refreshing seasons:', error);
+            this.showToast('Failed to refresh season counts. Please try again.', 'error');
+        } finally {
+            this.hideLoading();
+        }
     }
 };
 
