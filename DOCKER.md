@@ -102,7 +102,61 @@ docker compose down
 - Logs are available via `docker compose logs`
 - The application runs on port 5001 by default
 
+## Performance Optimization
+
+The Docker setup has been optimized for performance and reliability:
+
+- **Gevent Workers**: Uses async gevent workers instead of sync workers for better handling of network I/O
+- **Resource Limits**: Container is limited to 512MB RAM and 1 CPU core to prevent resource exhaustion  
+- **DNS Configuration**: Uses Google DNS (8.8.8.8) for reliable name resolution
+- **Reduced Workers**: Uses 2 workers instead of 4 to reduce memory usage while maintaining performance
+- **Optimized Healthcheck**: Less frequent health checks to reduce system load
+
 ## Troubleshooting
+
+### Performance Issues in Docker
+
+If you experience slow performance or crashes:
+
+1. **Check Resource Usage**:
+   ```bash
+   docker stats showtime-app
+   ```
+
+2. **Review Container Logs**:
+   ```bash
+   docker compose logs showtime
+   ```
+
+3. **Test Network Connectivity**:
+   ```bash
+   docker exec showtime-app python -c "import socket; print(socket.gethostbyname('api.themoviedb.org'))"
+   ```
+
+### Network/DNS Issues
+
+If you see DNS resolution errors like:
+```
+Failed to resolve 'api.themoviedb.org' ([Errno -3] Temporary failure in name resolution)
+```
+
+**Solutions:**
+1. **Restart Docker daemon** (if running locally):
+   ```bash
+   sudo systemctl restart docker
+   ```
+
+2. **Use alternative DNS servers** (edit docker-compose.yml):
+   ```yaml
+   dns:
+     - 1.1.1.1  # Cloudflare DNS
+     - 1.0.0.1
+   ```
+
+3. **Check host DNS resolution**:
+   ```bash
+   nslookup api.themoviedb.org
+   ```
 
 ### TMDB API Errors in Docker
 
@@ -124,17 +178,29 @@ TMDB API request failed, using mock data: 404 Client Error: Not Found for url: h
 
 **Note:** The application will continue to work using mock data, but you'll see these error messages until you configure a valid API key.
 
-### Check container status:
+### General Docker Commands
+
+Check container status:
 ```bash
 docker ps
 ```
 
-### View container logs:
+View container logs:
 ```bash
 docker compose logs showtime
 ```
 
-### Check health status:
+Check health status:
 ```bash
 docker inspect showtime-app | grep Health -A 10
+```
+
+Restart the application:
+```bash
+docker compose restart
+```
+
+View real-time logs:
+```bash
+docker compose logs -f showtime
 ```

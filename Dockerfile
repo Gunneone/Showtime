@@ -9,15 +9,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     FLASK_APP=app.py \
     FLASK_ENV=production \
-    GUNICORN_WORKERS=4 \
-    GUNICORN_TIMEOUT=120 \
-    GUNICORN_WORKER_CLASS=sync \
-    GUNICORN_MAX_REQUESTS=1000 \
-    GUNICORN_MAX_REQUESTS_JITTER=100
+    GUNICORN_WORKERS=2 \
+    GUNICORN_WORKER_CLASS=gevent \
+    GUNICORN_WORKER_CONNECTIONS=1000 \
+    GUNICORN_TIMEOUT=60 \
+    GUNICORN_MAX_REQUESTS=500 \
+    GUNICORN_MAX_REQUESTS_JITTER=50
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    ca-certificates \
+    && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better Docker layer caching
