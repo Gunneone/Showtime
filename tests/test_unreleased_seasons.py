@@ -34,7 +34,9 @@ class TestUnreleasedSeasonsFiltering:
     @pytest.fixture
     def tmdb_service(self):
         """Create TMDB service for testing."""
-        return TMDBService()
+        service = TMDBService()
+        service.use_mock_data_for_testing()  # Enable mock data for testing
+        return service
 
     @pytest.fixture
     def calc_service(self):

@@ -26,6 +26,7 @@ def test_calculate_show_time():
 def test_tmdb_service_episode_runtimes():
     """Test TMDB service can fetch episode runtime data."""
     service = TMDBService()
+    service.use_mock_data_for_testing()  # Enable mock data for testing
     
     # Test with mock data (show ID 1 = Breaking Bad, should have 2 seasons of mock data)
     episode_runtimes = service.get_show_episode_runtimes(1, 2)

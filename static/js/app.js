@@ -311,7 +311,7 @@ const App = {
     setupSearchFunctionality() {
         let searchTimeout;
 
-        // Instant search with debouncing (for quick suggestions)
+        // Instant search with debouncing (wait 200ms, restart timer if query changes)
         this.elements.searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
             const query = this.elements.searchInput.value.trim();
@@ -322,11 +322,12 @@ const App = {
                 return;
             }
             
-            // Trigger instant search after 100ms delay for queries >= 2 characters
+            // Trigger instant search after 200ms delay for queries >= 2 characters
+            // If user changes input during this time, timer restarts
             if (query.length >= 2) {
                 searchTimeout = setTimeout(() => {
                     this.performSearch(query, true);
-                }, 100);
+                }, 200);
             }
         });
 
@@ -419,7 +420,18 @@ const App = {
             // Only show error if the request wasn't aborted and it's the most recent request
             if (error.name !== 'AbortError' && requestId === this.state.searchRequestId) {
                 console.error('Search error:', error);
-                this.showToast('Search failed. Please try again.', 'error');
+                
+                // Check if the response contains a specific error message
+                let errorMessage = 'Search failed. Please try again.';
+                if (data && data.error) {
+                    if (data.error.includes('API key')) {
+                        errorMessage = 'TMDB API key is not configured properly. Please contact the administrator.';
+                    } else {
+                        errorMessage = `Search failed: ${data.error}`;
+                    }
+                }
+                
+                this.showToast(errorMessage, 'error');
                 this.hideSearchResults();
                 this.state.pendingSearchController = null;
             }

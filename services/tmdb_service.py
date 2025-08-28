@@ -10,15 +10,24 @@ class TMDBService:
         self.base_url = Config.TMDB_BASE_URL
         self.image_base_url = Config.TMDB_IMAGE_BASE_URL
     
+    def use_mock_data_for_testing(self):
+        """Force the service to use mock data for testing purposes."""
+        self._use_mock_data = True
+    
     def _make_request(self, endpoint, params=None):
         """Make a request to the TMDB API."""
+        # Check if we're in testing mode with mock data
+        if hasattr(self, '_use_mock_data') and self._use_mock_data:
+            return self._get_mock_data(endpoint, params)
+            
         # Check for missing or placeholder API keys
         if not self.api_key or self.api_key == 'test' or self._is_placeholder_key():
             if self._is_placeholder_key():
-                print("Using mock data: TMDB API key appears to be a placeholder value. Please set a valid TMDB API key in your environment variables.")
+                error_msg = "TMDB API key appears to be a placeholder value. Please set a valid TMDB API key in your environment variables."
             else:
-                print("Using mock data: No TMDB API key configured. Set TMDB_API_KEY environment variable or use mock data for testing.")
-            return self._get_mock_data(endpoint, params)
+                error_msg = "No TMDB API key configured. Set TMDB_API_KEY environment variable."
+            print(f"TMDB API Error: {error_msg}")
+            raise Exception(error_msg)
             
         if params is None:
             params = {}
@@ -34,12 +43,17 @@ class TMDBService:
             if hasattr(e, 'response') and e.response is not None:
                 status_code = e.response.status_code
                 if status_code in [401, 404]:
-                    print(f"TMDB API authentication failed (HTTP {status_code}). Please verify your TMDB_API_KEY is valid. Using mock data as fallback.")
+                    error_msg = f"TMDB API authentication failed (HTTP {status_code}). Please verify your TMDB_API_KEY is valid."
+                    print(f"TMDB API Error: {error_msg}")
+                    raise Exception(error_msg)
                 else:
-                    print(f"TMDB API request failed (HTTP {status_code}), using mock data: {str(e)}")
+                    error_msg = f"TMDB API request failed (HTTP {status_code}): {str(e)}"
+                    print(f"TMDB API Error: {error_msg}")
+                    raise Exception(error_msg)
             else:
-                print(f"TMDB API request failed, using mock data: {str(e)}")
-            return self._get_mock_data(endpoint, params)
+                error_msg = f"TMDB API request failed: {str(e)}"
+                print(f"TMDB API Error: {error_msg}")
+                raise Exception(error_msg)
     
     def _is_placeholder_key(self):
         """Check if the API key appears to be a placeholder value."""
@@ -427,11 +441,14 @@ class TMDBService:
         
         data = self._make_request(endpoint, params)
         
-        # Format the results (optimized to avoid excessive API calls)
+        # Format the results
         results = []
         for show in data.get('results', []):
-            # Use basic show data from search results without additional API calls
-            # This prevents excessive API requests that can cause timeouts/recursion issues
+            # Get detailed show info to include number of seasons
+            show_details = self.get_show_details(show['id'])
+            total_seasons = show_details.get('number_of_seasons', 1)
+            released_seasons = self.get_released_seasons_count(show['id'], total_seasons)
+            
             results.append({
                 'id': show['id'],
                 'name': show['name'],
@@ -440,9 +457,8 @@ class TMDBService:
                 'poster_path': self._get_full_image_url(show.get('poster_path')),
                 'vote_average': show.get('vote_average', 0),
                 'popularity': show.get('popularity', 0),
-                # Use a reasonable default for seasons - details will be fetched when show is added
-                'number_of_seasons': 1,
-                'number_of_released_seasons': 1
+                'number_of_seasons': total_seasons,
+                'number_of_released_seasons': released_seasons
             })
         
         return {
