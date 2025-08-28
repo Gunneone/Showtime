@@ -416,7 +416,7 @@ body {
 
 .search-result-content {
     display: flex;
-    gap: 0.5rem;
+    gap: 1rem;
 }
 
 .search-result-poster {
@@ -647,7 +647,7 @@ body {
 
 .watched-show-content {
     flex: 1;
-    padding: 1.25rem 2rem 1.25rem 0.75rem;
+    padding: 1.25rem 2rem 1.25rem 1rem;
     min-height: 180px;
     display: flex;
     flex-direction: column;
