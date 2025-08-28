@@ -1,10 +1,10 @@
-// Days Watched - Main Application JavaScript
+// Showtime - Main Application JavaScript
 
 // Data Storage Service for localStorage management
 const DataStorage = {
-    WATCHED_SHOWS_KEY: 'days_watched_shows',
-    SORT_PREFERENCE_KEY: 'days_watched_sort_preference',
-    STATS_CACHE_KEY: 'days_watched_stats_cache',
+    WATCHED_SHOWS_KEY: 'showtime_shows',
+    SORT_PREFERENCE_KEY: 'showtime_sort_preference',
+    STATS_CACHE_KEY: 'showtime_stats_cache',
     STATS_VERSION: '1.0', // Version for cache invalidation
 
     // Get watched shows from localStorage
@@ -69,7 +69,7 @@ const DataStorage = {
     // Check localStorage availability and capacity
     checkStorageAvailability() {
         try {
-            const testKey = 'days_watched_test';
+            const testKey = 'showtime_test';
             localStorage.setItem(testKey, 'test');
             localStorage.removeItem(testKey);
             return true;
@@ -189,7 +189,7 @@ const App = {
         this.initElements();
         this.bindEvents();
         this.loadWatchedShows();
-        console.log('Days Watched app initialized with localStorage');
+        console.log('Showtime app initialized with localStorage');
     },
 
     // Initialize DOM elements

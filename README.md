@@ -1,6 +1,6 @@
 ---
 
-# Days Watched 📺⏱️
+# Showtime 📺⏱️
 
 A Flask-based web application for tracking the time you spend watching TV shows throughout your life. Never wonder again how much time you've invested in your favorite series!
 
@@ -66,8 +66,8 @@ You can run this application either locally with Python or using Docker for prod
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Gunneone/Days-Watched.git
-cd Days-Watched
+git clone https://github.com/Gunneone/Showtime.git
+cd Showtime
 ```
 
 #### 2. Create Virtual Environment
@@ -115,8 +115,8 @@ Docker deployment provides automatic restarts and easier server management.
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Gunneone/Days-Watched.git
-cd Days-Watched
+git clone https://github.com/Gunneone/Showtime.git
+cd Showtime
 ```
 
 #### 2. Environment Configuration
@@ -153,16 +153,16 @@ The application will be available at `http://localhost:5001`
 
 ```bash
 # Build the image
-docker build -t days-watched .
+docker build -t showtime .
 
 # Run the container
 docker run -d \
-  --name days-watched-app \
+  --name showtime-app \
   -p 5001:5001 \
   -e SECRET_KEY=your-secret-key \
   -e TMDB_API_KEY=your-tmdb-api-key \
   --restart unless-stopped \
-  days-watched
+  showtime
 ```
 
 #### Docker Features
@@ -204,7 +204,7 @@ The app automatically calculates watch time based on:
 ## 🏗️ Project Structure
 
 ```
-Days-Watched/
+Showtime/
 ├── app.py                 # Main Flask application
 ├── config.py              # Configuration settings
 ├── requirements.txt       # Python dependencies
@@ -306,7 +306,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 * **Author**: Marius Gunnemann
 * **GitHub**: [@Gunneone](https://github.com/Gunneone)
-* **Project Link**: [https://github.com/Gunneone/Days-Watched](https://github.com/Gunneone/Days-Watched)
+* **Project Link**: [https://github.com/Gunneone/Showtime](https://github.com/Gunneone/Showtime)
 
 ## 🙏 Acknowledgments
 

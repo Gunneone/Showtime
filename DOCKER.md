@@ -1,13 +1,13 @@
 # Docker Deployment Guide
 
-This document provides step-by-step instructions for deploying Days-Watched using Docker.
+This document provides step-by-step instructions for deploying Showtime using Docker.
 
 ## Quick Start
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Gunneone/Days-Watched.git
-   cd Days-Watched
+   git clone https://github.com/Gunneone/Showtime.git
+   cd Showtime
    ```
 
 2. **Set up environment variables:**
@@ -49,15 +49,15 @@ Required environment variables:
 ### Manual Docker Run
 
 ```bash
-docker build -t days-watched .
+docker build -t showtime .
 docker run -d \
-  --name days-watched-app \
+  --name showtime-app \
   -p 5001:5001 \
   -e SECRET_KEY=your-secure-secret-key \
   -e TMDB_API_KEY=your-tmdb-api-key \
   -e FLASK_ENV=production \
   --restart unless-stopped \
-  days-watched
+  showtime
 ```
 
 ## Management Commands
@@ -99,10 +99,10 @@ docker ps
 
 ### View container logs:
 ```bash
-docker compose logs days-watched
+docker compose logs showtime
 ```
 
 ### Check health status:
 ```bash
-docker inspect days-watched-app | grep Health -A 10
+docker inspect showtime-app | grep Health -A 10
 ```
