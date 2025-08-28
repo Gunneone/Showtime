@@ -1510,9 +1510,7 @@ const App = {
             const exportData = {
                 version: '1.0',
                 exportDate: new Date().toISOString(),
-                watchedShows: DataStorage.getWatchedShows(),
-                sortPreference: DataStorage.getSortPreference(),
-                statsCache: DataStorage.getStatsCache()
+                watchedShows: DataStorage.getWatchedShows()
             };
 
             // Convert to JSON string
@@ -1588,16 +1586,9 @@ const App = {
                 DataStorage.setWatchedShows(importData.watchedShows);
             }
             
-            if (importData.sortPreference) {
-                DataStorage.setSortPreference(importData.sortPreference);
-            }
-            
             // Update application state
             this.state.watchedShows = importData.watchedShows || [];
             this.loadWatchedShows();
-            
-            // Reset sort preference UI
-            this.loadSortPreference();
             
             // Clear file input
             this.elements.importFileInput.value = '';

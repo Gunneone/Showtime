@@ -25,13 +25,11 @@ def test_export_import_data_structure():
         }
     ]
     
-    # Simulate export data structure
+    # Simulate export data structure (no sort preferences or stats cache)
     export_data = {
         'version': '1.0',
         'exportDate': '2025-08-28T09:00:00.000Z',
-        'watchedShows': test_data,
-        'sortPreference': 'alphabet-asc',
-        'statsCache': None
+        'watchedShows': test_data
     }
     
     # Test JSON serialization (what export would do)
@@ -44,10 +42,13 @@ def test_export_import_data_structure():
     # Validate structure
     assert 'version' in imported_data
     assert 'watchedShows' in imported_data
-    assert 'sortPreference' in imported_data
     assert len(imported_data['watchedShows']) == 1
     assert imported_data['watchedShows'][0]['name'] == 'Test Show'
     assert imported_data['watchedShows'][0]['seasons_watched'] == 2
+    
+    # Ensure sort preferences and stats cache are not included
+    assert 'sortPreference' not in imported_data
+    assert 'statsCache' not in imported_data
 
 def test_export_import_validation():
     """Test validation of import data format."""
@@ -111,3 +112,23 @@ def test_backward_compatibility_array_format():
         return False
     
     assert validate_import_data(old_format) == True
+
+def test_stats_generation_after_import():
+    """Test that stats should be generated after import, not imported from backup."""
+    # Sample export data without stats cache or sort preferences
+    export_data = {
+        'version': '1.0',
+        'exportDate': '2025-08-28T09:00:00.000Z',
+        'watchedShows': [
+            {'id': 1, 'name': 'Show 1', 'seasons_watched': 2},
+            {'id': 2, 'name': 'Show 2', 'seasons_watched': 3}
+        ]
+    }
+    
+    # Ensure no stats or preferences in export data
+    assert 'statsCache' not in export_data
+    assert 'sortPreference' not in export_data
+    
+    # Only watchedShows should be present for import
+    assert 'watchedShows' in export_data
+    assert len(export_data['watchedShows']) == 2
