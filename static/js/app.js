@@ -1075,7 +1075,7 @@ const App = {
                     <h4>${show.name}</h4>
                     <div class="watched-show-seasons">
                         <div class="seasons-display" onclick="App.editSeasons(${show.id})">
-                            <i class="fas fa-eye"></i> ${show.seasons_watched} of ${totalSeasons} season${totalSeasons !== 1 ? 's' : ''} watched 
+                            <i class="fas fa-eye"></i> ${show.seasons_watched} of ${releasedSeasons} season${releasedSeasons !== 1 ? 's' : ''} watched 
                             <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
                         </div>
                         <div class="seasons-edit" id="seasonsEdit-${show.id}" data-selected-seasons="${show.seasons_watched}">
