@@ -11,3 +11,8 @@ def index():
 def stats():
     """Statistics dashboard page."""
     return render_template('stats.html')
+
+@main_bp.route('/impressum')
+def impressum():
+    """Legal notice page (Impressum) as required by German law."""
+    return render_template('impressum.html')

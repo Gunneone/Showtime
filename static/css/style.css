@@ -1488,3 +1488,92 @@ body {
         font-size: 1.4rem;
     }
 }
+
+/* Impressum page styles */
+.impressum-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 0;
+}
+
+.impressum-container h2 {
+    color: #e2e8f0;
+    margin-bottom: 2rem;
+    text-align: center;
+    font-size: 2.5rem;
+}
+
+.legal-notice {
+    background: rgba(26, 32, 44, 0.8);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--blue-primary-alpha-30);
+}
+
+.legal-notice h3,
+.legal-notice h4,
+.legal-notice h5 {
+    color: #e2e8f0;
+    margin-bottom: 1rem;
+    margin-top: 1.5rem;
+}
+
+.legal-notice h3 {
+    font-size: 1.5rem;
+    margin-top: 0;
+}
+
+.legal-notice h4 {
+    font-size: 1.2rem;
+    color: var(--blue-primary);
+}
+
+.legal-notice h5 {
+    font-size: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.legal-notice p {
+    color: #cbd5e0;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.legal-notice a {
+    color: var(--blue-primary);
+    text-decoration: none;
+}
+
+.legal-notice a:hover {
+    text-decoration: underline;
+}
+
+.contact-info,
+.contact-section,
+.disclaimer-section,
+.attribution-section {
+    margin-bottom: 2rem;
+}
+
+.contact-info:last-child,
+.contact-section:last-child,
+.disclaimer-section:last-child,
+.attribution-section:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .impressum-container {
+        padding: 1rem;
+    }
+    
+    .legal-notice {
+        padding: 1.5rem;
+    }
+    
+    .impressum-container h2 {
+        font-size: 2rem;
+    }
+}
