@@ -206,6 +206,9 @@ const App = {
         this.elements.sortSelect = document.getElementById('sortSelect');
         this.elements.removeAllBtn = document.getElementById('removeAllBtn');
         this.elements.shareBtn = document.getElementById('shareBtn');
+        this.elements.exportBtn = document.getElementById('exportBtn');
+        this.elements.importBtn = document.getElementById('importBtn');
+        this.elements.importFileInput = document.getElementById('importFileInput');
         
         // Debug: Check if search results element is found
         console.log('Search results element found:', this.elements.searchResults);
@@ -246,6 +249,26 @@ const App = {
         if (this.elements.shareBtn) {
             this.elements.shareBtn.addEventListener('click', () => {
                 this.shareWatchTime();
+            });
+        }
+        
+        // Export functionality
+        if (this.elements.exportBtn) {
+            this.elements.exportBtn.addEventListener('click', () => {
+                this.exportData();
+            });
+        }
+        
+        // Import functionality
+        if (this.elements.importBtn) {
+            this.elements.importBtn.addEventListener('click', () => {
+                this.elements.importFileInput.click();
+            });
+        }
+        
+        if (this.elements.importFileInput) {
+            this.elements.importFileInput.addEventListener('change', (e) => {
+                this.importData(e.target.files[0]);
             });
         }
         
@@ -1478,6 +1501,155 @@ const App = {
             console.error('Error sharing:', error);
             this.showToast('Failed to share. Please try again.', 'error');
         }
+    },
+
+    // Export all data as JSON file
+    exportData() {
+        try {
+            // Gather all data to export
+            const exportData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                watchedShows: DataStorage.getWatchedShows(),
+                sortPreference: DataStorage.getSortPreference(),
+                statsCache: DataStorage.getStatsCache()
+            };
+
+            // Convert to JSON string
+            const jsonString = JSON.stringify(exportData, null, 2);
+            
+            // Create blob and download
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `showtime-backup-${new Date().toISOString().split('T')[0]}.json`;
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up
+            URL.revokeObjectURL(url);
+            
+            this.showToast('Data exported successfully!', 'success');
+            
+        } catch (error) {
+            console.error('Error exporting data:', error);
+            this.showToast('Failed to export data. Please try again.', 'error');
+        }
+    },
+
+    // Import data from JSON file
+    async importData(file) {
+        if (!file) {
+            this.showToast('No file selected', 'error');
+            return;
+        }
+
+        if (!file.name.endsWith('.json')) {
+            this.showToast('Please select a valid JSON file', 'error');
+            return;
+        }
+
+        try {
+            this.showLoading();
+            
+            // Read file content
+            const fileContent = await this.readFileAsText(file);
+            
+            // Parse JSON
+            let importData;
+            try {
+                importData = JSON.parse(fileContent);
+            } catch (parseError) {
+                throw new Error('Invalid JSON format');
+            }
+            
+            // Validate data structure
+            if (!this.validateImportData(importData)) {
+                throw new Error('Invalid data format. Please ensure you\'re importing a valid Showtime backup file.');
+            }
+            
+            // Confirm import with user
+            const showsCount = importData.watchedShows ? importData.watchedShows.length : 0;
+            const confirmMessage = `This will replace all your current data with the imported data.\n\nImport contains ${showsCount} shows.\n\nDo you want to continue?`;
+            
+            if (!confirm(confirmMessage)) {
+                this.hideLoading();
+                return;
+            }
+            
+            // Import the data
+            if (importData.watchedShows) {
+                DataStorage.setWatchedShows(importData.watchedShows);
+            }
+            
+            if (importData.sortPreference) {
+                DataStorage.setSortPreference(importData.sortPreference);
+            }
+            
+            // Update application state
+            this.state.watchedShows = importData.watchedShows || [];
+            this.loadWatchedShows();
+            
+            // Reset sort preference UI
+            this.loadSortPreference();
+            
+            // Clear file input
+            this.elements.importFileInput.value = '';
+            
+            this.showToast(`Successfully imported ${showsCount} shows!`, 'success');
+            
+        } catch (error) {
+            console.error('Error importing data:', error);
+            this.showToast(error.message || 'Failed to import data. Please try again.', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    },
+
+    // Helper function to read file as text
+    readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsText(file);
+        });
+    },
+
+    // Validate imported data structure
+    validateImportData(data) {
+        if (!data || typeof data !== 'object') {
+            return false;
+        }
+        
+        // Check if it has the expected structure
+        if (data.watchedShows && Array.isArray(data.watchedShows)) {
+            // Validate each show has required fields
+            for (const show of data.watchedShows) {
+                if (!show.id || !show.name || typeof show.seasons_watched !== 'number') {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        // Also accept simple array of shows (backward compatibility)
+        if (Array.isArray(data)) {
+            for (const show of data) {
+                if (!show.id || !show.name || typeof show.seasons_watched !== 'number') {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        return false;
     }
 };
 
