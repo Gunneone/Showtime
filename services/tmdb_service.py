@@ -12,8 +12,12 @@ class TMDBService:
     
     def _make_request(self, endpoint, params=None):
         """Make a request to the TMDB API."""
-        if not self.api_key or self.api_key == 'test':
-            # Mock mode for development/testing
+        # Check for missing or placeholder API keys
+        if not self.api_key or self.api_key == 'test' or self._is_placeholder_key():
+            if self._is_placeholder_key():
+                print("Using mock data: TMDB API key appears to be a placeholder value. Please set a valid TMDB API key in your environment variables.")
+            else:
+                print("Using mock data: No TMDB API key configured. Set TMDB_API_KEY environment variable or use mock data for testing.")
             return self._get_mock_data(endpoint, params)
             
         if params is None:
@@ -26,9 +30,32 @@ class TMDBService:
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
-            # Fallback to mock data on network errors
-            print(f"TMDB API request failed, using mock data: {str(e)}")
+            # Check if it's an authentication/invalid key error (401/404 often indicate invalid API key)
+            if hasattr(e, 'response') and e.response is not None:
+                status_code = e.response.status_code
+                if status_code in [401, 404]:
+                    print(f"TMDB API authentication failed (HTTP {status_code}). Please verify your TMDB_API_KEY is valid. Using mock data as fallback.")
+                else:
+                    print(f"TMDB API request failed (HTTP {status_code}), using mock data: {str(e)}")
+            else:
+                print(f"TMDB API request failed, using mock data: {str(e)}")
             return self._get_mock_data(endpoint, params)
+    
+    def _is_placeholder_key(self):
+        """Check if the API key appears to be a placeholder value."""
+        if not self.api_key:
+            return False
+        
+        placeholder_patterns = [
+            'your-tmdb-api-key-here',
+            'your_tmdb_api_key_here',
+            'tmdb-api-key',
+            'tmdb_api_key',
+            'placeholder',
+            'example'
+        ]
+        
+        return any(pattern in self.api_key.lower() for pattern in placeholder_patterns)
     
     def _get_mock_data(self, endpoint, params=None):
         """Return mock data for development/testing."""

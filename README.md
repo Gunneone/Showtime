@@ -121,6 +121,8 @@ cd Showtime
 
 #### 2. Environment Configuration
 
+**⚠️ Important:** You must set up a valid TMDB API key or the application will fall back to mock data with error messages in logs.
+
 Create a `.env` file in the root directory with your production settings:
 
 ```env
@@ -128,10 +130,16 @@ SECRET_KEY=your-very-secure-secret-key-for-production
 TMDB_API_KEY=your-tmdb-api-key-here
 ```
 
+**Getting a TMDB API Key:**
+1. Register at [The Movie Database](https://www.themoviedb.org/signup)
+2. Go to [API Settings](https://www.themoviedb.org/settings/api)
+3. Request an API key (free for personal use)
+4. Copy the API key to your `.env` file
+
 You can also copy the example file:
 ```bash
 cp .env.docker .env
-# Then edit .env with your actual values
+# Then edit .env with your actual values (replace placeholder values)
 ```
 
 #### 3. Run with Docker Compose
