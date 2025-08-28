@@ -61,13 +61,22 @@
     </div>
 </section>
 
-<!-- Remove All Data Section -->
+<!-- Data Management Section -->
 <section class="remove-all-section">
     <div class="container">
         <div class="remove-all-container">
-            <button type="button" class="btn btn-danger remove-all-btn" id="removeAllBtn">
-                <i class="fas fa-trash"></i> Remove All Data
-            </button>
+            <div class="data-management-buttons">
+                <button type="button" class="btn btn-primary export-btn" id="exportBtn">
+                    <i class="fas fa-download"></i> Export Data
+                </button>
+                <button type="button" class="btn btn-primary import-btn" id="importBtn">
+                    <i class="fas fa-upload"></i> Import Data
+                </button>
+                <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                <button type="button" class="btn btn-danger remove-all-btn" id="removeAllBtn">
+                    <i class="fas fa-trash"></i> Remove All Data
+                </button>
+            </div>
         </div>
     </div>
 </section>

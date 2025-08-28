@@ -812,7 +812,7 @@ body {
     margin: 0;
 }
 
-/* Remove all data section */
+/* Data management section */
 .remove-all-section {
     margin-top: 2rem;
     padding: 1rem 0;
@@ -820,6 +820,27 @@ body {
 
 .remove-all-container {
     text-align: center;
+}
+
+.data-management-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.export-btn, .import-btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    background: #3182ce;
+    border: 1px solid #3182ce;
+}
+
+.export-btn:hover, .import-btn:hover {
+    background: #2c5282 !important;
+    border-color: #2c5282;
+    transform: translateY(-1px);
 }
 
 .remove-all-btn {
