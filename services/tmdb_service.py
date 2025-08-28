@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime, date
 from config import Config
+from services.persistent_cache_service import get_persistent_cache
 
 class TMDBService:
     """Service for interacting with The Movie Database (TMDB) API."""
@@ -9,6 +10,7 @@ class TMDBService:
         self.api_key = Config.TMDB_API_KEY
         self.base_url = Config.TMDB_BASE_URL
         self.image_base_url = Config.TMDB_IMAGE_BASE_URL
+        self.persistent_cache = get_persistent_cache()
     
     def use_mock_data_for_testing(self):
         """Force the service to use mock data for testing purposes."""
@@ -560,6 +562,14 @@ class TMDBService:
     
     def get_released_seasons_count(self, show_id, total_seasons):
         """Get the number of released seasons for a show."""
+        # Check cache first
+        cache_key = f"released_seasons_{show_id}"
+        cached_data = self.persistent_cache.get_season_data(show_id)
+        
+        if cached_data and 'released_seasons_count' in cached_data:
+            return cached_data['released_seasons_count']
+        
+        # Not cached, calculate it
         released_count = 0
         
         for season_num in range(1, total_seasons + 1):
@@ -576,7 +586,13 @@ class TMDBService:
             except Exception:
                 # If we can't get season details, stop counting
                 break
-                
+        
+        # Cache the result
+        season_data = cached_data or {}
+        season_data['released_seasons_count'] = released_count
+        season_data['total_seasons'] = total_seasons
+        self.persistent_cache.set_season_data(show_id, season_data)
+        
         return released_count
     
     def _get_full_image_url(self, image_path):

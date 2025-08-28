@@ -284,6 +284,7 @@ const App = {
         
         // Close search results when clicking outside
         document.addEventListener('click', (e) => {
+            // Don't close if clicking inside search results or search input
             if (!this.elements.searchInput.contains(e.target) && 
                 !this.elements.searchResults.contains(e.target)) {
                 this.hideSearchResults();
@@ -582,15 +583,21 @@ const App = {
         const loadMoreDiv = document.createElement('div');
         loadMoreDiv.className = 'search-load-more';
         loadMoreDiv.innerHTML = `
-            <button class="load-more-btn" onclick="App.loadMoreSearchResults()">
-                <i class="fas fa-plus"></i> Load 2 more results
+            <button class="load-more-btn" onclick="App.loadMoreSearchResults(event)">
+                <i class="fas fa-plus"></i> load more
             </button>
         `;
         this.elements.searchResults.appendChild(loadMoreDiv);
     },
 
     // Load more search results
-    loadMoreSearchResults() {
+    loadMoreSearchResults(event) {
+        // Prevent event from bubbling up and potentially closing the search results
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        
         if (!this.state.currentSearch || !this.state.currentSearch.results) return;
         
         // Remove the load more button

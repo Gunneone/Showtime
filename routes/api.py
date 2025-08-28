@@ -8,7 +8,12 @@ api_bp = Blueprint('api', __name__)
 
 def get_tmdb_service():
     """Get TMDB service instance."""
-    return TMDBService()
+    from flask import current_app
+    service = TMDBService()
+    # Enable mock data for testing
+    if current_app and current_app.config.get('TESTING', False):
+        service.use_mock_data_for_testing()
+    return service
 
 def get_calc_service():
     """Get calculation service instance."""
