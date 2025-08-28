@@ -775,29 +775,41 @@ body {
     position: absolute;
     bottom: 1rem;
     right: 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    color: #e2e8f0;
-    padding: 0.5rem;
-    width: 40px;
-    height: 40px;
+    background: #3182ce;
+    border: 1px solid #3182ce;
+    border-radius: 8px;
+    color: white;
+    padding: 0.5rem 1rem;
+    height: auto;
+    width: auto;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    backdrop-filter: blur(10px);
+    font-size: 0.9rem;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .share-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #63b3ed;
+    background: #2c5282;
+    border-color: #2c5282;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
 }
 
 .share-btn:active {
     transform: translateY(0);
+}
+
+.share-btn i {
+    font-size: 0.9rem;
+}
+
+.share-btn span {
+    margin: 0;
 }
 
 /* Remove all data section */
