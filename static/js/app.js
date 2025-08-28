@@ -205,6 +205,7 @@ const App = {
         this.elements.sortControls = document.getElementById('sortControls');
         this.elements.sortSelect = document.getElementById('sortSelect');
         this.elements.removeAllBtn = document.getElementById('removeAllBtn');
+        this.elements.shareBtn = document.getElementById('shareBtn');
         
         // Debug: Check if search results element is found
         console.log('Search results element found:', this.elements.searchResults);
@@ -238,6 +239,13 @@ const App = {
         if (this.elements.removeAllBtn) {
             this.elements.removeAllBtn.addEventListener('click', () => {
                 this.confirmRemoveAllData();
+            });
+        }
+        
+        // Share functionality
+        if (this.elements.shareBtn) {
+            this.elements.shareBtn.addEventListener('click', () => {
+                this.shareWatchTime();
             });
         }
         
@@ -1392,6 +1400,58 @@ const App = {
             this.showToast('Failed to remove data. Please try again.', 'error');
         } finally {
             this.hideLoading();
+        }
+    },
+
+    // Share watch time functionality
+    async shareWatchTime() {
+        try {
+            const watchedShows = this.state.watchedShows || DataStorage.getWatchedShows();
+            const totalTimeMinutes = this.state.totalTime || 0;
+            const formattedTime = totalTimeMinutes > 0 ? this.formatTime(totalTimeMinutes) : '0h';
+            const showCount = watchedShows.length;
+            
+            const shareData = {
+                title: 'My TV Show Watching Stats',
+                text: `I've watched ${formattedTime} across ${showCount} TV show${showCount !== 1 ? 's' : ''} on Showtime! 📺✨`,
+                url: window.location.origin
+            };
+
+            // Try to use native Web Share API if available
+            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                await navigator.share(shareData);
+                this.showToast('Shared successfully!');
+            } else {
+                // Fallback to copying to clipboard
+                const shareText = `${shareData.text}\n\nTrack your TV shows at: ${shareData.url}`;
+                
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(shareText);
+                    this.showToast('Watch time stats copied to clipboard!');
+                } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = shareText;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    try {
+                        document.execCommand('copy');
+                        this.showToast('Watch time stats copied to clipboard!');
+                    } catch (err) {
+                        this.showToast('Unable to share. Please copy manually.', 'error');
+                    }
+                    
+                    document.body.removeChild(textArea);
+                }
+            }
+        } catch (error) {
+            console.error('Error sharing:', error);
+            this.showToast('Failed to share. Please try again.', 'error');
         }
     }
 };
