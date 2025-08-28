@@ -843,6 +843,21 @@ body {
     transform: translateY(-1px);
 }
 
+.refresh-seasons-btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    background: #38a169;
+    border: 1px solid #38a169;
+    color: white;
+}
+
+.refresh-seasons-btn:hover {
+    background: #2f855a !important;
+    border-color: #2f855a;
+    transform: translateY(-1px);
+    color: white;
+}
+
 .remove-all-btn {
     font-size: 0.9rem;
     padding: 0.5rem 1rem;
