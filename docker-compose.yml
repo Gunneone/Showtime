@@ -1,0 +1,26 @@
+services:
+  days-watched:
+    build: .
+    container_name: days-watched-app
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-your-default-secret-key-change-in-production}
+      - TMDB_API_KEY=${TMDB_API_KEY}
+    volumes:
+      # Optional: Mount logs directory for persistence
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - days-watched-network
+
+networks:
+  days-watched-network:
+    driver: bridge
