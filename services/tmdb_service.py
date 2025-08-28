@@ -109,6 +109,15 @@ class TMDBService:
                     'poster_path': None,
                     'vote_average': 8.5,
                     'popularity': 88
+                },
+                {
+                    'id': 6,
+                    'name': 'Wednesday',
+                    'overview': 'Smart, sarcastic and a little dead inside, Wednesday Addams investigates twisted mysteries while making new friends — and foes — at Nevermore Academy.',
+                    'first_air_date': '2022-11-23',
+                    'poster_path': None,
+                    'vote_average': 8.4,
+                    'popularity': 525
                 }
             ]
             
@@ -363,6 +372,29 @@ class TMDBService:
                     'networks': [
                         {'id': 5, 'name': 'Disney+'}
                     ]
+                },
+                6: {
+                    'id': 6,
+                    'name': 'Wednesday',
+                    'overview': 'Smart, sarcastic and a little dead inside, Wednesday Addams investigates twisted mysteries while making new friends — and foes — at Nevermore Academy.',
+                    'first_air_date': '2022-11-23',
+                    'last_air_date': '2022-11-23',
+                    'poster_path': None,
+                    'backdrop_path': None,
+                    'vote_average': 8.4,
+                    'popularity': 525,
+                    'number_of_episodes': 8,
+                    'number_of_seasons': 1,
+                    'episode_run_time': [51],
+                    'genres': [
+                        {'id': 18, 'name': 'Drama'},
+                        {'id': 9648, 'name': 'Mystery'},
+                        {'id': 10765, 'name': 'Sci-Fi & Fantasy'}
+                    ],
+                    'status': 'Returning Series',
+                    'networks': [
+                        {'id': 6, 'name': 'Netflix'}
+                    ]
                 }
             }
             
@@ -395,14 +427,11 @@ class TMDBService:
         
         data = self._make_request(endpoint, params)
         
-        # Format the results
+        # Format the results (optimized to avoid excessive API calls)
         results = []
         for show in data.get('results', []):
-            # Get detailed show info to include number of seasons
-            show_details = self.get_show_details(show['id'])
-            total_seasons = show_details.get('number_of_seasons', 1)
-            released_seasons = self.get_released_seasons_count(show['id'], total_seasons)
-            
+            # Use basic show data from search results without additional API calls
+            # This prevents excessive API requests that can cause timeouts/recursion issues
             results.append({
                 'id': show['id'],
                 'name': show['name'],
@@ -411,8 +440,9 @@ class TMDBService:
                 'poster_path': self._get_full_image_url(show.get('poster_path')),
                 'vote_average': show.get('vote_average', 0),
                 'popularity': show.get('popularity', 0),
-                'number_of_seasons': total_seasons,
-                'number_of_released_seasons': released_seasons
+                # Use a reasonable default for seasons - details will be fetched when show is added
+                'number_of_seasons': 1,
+                'number_of_released_seasons': 1
             })
         
         return {

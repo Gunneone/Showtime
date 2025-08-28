@@ -8,10 +8,9 @@ services:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-your-default-secret-key-change-in-production}
       - TMDB_API_KEY=${TMDB_API_KEY}
-      # Optimized Gunicorn configuration for network-bound workloads
+      # Optimized Gunicorn configuration (using sync workers to avoid gevent SSL issues)
       - GUNICORN_WORKERS=2
-      - GUNICORN_WORKER_CLASS=gevent
-      - GUNICORN_WORKER_CONNECTIONS=1000
+      - GUNICORN_WORKER_CLASS=sync
       - GUNICORN_TIMEOUT=60
       - GUNICORN_MAX_REQUESTS=500
       - GUNICORN_MAX_REQUESTS_JITTER=50

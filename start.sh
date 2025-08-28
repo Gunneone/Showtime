@@ -9,8 +9,7 @@ if [ "$FLASK_ENV" = "production" ]; then
     
     # Set default values for production configuration
     WORKERS=${GUNICORN_WORKERS:-2}
-    WORKER_CLASS=${GUNICORN_WORKER_CLASS:-gevent}
-    WORKER_CONNECTIONS=${GUNICORN_WORKER_CONNECTIONS:-1000}
+    WORKER_CLASS=${GUNICORN_WORKER_CLASS:-sync}
     TIMEOUT=${GUNICORN_TIMEOUT:-60}
     MAX_REQUESTS=${GUNICORN_MAX_REQUESTS:-500}
     MAX_REQUESTS_JITTER=${GUNICORN_MAX_REQUESTS_JITTER:-50}
@@ -19,7 +18,6 @@ if [ "$FLASK_ENV" = "production" ]; then
         --bind 0.0.0.0:5001 \
         --workers $WORKERS \
         --worker-class $WORKER_CLASS \
-        --worker-connections $WORKER_CONNECTIONS \
         --timeout $TIMEOUT \
         --max-requests $MAX_REQUESTS \
         --max-requests-jitter $MAX_REQUESTS_JITTER \

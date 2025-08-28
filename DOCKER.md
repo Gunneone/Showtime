@@ -45,6 +45,7 @@ This document provides step-by-step instructions for deploying Showtime using Do
 - You **must** create a `.env` file with real values (copy from `.env.docker` and edit)
 - Using placeholder values will cause the app to fall back to mock data with error messages
 - Mock data is fine for testing, but you'll get API error messages in the logs
+- The Docker setup now uses sync workers for better stability and search functionality
 
 ### Docker Compose (Recommended)
 
@@ -157,6 +158,29 @@ Failed to resolve 'api.themoviedb.org' ([Errno -3] Temporary failure in name res
    ```bash
    nslookup api.themoviedb.org
    ```
+
+### Search Functionality Issues
+
+If search returns HTTP 500 errors or shows "maximum recursion depth exceeded":
+
+**This was fixed in the latest version by switching from gevent to sync workers.**
+
+**Symptoms:**
+- Search requests fail with 500 Internal Server Error
+- Logs show "maximum recursion depth exceeded while calling a Python object"
+- MonkeyPatch warnings about SSL imports
+
+**Solution (already implemented):**
+- The Docker setup now uses `sync` workers instead of `gevent` workers
+- This prevents SSL monkey-patching recursion issues
+- Search functionality should work reliably with both real and mock TMDB data
+
+**To verify the fix:**
+```bash
+# Test search functionality
+curl "http://localhost:5001/api/search?query=wednesday"
+# Should return HTTP 200 with search results
+```
 
 ### TMDB API Errors in Docker
 
