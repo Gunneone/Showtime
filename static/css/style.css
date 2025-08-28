@@ -686,6 +686,7 @@ body {
     padding: 0.25rem 0.5rem;
     border-radius: 6px;
     transition: background-color 0.2s;
+    display: inline-block;
 }
 
 .seasons-display:hover {
