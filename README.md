@@ -1,6 +1,6 @@
 ---
 
-# Days Watched 📺⏱️
+# Showtime 📺⏱️
 
 A Flask-based web application for tracking the time you spend watching TV shows throughout your life. Never wonder again how much time you've invested in your favorite series!
 
@@ -66,8 +66,8 @@ You can run this application either locally with Python or using Docker for prod
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Gunneone/Days-Watched.git
-cd Days-Watched
+git clone https://github.com/Gunneone/Showtime.git
+cd Showtime
 ```
 
 #### 2. Create Virtual Environment
@@ -115,11 +115,13 @@ Docker deployment provides automatic restarts and easier server management.
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Gunneone/Days-Watched.git
-cd Days-Watched
+git clone https://github.com/Gunneone/Showtime.git
+cd Showtime
 ```
 
 #### 2. Environment Configuration
+
+**⚠️ Important:** You must set up a valid TMDB API key or the application will fall back to mock data with error messages in logs.
 
 Create a `.env` file in the root directory with your production settings:
 
@@ -128,10 +130,16 @@ SECRET_KEY=your-very-secure-secret-key-for-production
 TMDB_API_KEY=your-tmdb-api-key-here
 ```
 
+**Getting a TMDB API Key:**
+1. Register at [The Movie Database](https://www.themoviedb.org/signup)
+2. Go to [API Settings](https://www.themoviedb.org/settings/api)
+3. Request an API key (free for personal use)
+4. Copy the API key to your `.env` file
+
 You can also copy the example file:
 ```bash
 cp .env.docker .env
-# Then edit .env with your actual values
+# Then edit .env with your actual values (replace placeholder values)
 ```
 
 #### 3. Run with Docker Compose
@@ -153,24 +161,28 @@ The application will be available at `http://localhost:5001`
 
 ```bash
 # Build the image
-docker build -t days-watched .
+docker build -t showtime .
 
 # Run the container
 docker run -d \
-  --name days-watched-app \
+  --name showtime-app \
   -p 5001:5001 \
   -e SECRET_KEY=your-secret-key \
   -e TMDB_API_KEY=your-tmdb-api-key \
   --restart unless-stopped \
-  days-watched
+  showtime
 ```
 
 #### Docker Features
 
 * **Automatic Restart**: The container will automatically restart after server outages
 * **Health Checks**: Built-in health monitoring
+* **Production Server**: Uses Gunicorn WSGI server for optimal performance
 * **Isolated Environment**: Runs in a secure, isolated container
 * **Easy Updates**: Simple deployment and rollback process
+* **Configurable**: Customizable Gunicorn settings via environment variables
+
+**For detailed production configuration options, see [PRODUCTION.md](PRODUCTION.md).**
 
 ## 🎯 Usage
 
@@ -200,7 +212,7 @@ The app automatically calculates watch time based on:
 ## 🏗️ Project Structure
 
 ```
-Days-Watched/
+Showtime/
 ├── app.py                 # Main Flask application
 ├── config.py              # Configuration settings
 ├── requirements.txt       # Python dependencies
@@ -302,7 +314,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 * **Author**: Marius Gunnemann
 * **GitHub**: [@Gunneone](https://github.com/Gunneone)
-* **Project Link**: [https://github.com/Gunneone/Days-Watched](https://github.com/Gunneone/Days-Watched)
+* **Project Link**: [https://github.com/Gunneone/Showtime](https://github.com/Gunneone/Showtime)
 
 ## 🙏 Acknowledgments
 

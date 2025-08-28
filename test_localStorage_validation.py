@@ -201,7 +201,7 @@ def test_storage_mechanisms():
     return True
 
 if __name__ == "__main__":
-    print("🎬 Days Watched - localStorage Solution Validation")
+    print("🎬 Showtime - localStorage Solution Validation")
     print("=" * 60)
     
     try:

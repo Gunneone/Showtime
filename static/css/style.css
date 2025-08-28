@@ -476,6 +476,40 @@ body {
     opacity: 0.8;
 }
 
+/* Search load more button */
+.search-load-more {
+    padding: 1rem;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(74, 85, 104, 0.1);
+    border-radius: 0 0 12px 12px;
+}
+
+.load-more-btn {
+    background: var(--blue-primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.load-more-btn:hover {
+    background: var(--blue-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 179, 237, 0.3);
+}
+
+.load-more-btn:active {
+    transform: translateY(0);
+}
+
 /* Season selector bars for search results */
 .search-result-seasons {
     margin-top: 0.75rem;

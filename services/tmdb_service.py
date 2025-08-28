@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime, date
 from config import Config
+from services.persistent_cache_service import get_persistent_cache
 
 class TMDBService:
     """Service for interacting with The Movie Database (TMDB) API."""
@@ -9,12 +10,26 @@ class TMDBService:
         self.api_key = Config.TMDB_API_KEY
         self.base_url = Config.TMDB_BASE_URL
         self.image_base_url = Config.TMDB_IMAGE_BASE_URL
+        self.persistent_cache = get_persistent_cache()
+    
+    def use_mock_data_for_testing(self):
+        """Force the service to use mock data for testing purposes."""
+        self._use_mock_data = True
     
     def _make_request(self, endpoint, params=None):
         """Make a request to the TMDB API."""
-        if not self.api_key or self.api_key == 'test':
-            # Mock mode for development/testing
+        # Check if we're in testing mode with mock data
+        if hasattr(self, '_use_mock_data') and self._use_mock_data:
             return self._get_mock_data(endpoint, params)
+            
+        # Check for missing or placeholder API keys
+        if not self.api_key or self.api_key == 'test' or self._is_placeholder_key():
+            if self._is_placeholder_key():
+                error_msg = "TMDB API key appears to be a placeholder value. Please set a valid TMDB API key in your environment variables."
+            else:
+                error_msg = "No TMDB API key configured. Set TMDB_API_KEY environment variable."
+            print(f"TMDB API Error: {error_msg}")
+            raise Exception(error_msg)
             
         if params is None:
             params = {}
@@ -26,9 +41,37 @@ class TMDBService:
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
-            # Fallback to mock data on network errors
-            print(f"TMDB API request failed, using mock data: {str(e)}")
-            return self._get_mock_data(endpoint, params)
+            # Check if it's an authentication/invalid key error (401/404 often indicate invalid API key)
+            if hasattr(e, 'response') and e.response is not None:
+                status_code = e.response.status_code
+                if status_code in [401, 404]:
+                    error_msg = f"TMDB API authentication failed (HTTP {status_code}). Please verify your TMDB_API_KEY is valid."
+                    print(f"TMDB API Error: {error_msg}")
+                    raise Exception(error_msg)
+                else:
+                    error_msg = f"TMDB API request failed (HTTP {status_code}): {str(e)}"
+                    print(f"TMDB API Error: {error_msg}")
+                    raise Exception(error_msg)
+            else:
+                error_msg = f"TMDB API request failed: {str(e)}"
+                print(f"TMDB API Error: {error_msg}")
+                raise Exception(error_msg)
+    
+    def _is_placeholder_key(self):
+        """Check if the API key appears to be a placeholder value."""
+        if not self.api_key:
+            return False
+        
+        placeholder_patterns = [
+            'your-tmdb-api-key-here',
+            'your_tmdb_api_key_here',
+            'tmdb-api-key',
+            'tmdb_api_key',
+            'placeholder',
+            'example'
+        ]
+        
+        return any(pattern in self.api_key.lower() for pattern in placeholder_patterns)
     
     def _get_mock_data(self, endpoint, params=None):
         """Return mock data for development/testing."""
@@ -82,6 +125,15 @@ class TMDBService:
                     'poster_path': None,
                     'vote_average': 8.5,
                     'popularity': 88
+                },
+                {
+                    'id': 6,
+                    'name': 'Wednesday',
+                    'overview': 'Smart, sarcastic and a little dead inside, Wednesday Addams investigates twisted mysteries while making new friends — and foes — at Nevermore Academy.',
+                    'first_air_date': '2022-11-23',
+                    'poster_path': None,
+                    'vote_average': 8.4,
+                    'popularity': 525
                 }
             ]
             
@@ -336,6 +388,29 @@ class TMDBService:
                     'networks': [
                         {'id': 5, 'name': 'Disney+'}
                     ]
+                },
+                6: {
+                    'id': 6,
+                    'name': 'Wednesday',
+                    'overview': 'Smart, sarcastic and a little dead inside, Wednesday Addams investigates twisted mysteries while making new friends — and foes — at Nevermore Academy.',
+                    'first_air_date': '2022-11-23',
+                    'last_air_date': '2022-11-23',
+                    'poster_path': None,
+                    'backdrop_path': None,
+                    'vote_average': 8.4,
+                    'popularity': 525,
+                    'number_of_episodes': 8,
+                    'number_of_seasons': 1,
+                    'episode_run_time': [51],
+                    'genres': [
+                        {'id': 18, 'name': 'Drama'},
+                        {'id': 9648, 'name': 'Mystery'},
+                        {'id': 10765, 'name': 'Sci-Fi & Fantasy'}
+                    ],
+                    'status': 'Returning Series',
+                    'networks': [
+                        {'id': 6, 'name': 'Netflix'}
+                    ]
                 }
             }
             
@@ -357,8 +432,8 @@ class TMDBService:
                 'networks': []
             })
     
-    def search_shows(self, query, page=1):
-        """Search for TV shows."""
+    def search_shows(self, query, page=1, include_season_data=True):
+        """Search for TV shows with optional season data fetching."""
         endpoint = "search/tv"
         params = {
             'query': query,
@@ -371,12 +446,7 @@ class TMDBService:
         # Format the results
         results = []
         for show in data.get('results', []):
-            # Get detailed show info to include number of seasons
-            show_details = self.get_show_details(show['id'])
-            total_seasons = show_details.get('number_of_seasons', 1)
-            released_seasons = self.get_released_seasons_count(show['id'], total_seasons)
-            
-            results.append({
+            show_data = {
                 'id': show['id'],
                 'name': show['name'],
                 'overview': show.get('overview', ''),
@@ -384,9 +454,32 @@ class TMDBService:
                 'poster_path': self._get_full_image_url(show.get('poster_path')),
                 'vote_average': show.get('vote_average', 0),
                 'popularity': show.get('popularity', 0),
-                'number_of_seasons': total_seasons,
-                'number_of_released_seasons': released_seasons
-            })
+                'number_of_seasons': None,
+                'number_of_released_seasons': None
+            }
+            
+            # Only fetch season data if requested (for backward compatibility with tests)
+            if include_season_data:
+                try:
+                    # Check cache first for better performance
+                    cached_data = self.persistent_cache.get_season_data(show['id'])
+                    if cached_data and 'total_seasons' in cached_data and 'released_seasons_count' in cached_data:
+                        show_data['number_of_seasons'] = cached_data['total_seasons']
+                        show_data['number_of_released_seasons'] = cached_data['released_seasons_count']
+                    else:
+                        # Fetch from API as fallback
+                        show_details = self.get_show_details(show['id'])
+                        total_seasons = show_details.get('number_of_seasons', 1)
+                        released_seasons = self.get_released_seasons_count(show['id'], total_seasons)
+                        show_data['number_of_seasons'] = total_seasons
+                        show_data['number_of_released_seasons'] = released_seasons
+                except Exception as e:
+                    print(f"Failed to get season data for show {show['id']}: {e}")
+                    # Use default values if fetching fails
+                    show_data['number_of_seasons'] = 1
+                    show_data['number_of_released_seasons'] = 1
+            
+            results.append(show_data)
         
         return {
             'results': results,
@@ -394,6 +487,33 @@ class TMDBService:
             'total_results': data.get('total_results', 0),
             'page': data.get('page', 1)
         }
+    
+    def get_show_season_data(self, show_id):
+        """Get season data for a specific show (for on-demand loading)."""
+        try:
+            # Check cache first
+            cached_data = self.persistent_cache.get_season_data(show_id)
+            if cached_data and 'total_seasons' in cached_data and 'released_seasons_count' in cached_data:
+                return {
+                    'number_of_seasons': cached_data['total_seasons'],
+                    'number_of_released_seasons': cached_data['released_seasons_count']
+                }
+            
+            # Fetch from API
+            show_details = self.get_show_details(show_id)
+            total_seasons = show_details.get('number_of_seasons', 1)
+            released_seasons = self.get_released_seasons_count(show_id, total_seasons)
+            
+            return {
+                'number_of_seasons': total_seasons,
+                'number_of_released_seasons': released_seasons
+            }
+        except Exception as e:
+            print(f"Failed to get season data for show {show_id}: {e}")
+            return {
+                'number_of_seasons': 1,
+                'number_of_released_seasons': 1
+            }
     
     def get_show_details(self, show_id):
         """Get detailed information about a specific TV show."""
@@ -487,6 +607,14 @@ class TMDBService:
     
     def get_released_seasons_count(self, show_id, total_seasons):
         """Get the number of released seasons for a show."""
+        # Check cache first
+        cache_key = f"released_seasons_{show_id}"
+        cached_data = self.persistent_cache.get_season_data(show_id)
+        
+        if cached_data and 'released_seasons_count' in cached_data:
+            return cached_data['released_seasons_count']
+        
+        # Not cached, calculate it
         released_count = 0
         
         for season_num in range(1, total_seasons + 1):
@@ -503,7 +631,13 @@ class TMDBService:
             except Exception:
                 # If we can't get season details, stop counting
                 break
-                
+        
+        # Cache the result
+        season_data = cached_data or {}
+        season_data['released_seasons_count'] = released_count
+        season_data['total_seasons'] = total_seasons
+        self.persistent_cache.set_season_data(show_id, season_data)
+        
         return released_count
     
     def _get_full_image_url(self, image_path):

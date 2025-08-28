@@ -8,7 +8,12 @@ api_bp = Blueprint('api', __name__)
 
 def get_tmdb_service():
     """Get TMDB service instance."""
-    return TMDBService()
+    from flask import current_app
+    service = TMDBService()
+    # Enable mock data for testing
+    if current_app and current_app.config.get('TESTING', False):
+        service.use_mock_data_for_testing()
+    return service
 
 def get_calc_service():
     """Get calculation service instance."""
@@ -83,7 +88,7 @@ def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched, show_
 
 @api_bp.route('/search')
 def search():
-    """Search for shows/movies using TMDB API with caching."""
+    """Search for shows/movies using TMDB API with caching and optimized season data loading."""
     query = request.args.get('query', '').strip()
     if not query:
         return jsonify({'error': 'Query parameter is required'}), 400
@@ -101,12 +106,29 @@ def search():
         # Cache miss - call TMDB API
         print(f"Cache miss for query: {query}")
         tmdb_service = get_tmdb_service()
-        results = tmdb_service.search_shows(query)
+        
+        # Check if we're in testing mode
+        from flask import current_app
+        include_season_data = current_app and current_app.config.get('TESTING', False)
+        
+        # For production optimization, don't fetch season data upfront unless testing
+        # Season data will be fetched on-demand when results are displayed
+        results = tmdb_service.search_shows(query, include_season_data=include_season_data)
         
         # Cache the result
         cache.set(query, results)
         
         return jsonify(results)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/show/<int:show_id>/seasons')
+def get_show_seasons(show_id):
+    """Get season data for a specific show."""
+    try:
+        tmdb_service = get_tmdb_service()
+        season_data = tmdb_service.get_show_season_data(show_id)
+        return jsonify(season_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
