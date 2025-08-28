@@ -15,15 +15,6 @@ services:
       - GUNICORN_MAX_REQUESTS=500
       - GUNICORN_MAX_REQUESTS_JITTER=50
     restart: unless-stopped
-    # Add resource limits to prevent resource exhaustion
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '1.0'
-        reservations:
-          memory: 256M
-          cpus: '0.5'
     # Reduce healthcheck frequency to avoid performance impact
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/"]

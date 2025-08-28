@@ -8,6 +8,7 @@ import json
 import time
 import threading
 import os
+import schedule
 from typing import Optional, Dict, Any, List
 from collections import OrderedDict
 
@@ -65,8 +66,8 @@ class PersistentCacheService:
         # Initialize database
         self._init_database()
         
-        # Schedule daily cleanup (in a real app, this would be handled by a scheduler)
-        self._schedule_cleanup()
+        # Start daily scheduler for cleanup at 4 AM
+        self._start_scheduler()
     
     def _init_database(self) -> None:
         """Initialize SQLite database with required tables."""
@@ -121,13 +122,6 @@ class PersistentCacheService:
                     
                     if row:
                         results_json, timestamp = row
-                        
-                        # Check if cache entry is expired
-                        if time.time() - timestamp > self.cache_duration:
-                            # Remove expired entry
-                            conn.execute('DELETE FROM search_cache WHERE query = ?', (normalized_query,))
-                            conn.commit()
-                            return None
                         
                         # Parse and cache in memory
                         results = json.loads(results_json)
@@ -186,13 +180,6 @@ class PersistentCacheService:
                     
                     if row:
                         season_data_json, timestamp = row
-                        
-                        # Check if cache entry is expired
-                        if time.time() - timestamp > self.cache_duration:
-                            # Remove expired entry
-                            conn.execute('DELETE FROM season_cache WHERE show_id = ?', (show_id,))
-                            conn.commit()
-                            return None
                         
                         # Parse and cache in memory
                         season_data = json.loads(season_data_json)
@@ -300,14 +287,26 @@ class PersistentCacheService:
                 print(f"Error getting cache stats: {e}")
                 return {}
     
-    def _schedule_cleanup(self) -> None:
-        """
-        Schedule daily cleanup of expired entries.
-        In a production environment, this would be handled by a proper scheduler.
-        """
-        # For now, we'll just run cleanup on initialization
-        # In a real application, you'd use APScheduler or similar
-        self.cleanup_expired()
+    def _start_scheduler(self) -> None:
+        """Start the daily cleanup scheduler to run at 4 AM."""
+        schedule.every().day.at("04:00").do(self._run_cleanup)
+        
+        # Start scheduler in a daemon thread
+        def run_scheduler():
+            while True:
+                schedule.run_pending()
+                time.sleep(60)  # Check every minute
+        
+        scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+        scheduler_thread.start()
+    
+    def _run_cleanup(self) -> None:
+        """Run the cleanup task and log results."""
+        try:
+            removed_count = self.cleanup_expired()
+            print(f"Daily cache cleanup completed: {removed_count} expired entries removed")
+        except Exception as e:
+            print(f"Error during daily cache cleanup: {e}")
 
 
 # Global cache service instance
