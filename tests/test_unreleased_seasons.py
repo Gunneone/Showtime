@@ -152,6 +152,71 @@ class TestUnreleasedSeasonsFiltering:
         assert stats['completion_stats']['in_progress_shows'] == 1, "Should count as in progress"
         assert stats['completion_stats']['completion_rate'] == 0.0, "Should have 0% completion rate"
 
+    def test_completion_stats_consistency_frontend_backend(self, calc_service):
+        """Test that frontend and backend completion logic produce consistent results."""
+        # Test data with shows that have both total_seasons and released_seasons
+        test_shows = [
+            {
+                'id': 1,
+                'name': 'Show with unreleased seasons',
+                'seasons_watched': 3,
+                'total_seasons': 5,      # Total including unreleased
+                'released_seasons': 3,   # Only released seasons - should be completed
+                'calculated_runtime_minutes': 600
+            },
+            {
+                'id': 2,
+                'name': 'Show without released_seasons field',
+                'seasons_watched': 2,
+                'total_seasons': 4,      # No released_seasons field (old data) - should be in progress
+                'calculated_runtime_minutes': 400
+            },
+            {
+                'id': 3,
+                'name': 'Completed show',
+                'seasons_watched': 2,
+                'total_seasons': 2,
+                'released_seasons': 2,   # Fully completed
+                'calculated_runtime_minutes': 300
+            }
+        ]
+        
+        # Backend calculation using CalculationService
+        backend_stats = calc_service.calculate_stats(test_shows)
+        
+        # Frontend logic simulation (matching the fixed JavaScript logic)
+        frontend_completed = 0
+        frontend_in_progress = 0
+        
+        for show in test_shows:
+            seasons = show.get('seasons_watched', 0)
+            total_seasons_in_show = show.get('total_seasons', 1)
+            # Frontend now uses released_seasons with fallback to total_seasons (same as backend)
+            released_seasons_in_show = show.get('released_seasons', total_seasons_in_show)
+            
+            if seasons >= released_seasons_in_show:
+                frontend_completed += 1
+            else:
+                frontend_in_progress += 1
+        
+        total_shows = len(test_shows)
+        frontend_completion_rate = (frontend_completed / total_shows * 100) if total_shows > 0 else 0
+        
+        # Assert frontend and backend produce the same results
+        assert frontend_completed == backend_stats['completion_stats']['completed_shows'], \
+            f"Frontend completed count ({frontend_completed}) should match backend ({backend_stats['completion_stats']['completed_shows']})"
+        
+        assert frontend_in_progress == backend_stats['completion_stats']['in_progress_shows'], \
+            f"Frontend in-progress count ({frontend_in_progress}) should match backend ({backend_stats['completion_stats']['in_progress_shows']})"
+        
+        assert round(frontend_completion_rate, 1) == backend_stats['completion_stats']['completion_rate'], \
+            f"Frontend completion rate ({round(frontend_completion_rate, 1)}%) should match backend ({backend_stats['completion_stats']['completion_rate']}%)"
+        
+        # Verify specific expected values for this test case
+        assert backend_stats['completion_stats']['completed_shows'] == 2, "Should have 2 completed shows"
+        assert backend_stats['completion_stats']['in_progress_shows'] == 1, "Should have 1 in-progress show"
+        assert backend_stats['completion_stats']['completion_rate'] == 66.7, "Should have 66.7% completion rate"
+
     def test_api_search_endpoint(self, client):
         """Test that search API endpoint returns released seasons data."""
         response = client.get('/api/search?query=stranger')

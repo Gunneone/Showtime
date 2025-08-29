@@ -2088,7 +2088,11 @@ const StatsApp = {
             }
             
             // Completion stats
-            if (seasons >= totalSeasonsInShow) {
+            // Use released seasons count for completion calculation to match backend logic
+            // Fall back to total_seasons for older shows that don't have released_seasons data
+            const releasedSeasonsInShow = show.released_seasons || totalSeasonsInShow;
+            
+            if (seasons >= releasedSeasonsInShow) {
                 completedShows++;
             } else {
                 inProgressShows++;
