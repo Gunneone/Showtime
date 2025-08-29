@@ -163,6 +163,7 @@ const App = {
         searchRequestId: 0,
         pendingSearchController: null,
         displayedSearchResults: 0,
+        displayedShowIds: new Set(),
         maxSearchResults: 2
     },
 
@@ -453,6 +454,7 @@ const App = {
         this.elements.searchResults.classList.add('hidden');
         this.elements.searchResults.innerHTML = '';
         this.state.displayedSearchResults = 0;
+        this.state.displayedShowIds = new Set();
     },
 
     // Display search results
@@ -464,6 +466,7 @@ const App = {
         if (isInitialLoad) {
             this.elements.searchResults.innerHTML = '';
             this.state.displayedSearchResults = 0;
+            this.state.displayedShowIds = new Set(); // Track displayed show IDs to prevent duplicates
         }
         
         this.elements.searchResults.classList.remove('hidden');
@@ -494,12 +497,31 @@ const App = {
         const endIndex = Math.min(startIndex + this.state.maxSearchResults, allResults.length);
         const resultsToShow = allResults.slice(startIndex, endIndex);
         
-        // Create result elements
+        // Create result elements - maintain order by processing sequentially
         const createResults = async () => {
+            // Create all result elements first to maintain order
+            const resultElements = [];
+            
             for (const show of resultsToShow) {
+                // Skip if already displayed to prevent duplicates
+                if (this.state.displayedShowIds && this.state.displayedShowIds.has(show.id)) {
+                    continue;
+                }
+                
                 const resultElement = await this.createSearchResultElement(show, isInstantSearch);
-                this.elements.searchResults.appendChild(resultElement);
+                resultElements.push(resultElement);
+                
+                // Track displayed show ID
+                if (!this.state.displayedShowIds) {
+                    this.state.displayedShowIds = new Set();
+                }
+                this.state.displayedShowIds.add(show.id);
             }
+            
+            // Append all elements at once to maintain order
+            resultElements.forEach(element => {
+                this.elements.searchResults.appendChild(element);
+            });
             
             // Update displayed count
             this.state.displayedSearchResults = endIndex;
