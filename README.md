@@ -2,7 +2,8 @@
 
 # Showtime 📺⏱️
 
-A Flask-based web application for tracking the time you spend watching TV shows throughout your life. Never wonder again how much time you've invested in your favorite series!
+A Flask-based web application for tracking the time you spend watching TV shows throughout your life. 
+Never wonder again how much time you've invested in your favorite series!
 
 ## 🚀 Features
 
@@ -13,9 +14,6 @@ A Flask-based web application for tracking the time you spend watching TV shows 
 * **📝 Easy Tracking**: Add shows by simply clicking search results and specifying seasons watched
 * **📈 Progress Monitoring**: Keep track of which seasons you've completed for each show
 * **💾 Persistent Storage**: Your viewing history is saved locally in your browser cookies
-
-### Planned Features
-
 * **📊 Statistics Dashboard**: Detailed analytics on your viewing habits
 * **🏷️ Genre Tracking**: See which genres you spend the most time watching
 * **📱 Responsive Design**: Optimized for both desktop and mobile devices
@@ -36,7 +34,6 @@ A Flask-based web application for tracking the time you spend watching TV shows 
 * **CSS3**: Modern styling with flexbox/grid layouts
 * **JavaScript (ES6+)**: Interactive functionality and API communication
 * **Fetch API**: Asynchronous data retrieval
-* **Responsive Design**: Mobile-first approach
 * **Browser LocalStorage**: Persistent local storage of your watch history
 
 ### External APIs
@@ -201,14 +198,6 @@ docker run -d \
 * Remove shows from your list if needed
 * Your progress is stored in your **browser's localStorage** and will persist across sessions
 
-### Understanding Watch Time Calculation
-
-The app automatically calculates watch time based on:
-
-* Average episode runtime from TMDB data
-* Number of episodes per season
-* Seasons you've marked as watched
-
 ## 🏗️ Project Structure
 
 ```
@@ -262,21 +251,6 @@ Showtime/
 * `POST /api/refresh-seasons` - Refresh season counts for all shows
 * `POST /api/refresh-show-seasons/<id>` - Refresh season count for specific show
 
-## 🧪 Testing
-
-Run the test suite:
-
-```bash
-# Run all tests
-python -m pytest
-
-# Run with coverage
-python -m pytest --cov=.
-
-# Run specific test file
-python -m pytest tests/test_app.py
-```
-
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -306,28 +280,14 @@ python -m pytest tests/test_app.py
 * [x] LocalStorage-based persistent storage
 * [x] Statistics dashboard
 * [x] Data export features
-
-### Version 1.1 (In Progress)
-
 * [x] Mobile-responsive design
 * [x] Search functionality with caching
 * [x] Precise episode runtime calculation
 * [x] Season-by-season tracking
-* [ ] Advanced filtering and sorting options
-* [ ] Watchlist recommendations
-* [ ] Social sharing features
 
 ### Future Enhancements
-
-* [ ] User accounts and cloud sync
-* [ ] Community features and reviews
-* [ ] Integration with streaming platforms
-* [ ] Advanced analytics and insights
-
-## 🐛 Known Issues
-
-* Background scheduler may show multiple "stopped" messages in tests (cosmetic only)
-* TMDB API rate limiting may affect bulk operations
+* [ ] Improved Social sharing features
+* [ ] Improved analytics and insights
 
 ## 📝 License
 
