@@ -192,7 +192,11 @@ const App = {
         this.initElements();
         this.bindEvents();
         this.loadWatchedShows();
+        
+        // Handle mobile optimizations on load and resize
         this.handleMobileOptimizations();
+        window.addEventListener('resize', () => this.handleMobileOptimizations());
+        
         console.log('Showtime app initialized with localStorage');
     },
 
