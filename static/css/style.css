@@ -1307,7 +1307,7 @@ body {
 /* Responsive design - 3-phase header behavior */
 
 /* Phase 2: Limited width - Hide title text, keep icon only to stay one-row */
-@media (max-width: 500px) {
+@media (max-width: 380px) {
     .logo-text {
         display: none;
     }
