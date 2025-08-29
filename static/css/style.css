@@ -1340,11 +1340,12 @@ body {
         padding: 0 15px;
     }
     
-    /* Fix 2: Share button margin reduction */
+    /* Fix 2: Share button margin reduction and positioning */
     .share-btn {
         padding: 0.4rem 0.8rem; /* Reduced padding */
         right: 0.75rem; /* Reduced right margin */
         bottom: 0.75rem; /* Reduced bottom margin */
+        font-size: 0.85rem; /* Slightly smaller font */
     }
     
     /* Fix 3: Reduce show card height by 35% on mobile */
@@ -1406,6 +1407,11 @@ body {
     
     .modal-content {
         width: 95%;
+    }
+    
+    /* CRITICAL FIX: Reduce poster width by ~35% on mobile */
+    .watched-show-poster {
+        width: 78px; /* 35% reduction from 120px */
     }
 }
 
