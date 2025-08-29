@@ -1453,6 +1453,49 @@ body {
     background: transparent;
 }
 
+/* Awards Grid */
+.awards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.award-card {
+    background: rgba(26, 32, 44, 0.8);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--blue-primary-alpha-30);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.award-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.award-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--blue-primary);
+}
+
+.award-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--blue-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.award-value {
+    font-size: 1rem;
+    color: #e2e8f0;
+    margin: 0;
+    line-height: 1.4;
+}
+
 /* Time Conversions Grid */
 .time-conversions-grid {
     display: grid;
