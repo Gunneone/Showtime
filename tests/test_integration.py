@@ -18,7 +18,7 @@ def test_api_data_processing():
     
     # Import our calculation service
     try:
-        from services.calculation_service import CalculationService
+        from src.services.calculation_service import CalculationService
         calc_service = CalculationService()
         print("✅ CalculationService imported successfully")
     except ImportError as e:
@@ -138,7 +138,7 @@ def test_data_migration_logic():
     
     # Test that calculations still work with migrated data
     try:
-        from services.calculation_service import CalculationService
+        from src.services.calculation_service import CalculationService
         calc_service = CalculationService()
         
         # Calculate with old data
@@ -206,7 +206,7 @@ def test_storage_capacity():
     
     # Test that calculation service can handle it
     try:
-        from services.calculation_service import CalculationService
+        from src.services.calculation_service import CalculationService
         calc_service = CalculationService()
         
         total_time = calc_service.calculate_total_time(large_dataset)

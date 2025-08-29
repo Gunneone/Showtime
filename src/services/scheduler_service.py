@@ -6,7 +6,7 @@ Handles daily cache cleanup and other periodic tasks.
 import threading
 import time
 from datetime import datetime, timedelta
-from services.persistent_cache_service import get_persistent_cache
+from .persistent_cache_service import get_persistent_cache
 
 
 class BackgroundScheduler:

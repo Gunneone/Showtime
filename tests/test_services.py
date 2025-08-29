@@ -1,6 +1,6 @@
 import pytest
-from services.calculation_service import CalculationService
-from services.tmdb_service import TMDBService
+from src.services.calculation_service import CalculationService
+from src.services.tmdb_service import TMDBService
 
 def test_calculation_service_init():
     """Test that CalculationService initializes correctly."""
