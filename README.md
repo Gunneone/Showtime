@@ -1,5 +1,3 @@
----
-
 # Showtime 📺⏱️
 
 A Flask-based web application for tracking the time you spend watching TV shows throughout your life. 
