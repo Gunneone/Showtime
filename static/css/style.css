@@ -1304,29 +1304,40 @@ body {
     text-decoration: underline;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-    .container {
-        padding: 0 15px;
+/* Responsive design - 3-phase header behavior */
+
+/* Phase 2: Limited width - Hide title text, keep icon only to stay one-row */
+@media (max-width: 380px) {
+    .logo-text {
+        display: none;
     }
-    
-    /* Fix 1: Make header more compact on mobile */
+}
+
+/* Phase 3: Super limited space - Allow wrap to second row only when absolutely necessary */
+@media (max-width: 300px) {
     .header-content {
         flex-direction: column;
-        gap: 0.5rem; /* Reduced from 1rem */
+        gap: 0.5rem;
         text-align: center;
     }
     
     .logo a {
-        font-size: 1.5rem; /* Reduced from 1.8rem */
+        font-size: 1.5rem;
     }
     
     .nav {
-        gap: 1.5rem; /* Reduced from 2rem */
+        gap: 1.5rem;
     }
     
     .nav-link {
-        font-size: 0.9rem; /* Make nav links smaller */
+        font-size: 0.9rem;
+    }
+}
+
+/* Legacy mobile breakpoint - keep existing styles for other mobile optimizations */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
     }
     
     /* Fix 2: Share button margin reduction */
