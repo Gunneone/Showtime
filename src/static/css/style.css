@@ -129,17 +129,17 @@ body {
 
 /* Animation classes for time updates */
 .time-value.animating {
-    animation: timeUpdate 0.8s ease-out;
+    animation: timeUpdate calc(0.8s + 0.8s * var(--animation-intensity, 0.5)) ease-out;
 }
 
 .time-value.increase {
     color: #48bb78;
-    animation: timeIncrease 1.2s ease-out;
+    animation: timeIncrease calc(0.8s + 0.8s * var(--animation-intensity, 0.5)) ease-out;
 }
 
 .time-value.decrease {
     color: #f56565;
-    animation: timeDecrease 1.2s ease-out;
+    animation: timeDecrease calc(0.8s + 0.8s * var(--animation-intensity, 0.5)) ease-out;
 }
 
 @keyframes timeUpdate {
@@ -147,11 +147,11 @@ body {
         transform: scale(1); 
     }
     25% { 
-        transform: scale(1.1); 
+        transform: scale(calc(1 + 0.05 + 0.1 * var(--animation-intensity, 0.5))); 
     }
     50% { 
-        transform: scale(1.15); 
-        text-shadow: 0 0 20px var(--blue-primary-alpha-60);
+        transform: scale(calc(1 + 0.08 + 0.15 * var(--animation-intensity, 0.5))); 
+        text-shadow: 0 0 calc(15px + 10px * var(--animation-intensity, 0.5)) var(--blue-primary-alpha-60);
     }
     100% { 
         transform: scale(1); 
@@ -165,18 +165,18 @@ body {
         color: inherit;
     }
     15% { 
-        transform: scale(1.2); 
+        transform: scale(calc(1 + 0.1 + 0.2 * var(--animation-intensity, 0.5))); 
         color: #48bb78;
-        text-shadow: 0 0 25px rgba(72, 187, 120, 0.7);
+        text-shadow: 0 0 calc(20px + 15px * var(--animation-intensity, 0.5)) rgba(72, 187, 120, 0.7);
     }
     30% { 
-        transform: scale(1.1); 
+        transform: scale(calc(1 + 0.05 + 0.15 * var(--animation-intensity, 0.5))); 
     }
     45% { 
-        transform: scale(1.15); 
+        transform: scale(calc(1 + 0.08 + 0.17 * var(--animation-intensity, 0.5))); 
     }
     60% { 
-        transform: scale(1.05); 
+        transform: scale(calc(1 + 0.02 + 0.08 * var(--animation-intensity, 0.5))); 
     }
     100% { 
         transform: scale(1); 
@@ -191,18 +191,18 @@ body {
         color: inherit;
     }
     15% { 
-        transform: scale(0.9); 
+        transform: scale(calc(1 - 0.05 - 0.1 * var(--animation-intensity, 0.5))); 
         color: #f56565;
-        text-shadow: 0 0 25px rgba(245, 101, 101, 0.7);
+        text-shadow: 0 0 calc(20px + 15px * var(--animation-intensity, 0.5)) rgba(245, 101, 101, 0.7);
     }
     30% { 
-        transform: scale(0.95); 
+        transform: scale(calc(1 - 0.02 - 0.08 * var(--animation-intensity, 0.5))); 
     }
     45% { 
-        transform: scale(0.92); 
+        transform: scale(calc(1 - 0.04 - 0.08 * var(--animation-intensity, 0.5))); 
     }
     60% { 
-        transform: scale(0.98); 
+        transform: scale(calc(1 - 0.01 - 0.03 * var(--animation-intensity, 0.5))); 
     }
     100% { 
         transform: scale(1); 
@@ -222,11 +222,11 @@ body {
 
 .particle {
     position: absolute;
-    width: 6px;
-    height: 6px;
+    width: calc(4px + 4px * var(--intensity, 0.5));
+    height: calc(4px + 4px * var(--intensity, 0.5));
     background: #ffd700;
     border-radius: 50%;
-    animation: particle 1.5s ease-out forwards;
+    animation: particle calc(1s + 1s * var(--intensity, 0.5)) ease-out forwards;
 }
 
 @keyframes particle {
@@ -235,7 +235,7 @@ body {
         transform: translate(0, 0) scale(0);
     }
     10% {
-        transform: translate(0, 0) scale(1);
+        transform: translate(0, 0) scale(calc(0.8 + 0.4 * var(--intensity, 0.5)));
     }
     100% {
         opacity: 0;

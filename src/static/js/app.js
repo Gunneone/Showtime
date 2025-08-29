@@ -164,7 +164,8 @@ const App = {
         pendingSearchController: null,
         displayedSearchResults: 0,
         displayedShowIds: new Set(),
-        maxSearchResults: 2
+        maxSearchResults: 2,
+        isInitialLoad: true
     },
 
     // DOM elements
@@ -993,28 +994,54 @@ const App = {
         // Clear any existing animation classes
         timeValue.classList.remove('animating', 'increase', 'decrease');
 
+        // Skip animations on initial load
+        if (this.state.isInitialLoad) {
+            timeValue.textContent = newText;
+            this.state.isInitialLoad = false;
+            return;
+        }
+
         // If we have both old and new minute values, animate the counting
         if (this.state.previousTotalTime !== 0 && this.state.totalTime !== this.state.previousTotalTime) {
             this.animateTimeValue(timeValue, this.state.previousTotalTime, this.state.totalTime, isIncrease, isDecrease);
         } else {
-            // Simple update for first load
+            // Simple update for subsequent loads without previous state
             timeValue.textContent = newText;
-            if (isIncrease || isDecrease) {
-                this.triggerCelebrationEffect(timeValue, isIncrease);
-            }
         }
     },
 
     // Animate time value with counting effect
     animateTimeValue(element, fromMinutes, toMinutes, isIncrease, isDecrease) {
-        const duration = 1200; // 1.2 seconds
+        const timeDifference = Math.abs(toMinutes - fromMinutes);
+        
+        // Calculate animation intensity based on time difference
+        // 1 day = 1440 minutes (minimum intensity)
+        // 5 days = 7200 minutes (maximum intensity)
+        const minThreshold = 1440; // 1 day
+        const maxThreshold = 7200; // 5 days
+        
+        let intensityFactor = Math.min(Math.max((timeDifference - minThreshold) / (maxThreshold - minThreshold), 0), 1);
+        
+        // Even small increases should have some animation, so ensure minimum intensity
+        if (timeDifference > 0) {
+            intensityFactor = Math.max(intensityFactor, 0.2); // Minimum 20% intensity
+        }
+        
+        // Scale duration based on intensity (0.8s to 1.6s)
+        const baseDuration = 800;
+        const maxDuration = 1600;
+        const duration = baseDuration + (maxDuration - baseDuration) * intensityFactor;
+        
         const startTime = performance.now();
         
-        // Add appropriate animation class
+        // Add appropriate animation class with intensity
         if (isIncrease) {
             element.classList.add('increase');
+            // Set CSS custom property for intensity
+            element.style.setProperty('--animation-intensity', intensityFactor);
         } else if (isDecrease) {
             element.classList.add('decrease');
+            element.style.setProperty('--animation-intensity', intensityFactor);
         }
         element.classList.add('animating');
 
@@ -1034,14 +1061,15 @@ const App = {
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
-                // Animation complete - trigger celebration for significant increases
-                if (isIncrease && (toMinutes - fromMinutes) > 60) { // More than 1 hour increase
-                    this.triggerCelebrationEffect(element, true);
+                // Animation complete - trigger celebration for increases
+                if (isIncrease) {
+                    this.triggerCelebrationEffect(element, timeDifference, intensityFactor);
                 }
                 
-                // Clean up animation classes after a delay
+                // Clean up animation classes and custom properties after a delay
                 setTimeout(() => {
                     element.classList.remove('animating', 'increase', 'decrease');
+                    element.style.removeProperty('--animation-intensity');
                 }, 500);
             }
         };
@@ -1050,9 +1078,7 @@ const App = {
     },
 
     // Trigger celebration particle effect
-    triggerCelebrationEffect(element, isIncrease) {
-        if (!isIncrease) return;
-
+    triggerCelebrationEffect(element, timeDifference, intensityFactor) {
         const container = element.closest('.watch-time-display');
         if (!container) return;
 
@@ -1062,33 +1088,42 @@ const App = {
         container.style.position = 'relative';
         container.appendChild(celebration);
 
+        // Scale particle count based on intensity (4 to 20 particles)
+        const minParticles = 4;
+        const maxParticles = 20;
+        const particleCount = Math.round(minParticles + (maxParticles - minParticles) * intensityFactor);
+
         // Generate particles
-        const particleCount = 12;
         for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
             particle.className = 'particle';
             
-            // Random direction and distance
+            // Random direction and distance based on intensity
             const angle = (i / particleCount) * 2 * Math.PI;
-            const distance = 40 + Math.random() * 30;
+            const baseDistance = 30;
+            const maxDistance = 60;
+            const distance = baseDistance + (maxDistance - baseDistance) * intensityFactor + Math.random() * 20;
             const dx = Math.cos(angle) * distance;
             const dy = Math.sin(angle) * distance;
             
             particle.style.setProperty('--dx', `${dx}px`);
             particle.style.setProperty('--dy', `${dy}px`);
+            particle.style.setProperty('--intensity', intensityFactor);
             
-            // Random delay for staggered effect
-            particle.style.animationDelay = `${Math.random() * 0.3}s`;
+            // Random delay for staggered effect, scaled by intensity
+            const maxDelay = 0.3 * (1 + intensityFactor);
+            particle.style.animationDelay = `${Math.random() * maxDelay}s`;
             
             celebration.appendChild(particle);
         }
 
-        // Clean up after animation
+        // Clean up after animation, duration based on intensity
+        const cleanupDelay = 1500 + (1000 * intensityFactor);
         setTimeout(() => {
             if (celebration.parentNode) {
                 celebration.parentNode.removeChild(celebration);
             }
-        }, 2000);
+        }, cleanupDelay);
     },
 
     // Sort watched shows based on selected criteria
