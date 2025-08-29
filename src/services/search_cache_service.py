@@ -4,7 +4,7 @@ Keeps cached results for 7 days to reduce API calls.
 Now uses persistent SQLite storage with in-memory LRU cache layer.
 """
 
-from services.persistent_cache_service import get_persistent_cache
+from .persistent_cache_service import get_persistent_cache
 from typing import Optional, Dict, Any
 
 

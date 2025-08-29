@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify, make_response
 import json
-from services.tmdb_service import TMDBService
-from services.calculation_service import CalculationService
-from services.search_cache_service import get_search_cache
+from ..services.tmdb_service import TMDBService
+from ..services.calculation_service import CalculationService
+from ..services.search_cache_service import get_search_cache
 
 api_bp = Blueprint('api', __name__)
 

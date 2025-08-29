@@ -214,7 +214,6 @@ The app automatically calculates watch time based on:
 ```
 Showtime/
 ├── app.py                 # Main Flask application
-├── config.py              # Configuration settings
 ├── requirements.txt       # Python dependencies
 ├── static/                # Static files (CSS, JS, images)
 │   ├── css/
@@ -224,17 +223,24 @@ Showtime/
 │   ├── base.html
 │   ├── index.html
 │   └── components/
-├── routes/                # Route handlers
-│   ├── __init__.py
-│   ├── main.py
-│   └── api.py
-├── services/              # Business logic
-│   ├── __init__.py
-│   ├── tmdb_service.py
-│   └── calculation_service.py
+├── src/                   # Source code
+│   ├── config.py          # Configuration settings
+│   ├── routes/            # Route handlers
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   └── api.py
+│   └── services/          # Business logic
+│       ├── __init__.py
+│       ├── tmdb_service.py
+│       ├── calculation_service.py
+│       ├── search_cache_service.py
+│       ├── persistent_cache_service.py
+│       └── scheduler_service.py
 └── tests/                 # Test files
     ├── test_app.py
-    └── test_services.py
+    ├── test_services.py
+    ├── test_integration.py
+    └── test_localStorage_validation.py
 ```
 
 ## 🧪 API Endpoints

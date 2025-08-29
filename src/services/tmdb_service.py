@@ -1,7 +1,7 @@
 import requests
 from datetime import datetime, date
-from config import Config
-from services.persistent_cache_service import get_persistent_cache
+from ..config import Config
+from .persistent_cache_service import get_persistent_cache
 
 class TMDBService:
     """Service for interacting with The Movie Database (TMDB) API."""
