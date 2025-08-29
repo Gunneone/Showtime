@@ -1123,6 +1123,32 @@ const App = {
         return Math.round(totalMinutes);
     },
 
+    // Update button visibility based on whether data is present
+    updateButtonVisibility(hasData) {
+        // Buttons that should be hidden when no data is present
+        const dataDependendButtons = [
+            this.elements.shareBtn,
+            this.elements.exportBtn,
+            this.elements.refreshSeasonsBtn,
+            this.elements.removeAllBtn
+        ];
+
+        dataDependendButtons.forEach(button => {
+            if (button) {
+                if (hasData) {
+                    button.classList.remove('hidden');
+                } else {
+                    button.classList.add('hidden');
+                }
+            }
+        });
+
+        // Import button should always be visible (it doesn't depend on existing data)
+        if (this.elements.importBtn) {
+            this.elements.importBtn.classList.remove('hidden');
+        }
+    },
+
     // Display watched shows
     displayWatchedShows() {
         this.elements.watchedShows.innerHTML = '';
@@ -1132,6 +1158,8 @@ const App = {
             if (this.elements.sortControls) {
                 this.elements.sortControls.style.display = 'none';
             }
+            // Hide buttons that depend on data when no data is present
+            this.updateButtonVisibility(false);
             return;
         }
 
@@ -1141,6 +1169,9 @@ const App = {
         if (this.elements.sortControls) {
             this.elements.sortControls.style.display = 'flex';
         }
+
+        // Show buttons that depend on data when data is present
+        this.updateButtonVisibility(true);
 
         this.state.watchedShows.forEach(show => {
             const showElement = this.createWatchedShowElement(show);
