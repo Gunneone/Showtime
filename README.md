@@ -7,8 +7,6 @@ Never wonder again how much time you've invested in your favorite series!
 
 ## 🚀 Features
 
-### Core Functionality
-
 * **📊 Total Watch Time Display**: See your accumulated watch time prominently displayed at the top of the page
 * **🔍 Smart Search**: Quick search for TV shows and movies using The Movie Database (TMDB) API
 * **📝 Easy Tracking**: Add shows by simply clicking search results and specifying seasons watched
