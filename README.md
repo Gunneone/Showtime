@@ -37,7 +37,7 @@ A Flask-based web application for tracking the time you spend watching TV shows 
 * **JavaScript (ES6+)**: Interactive functionality and API communication
 * **Fetch API**: Asynchronous data retrieval
 * **Responsive Design**: Mobile-first approach
-* **Browser Cookies**: Persistent local storage of your watch history
+* **Browser LocalStorage**: Persistent local storage of your watch history
 
 ### External APIs
 
@@ -199,7 +199,7 @@ docker run -d \
 * View your complete list of watched shows below the search bar
 * Update season counts as you watch more episodes
 * Remove shows from your list if needed
-* Your progress is stored in your **browser cookies** and will persist across sessions
+* Your progress is stored in your **browser's localStorage** and will persist across sessions
 
 ### Understanding Watch Time Calculation
 
@@ -215,16 +215,16 @@ The app automatically calculates watch time based on:
 Showtime/
 ├── app.py                 # Main Flask application
 ├── requirements.txt       # Python dependencies
-├── static/                # Static files (CSS, JS, images)
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── templates/             # HTML templates
-│   ├── base.html
-│   ├── index.html
-│   └── components/
 ├── src/                   # Source code
 │   ├── config.py          # Configuration settings
+│   ├── static/            # Static files (CSS, JS, images)
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── images/
+│   ├── templates/         # HTML templates
+│   │   ├── base.html
+│   │   ├── index.html
+│   │   └── stats.html
 │   ├── routes/            # Route handlers
 │   │   ├── __init__.py
 │   │   ├── main.py
@@ -238,9 +238,7 @@ Showtime/
 │       └── scheduler_service.py
 └── tests/                 # Test files
     ├── test_app.py
-    ├── test_services.py
-    ├── test_integration.py
-    └── test_localStorage_validation.py
+    └── test_services.py
 ```
 
 ## 🧪 API Endpoints
@@ -253,11 +251,16 @@ Showtime/
 ### API Routes
 
 * `GET /api/search?query=<show_name>` - Search for shows/movies
-* `POST /api/watched` - Add watched content (stored in cookies)
-* `GET /api/watched` - Get watched list from cookies
+* `GET /api/show/<id>/seasons` - Get season data for a specific show
+* `POST /api/watched` - Add watched content (localStorage-based)
+* `GET /api/watched` - Get watched list from localStorage or cookies (migration)
 * `PUT /api/watched/<id>` - Update watched content
 * `DELETE /api/watched/<id>` - Remove watched content
-* `GET /api/stats` - Get viewing statistics
+* `DELETE /api/watched` - Clear all watched shows
+* `POST /api/watched/calculate` - Calculate watched shows statistics
+* `POST /api/stats/calculate` - Calculate viewing statistics
+* `POST /api/refresh-seasons` - Refresh season counts for all shows
+* `POST /api/refresh-show-seasons/<id>` - Refresh season count for specific show
 
 ## 🧪 Testing
 
@@ -294,23 +297,37 @@ python -m pytest tests/test_app.py
 
 ## 📈 Roadmap
 
-### Version 1.0 (MVP)
+### Version 1.0 (MVP) ✅ COMPLETED
 
 * [x] Basic project setup
-* [ ] TMDB integration
-* [ ] Core tracking functionality
-* [ ] Basic web interface
-* [ ] Cookie-based storage
+* [x] TMDB integration
+* [x] Core tracking functionality
+* [x] Basic web interface
+* [x] LocalStorage-based persistent storage
+* [x] Statistics dashboard
+* [x] Data export features
 
-### Version 1.1
+### Version 1.1 (In Progress)
 
-* [ ] Data export features
-* [ ] Mobile-responsive design
-* [ ] Statistics dashboard
+* [x] Mobile-responsive design
+* [x] Search functionality with caching
+* [x] Precise episode runtime calculation
+* [x] Season-by-season tracking
+* [ ] Advanced filtering and sorting options
+* [ ] Watchlist recommendations
+* [ ] Social sharing features
+
+### Future Enhancements
+
+* [ ] User accounts and cloud sync
+* [ ] Community features and reviews
+* [ ] Integration with streaming platforms
+* [ ] Advanced analytics and insights
 
 ## 🐛 Known Issues
 
-Currently in development - no known issues yet!
+* Background scheduler may show multiple "stopped" messages in tests (cosmetic only)
+* TMDB API rate limiting may affect bulk operations
 
 ## 📝 License
 

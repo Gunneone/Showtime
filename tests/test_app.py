@@ -43,9 +43,11 @@ def test_api_watched_get_empty(client):
     assert data['watched_shows'] == []
     assert data['total_time_minutes'] == 0
 
-def test_api_stats_empty(client):
-    """Test getting stats when no shows are watched."""
-    response = client.get('/api/stats')
+def test_api_stats_calculate_empty(client):
+    """Test calculating stats when no shows are watched."""
+    response = client.post('/api/stats/calculate', 
+                          json={'watched_shows': []},
+                          content_type='application/json')
     assert response.status_code == 200
     data = json.loads(response.data)
     assert data['total_shows'] == 0
