@@ -769,6 +769,10 @@ const App = {
             this.loadWatchedShows();
             this.hideSearchResults();
             this.elements.searchInput.value = '';
+            
+            // Scroll to top card on mobile after adding show
+            this.scrollToTopCard();
+            
             this.elements.searchInput.focus();
         } catch (error) {
             console.error('Error adding show:', error);
@@ -821,6 +825,10 @@ const App = {
             this.loadWatchedShows();
             this.hideSearchResults();
             this.elements.searchInput.value = '';
+            
+            // Scroll to top card on mobile after adding show
+            this.scrollToTopCard();
+            
             this.elements.searchInput.focus();
         } catch (error) {
             console.error('Error adding show:', error);
@@ -914,6 +922,10 @@ const App = {
             this.loadWatchedShows();
             this.hideSearchResults();
             this.elements.searchInput.value = '';
+            
+            // Scroll to top card on mobile after adding show
+            this.scrollToTopCard();
+            
             this.elements.searchInput.focus();
         } catch (error) {
             console.error('Error adding show:', error);
@@ -1680,11 +1692,60 @@ const App = {
                          (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform)) ||
                          window.innerWidth <= 768;
         
-        if (isMobile && this.elements.shareBtn) {
-            // Change "Share Result" to "Share" on mobile
+        if (this.elements.shareBtn) {
             const shareSpan = this.elements.shareBtn.querySelector('span');
-            if (shareSpan && shareSpan.textContent === 'Share Result') {
-                shareSpan.textContent = 'Share';
+            if (shareSpan) {
+                if (isMobile) {
+                    // Change "Share Result" to "Share" on mobile
+                    if (shareSpan.textContent === 'Share Result') {
+                        shareSpan.textContent = 'Share';
+                    }
+                } else {
+                    // Change "Share" back to "Share Result" on desktop
+                    if (shareSpan.textContent === 'Share') {
+                        shareSpan.textContent = 'Share Result';
+                    }
+                }
+            }
+        }
+        
+        // Add mobile scroll functionality
+        if (isMobile) {
+            this.setupMobileScrollFunctionality();
+        }
+    },
+
+    // Setup mobile scroll functionality
+    setupMobileScrollFunctionality() {
+        // Check if already setup to avoid multiple listeners
+        if (this.mobileScrollSetup) return;
+        this.mobileScrollSetup = true;
+
+        // Scroll to search when search input is focused
+        this.elements.searchInput.addEventListener('focus', () => {
+            // Small delay to ensure virtual keyboard is shown
+            setTimeout(() => {
+                this.elements.searchInput.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            }, 300);
+        });
+    },
+
+    // Scroll to top card (used after adding show on mobile)
+    scrollToTopCard() {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform)) ||
+                         window.innerWidth <= 768;
+        
+        if (isMobile) {
+            const topCard = document.querySelector('.watch-time-card');
+            if (topCard) {
+                topCard.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
             }
         }
     },
