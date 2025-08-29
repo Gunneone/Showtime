@@ -6,7 +6,9 @@ import atexit
 
 def create_app():
     """Create and configure the Flask application."""
-    app = Flask(__name__)
+    app = Flask(__name__, 
+                template_folder='src/templates',
+                static_folder='src/static')
     app.config.from_object(Config)
     
     # Configure logging for production
