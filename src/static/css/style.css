@@ -1334,9 +1334,8 @@ body {
         padding: 0 15px;
     }
     
-    /* Fix 1: Set top card height to 60% on mobile */
+    /* Mobile card optimizations - remove forced height, keep natural size */
     .watch-time-card {
-        height: 60vh;
         display: flex;
         flex-direction: column;
         justify-content: center;
