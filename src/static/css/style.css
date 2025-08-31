@@ -224,11 +224,11 @@ body {
 
 .confetti-particle {
     position: absolute;
-    width: calc(6px + 4px * var(--intensity, 0.5));
-    height: calc(6px + 4px * var(--intensity, 0.5));
+    width: calc(7px + 2px * var(--intensity, 0.5)); /* Adjusted size range: 7-9px */
+    height: calc(7px + 2px * var(--intensity, 0.5)); /* Narrower range for better balance */
     background: #ffd700;
     border-radius: 50%;
-    animation: confetti var(--duration, 3s) ease-out forwards;
+    animation: confetti var(--duration, 2.5s) ease-out forwards; /* Shorter default duration */
     z-index: 10;
 }
 
@@ -240,9 +240,13 @@ body {
     5% {
         transform: translate(calc(var(--dx) * 0.1), calc(var(--dy) * 0.1)) scale(calc(0.8 + 0.6 * var(--intensity, 0.5))) rotate(45deg);
     }
+    60% {
+        opacity: 1;
+        transform: translate(calc(var(--dx) * 0.8), calc(var(--dy) * 0.8)) scale(calc(0.6 + 0.4 * var(--intensity, 0.5))) rotate(240deg);
+    }
     80% {
         opacity: 1;
-        transform: translate(calc(var(--dx) * 0.95), calc(var(--dy) * 0.95)) scale(calc(0.6 + 0.4 * var(--intensity, 0.5))) rotate(300deg);
+        transform: translate(calc(var(--dx) * 0.98), calc(var(--dy) * 0.98)) scale(calc(0.4 + 0.3 * var(--intensity, 0.5))) rotate(320deg);
     }
     100% {
         opacity: 0;

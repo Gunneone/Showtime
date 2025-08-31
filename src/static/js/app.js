@@ -1138,9 +1138,9 @@ const App = {
             const maxDelay = 0.1 * (1 + intensityFactor);
             particle.style.animationDelay = `${Math.random() * maxDelay}s`;
             
-            // Variable duration for staggered disappearance (3-5 seconds)
-            const baseDuration = 3 + intensityFactor;
-            const variableDuration = baseDuration + Math.random() * 2; // Add 0-2 seconds random variation
+            // Variable duration for staggered disappearance (2-3 seconds)
+            const baseDuration = 2 + intensityFactor * 0.5; // 2-2.5 seconds base
+            const variableDuration = baseDuration + Math.random() * 1; // Add 0-1 seconds random variation
             particle.style.setProperty('--duration', `${variableDuration}s`);
             
             // Random confetti colors
@@ -1153,10 +1153,10 @@ const App = {
                 // Square confetti
                 particle.style.borderRadius = '0';
             } else if (shapeType < 0.6) {
-                // Rectangle confetti
+                // Rectangle confetti - adjusted size range
                 particle.style.borderRadius = '2px';
-                particle.style.width = `${4 + 6 * intensityFactor}px`;
-                particle.style.height = `${8 + 8 * intensityFactor}px`;
+                particle.style.width = `${6 + 3 * intensityFactor}px`;  // 6-9px width
+                particle.style.height = `${10 + 4 * intensityFactor}px`; // 10-14px height
             } else {
                 // Round confetti (default)
                 particle.style.borderRadius = '50%';
@@ -1165,8 +1165,8 @@ const App = {
             celebration.appendChild(particle);
         }
 
-        // Clean up after animation - extended duration to allow for longer particle animations
-        const cleanupDelay = 4000 + (2000 * intensityFactor); // Longer cleanup time (4-6 seconds)
+        // Clean up after animation - shorter duration to match faster particles
+        const cleanupDelay = 3000 + (1000 * intensityFactor); // Shorter cleanup time (3-4 seconds)
         setTimeout(() => {
             if (celebration.parentNode) {
                 celebration.parentNode.removeChild(celebration);
