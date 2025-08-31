@@ -566,9 +566,14 @@ body {
 
 .watched-header {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+}
+
+.watched-header h3 {
+    margin-bottom: 0;
+    color: #e2e8f0;
 }
 
 .sort-controls {
@@ -1329,6 +1334,18 @@ body {
         padding: 0 15px;
     }
     
+    /* Mobile card optimizations - remove forced height, keep natural size */
+    .watch-time-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    /* Fix 2: Remove "Time well spent" text on mobile */
+    .watch-time-subtitle {
+        display: none;
+    }
+    
     /* Fix 2: Share button margin reduction and positioning */
     .share-btn {
         padding: 0.4rem 0.8rem; /* Reduced padding */
@@ -1347,6 +1364,15 @@ body {
     .watched-grid {
         grid-template-columns: 1fr;
         gap: 0.75rem; /* Halved from 1.5rem */
+    }
+    
+    /* Fix 5: Remove internal scrolling in search results on mobile */
+    .search-results {
+        max-height: none;
+        overflow-y: visible;
+        position: relative; /* Change from absolute to relative */
+        margin-top: 8px;
+        margin-bottom: 1rem;
     }
     
     /* Fix 5: Make bottom buttons same size and better alignment */
@@ -1390,8 +1416,9 @@ body {
         gap: 1rem;
     }
     
+    /* Make time text BIGGER on mobile since there's more space available */
     .time-value {
-        font-size: 2rem;
+        font-size: 3rem; /* Increased from desktop size of 2.5rem */
     }
     
     .modal-content {

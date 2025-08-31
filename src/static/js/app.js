@@ -769,7 +769,14 @@ const App = {
             this.loadWatchedShows();
             this.hideSearchResults();
             this.elements.searchInput.value = '';
-            this.elements.searchInput.focus();
+            
+            // Scroll to top card on mobile after adding show
+            this.scrollToTopCard();
+            
+            // Only focus search input on desktop, not mobile
+            if (!this.isMobile()) {
+                this.elements.searchInput.focus();
+            }
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -821,7 +828,14 @@ const App = {
             this.loadWatchedShows();
             this.hideSearchResults();
             this.elements.searchInput.value = '';
-            this.elements.searchInput.focus();
+            
+            // Scroll to top card on mobile after adding show
+            this.scrollToTopCard();
+            
+            // Only focus search input on desktop, not mobile
+            if (!this.isMobile()) {
+                this.elements.searchInput.focus();
+            }
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -914,7 +928,14 @@ const App = {
             this.loadWatchedShows();
             this.hideSearchResults();
             this.elements.searchInput.value = '';
-            this.elements.searchInput.focus();
+            
+            // Scroll to top card on mobile after adding show
+            this.scrollToTopCard();
+            
+            // Only focus search input on desktop, not mobile
+            if (!this.isMobile()) {
+                this.elements.searchInput.focus();
+            }
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -1673,18 +1694,68 @@ const App = {
         }
     },
 
+    // Detect if device is mobile
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+               (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform)) ||
+               window.innerWidth <= 768;
+    },
+
     // Handle mobile-specific optimizations
     handleMobileOptimizations() {
         // Detect if device is mobile
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                         (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform)) ||
-                         window.innerWidth <= 768;
+        const isMobile = this.isMobile();
         
-        if (isMobile && this.elements.shareBtn) {
-            // Change "Share Result" to "Share" on mobile
+        if (this.elements.shareBtn) {
             const shareSpan = this.elements.shareBtn.querySelector('span');
-            if (shareSpan && shareSpan.textContent === 'Share Result') {
-                shareSpan.textContent = 'Share';
+            if (shareSpan) {
+                if (isMobile) {
+                    // Change "Share Result" to "Share" on mobile
+                    if (shareSpan.textContent === 'Share Result') {
+                        shareSpan.textContent = 'Share';
+                    }
+                } else {
+                    // Change "Share" back to "Share Result" on desktop
+                    if (shareSpan.textContent === 'Share') {
+                        shareSpan.textContent = 'Share Result';
+                    }
+                }
+            }
+        }
+        
+        // Add mobile scroll functionality
+        if (isMobile) {
+            this.setupMobileScrollFunctionality();
+        }
+    },
+
+    // Setup mobile scroll functionality
+    setupMobileScrollFunctionality() {
+        // Check if already setup to avoid multiple listeners
+        if (this.mobileScrollSetup) return;
+        this.mobileScrollSetup = true;
+
+        // Scroll to search when search input is focused
+        this.elements.searchInput.addEventListener('focus', () => {
+            // Small delay to ensure virtual keyboard is shown
+            setTimeout(() => {
+                this.elements.searchInput.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            }, 300);
+        });
+    },
+
+    // Scroll to top card (used after adding show on mobile)
+    scrollToTopCard() {
+        if (this.isMobile()) {
+            const topCard = document.querySelector('.watch-time-card');
+            if (topCard) {
+                topCard.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
             }
         }
     },
@@ -1716,8 +1787,7 @@ const App = {
             const shareText = `I spend <b>${timeText}</b> of my life watching <b>${showCount}</b> TV Shows.\nTime well spent!\n\nWhat is <b>your result</b>?\n\n${window.location.origin}`;
             
             // Detect if device is mobile
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                             (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform));
+            const isMobile = this.isMobile();
             
             if (isMobile) {
                 // On mobile: Use Web Share API if available
