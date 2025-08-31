@@ -1045,13 +1045,11 @@ const App = {
         }
         element.classList.add('animating');
 
-        // Start celebration effect early for increases (0.2s before counting ends)
+        // Start celebration effect immediately for increases
         let celebrationStarted = false;
         if (isIncrease) {
-            setTimeout(() => {
-                this.triggerCelebrationEffect(element, timeDifference, intensityFactor);
-                celebrationStarted = true;
-            }, Math.max(0, duration - 200)); // Start 200ms before animation ends
+            this.triggerCelebrationEffect(element, timeDifference, intensityFactor);
+            celebrationStarted = true;
         }
 
         const animate = (currentTime) => {
@@ -1088,7 +1086,7 @@ const App = {
 
     // Trigger celebration particle effect
     triggerCelebrationEffect(element, timeDifference, intensityFactor) {
-        const container = element.closest('.watch-time-display');
+        const container = element.closest('.watch-time-card');
         if (!container) return;
 
         // Create celebration container
@@ -1102,36 +1100,35 @@ const App = {
         const maxParticles = 30;
         const particleCount = Math.round(minParticles + (maxParticles - minParticles) * intensityFactor);
 
-        // Get text bounds for positioning particles around it
-        const textRect = element.getBoundingClientRect();
+        // Get container bounds and find center
         const containerRect = container.getBoundingClientRect();
+        const cardWidth = containerRect.width;
+        const cardHeight = containerRect.height;
         
-        // Calculate relative position within container
-        const textCenterX = textRect.left + textRect.width / 2 - containerRect.left;
-        const textCenterY = textRect.top + textRect.height / 2 - containerRect.top;
-        const textWidth = textRect.width;
-        const textHeight = textRect.height;
+        // Calculate center position of the card
+        const centerX = cardWidth / 2;
+        const centerY = cardHeight / 2;
 
-        // Generate particles around the text
+        // Generate particles from center moving outward
         for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
             particle.className = 'confetti-particle';
             
-            // Random starting position around the text bounds (not just center)
-            const startOffsetX = (Math.random() - 0.5) * (textWidth + 40); // Spread around text width + 40px
-            const startOffsetY = (Math.random() - 0.5) * (textHeight + 20); // Spread around text height + 20px
+            // Start all particles from the center (with minimal random offset for variety)
+            const startOffsetX = (Math.random() - 0.5) * 20; // Small random start offset
+            const startOffsetY = (Math.random() - 0.5) * 20; // Small random start offset
             
-            // Random direction and distance - more spread out
+            // Random direction from center outward - more directional spread
             const angle = Math.random() * 2 * Math.PI;
-            const baseDistance = 60;
-            const maxDistance = 120;
-            const distance = baseDistance + (maxDistance - baseDistance) * intensityFactor + Math.random() * 40;
+            const baseDistance = 100;
+            const maxDistance = Math.min(cardWidth, cardHeight) * 0.4; // Use card dimensions for distance
+            const distance = baseDistance + (maxDistance - baseDistance) * intensityFactor + Math.random() * 60;
             const dx = Math.cos(angle) * distance;
             const dy = Math.sin(angle) * distance;
             
-            // Set initial position around the text
-            particle.style.left = (textCenterX + startOffsetX) + 'px';
-            particle.style.top = (textCenterY + startOffsetY) + 'px';
+            // Set initial position at center
+            particle.style.left = (centerX + startOffsetX) + 'px';
+            particle.style.top = (centerY + startOffsetY) + 'px';
             
             particle.style.setProperty('--dx', `${dx}px`);
             particle.style.setProperty('--dy', `${dy}px`);
