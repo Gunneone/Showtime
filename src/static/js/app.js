@@ -1045,6 +1045,15 @@ const App = {
         }
         element.classList.add('animating');
 
+        // Start celebration effect early for increases (0.2s before counting ends)
+        let celebrationStarted = false;
+        if (isIncrease) {
+            setTimeout(() => {
+                this.triggerCelebrationEffect(element, timeDifference, intensityFactor);
+                celebrationStarted = true;
+            }, Math.max(0, duration - 200)); // Start 200ms before animation ends
+        }
+
         const animate = (currentTime) => {
             const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / duration, 1);
@@ -1061,8 +1070,8 @@ const App = {
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
-                // Animation complete - trigger celebration for increases
-                if (isIncrease) {
+                // Animation complete - trigger celebration for increases only if not already started
+                if (isIncrease && !celebrationStarted) {
                     this.triggerCelebrationEffect(element, timeDifference, intensityFactor);
                 }
                 
@@ -1088,37 +1097,74 @@ const App = {
         container.style.position = 'relative';
         container.appendChild(celebration);
 
-        // Scale particle count based on intensity (4 to 20 particles)
-        const minParticles = 4;
-        const maxParticles = 20;
+        // Scale particle count based on intensity (8 to 30 particles)
+        const minParticles = 8;
+        const maxParticles = 30;
         const particleCount = Math.round(minParticles + (maxParticles - minParticles) * intensityFactor);
 
-        // Generate particles
+        // Get text bounds for positioning particles around it
+        const textRect = element.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        
+        // Calculate relative position within container
+        const textCenterX = textRect.left + textRect.width / 2 - containerRect.left;
+        const textCenterY = textRect.top + textRect.height / 2 - containerRect.top;
+        const textWidth = textRect.width;
+        const textHeight = textRect.height;
+
+        // Generate particles around the text
         for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
-            particle.className = 'particle';
+            particle.className = 'confetti-particle';
             
-            // Random direction and distance based on intensity
-            const angle = (i / particleCount) * 2 * Math.PI;
-            const baseDistance = 30;
-            const maxDistance = 60;
-            const distance = baseDistance + (maxDistance - baseDistance) * intensityFactor + Math.random() * 20;
+            // Random starting position around the text bounds (not just center)
+            const startOffsetX = (Math.random() - 0.5) * (textWidth + 40); // Spread around text width + 40px
+            const startOffsetY = (Math.random() - 0.5) * (textHeight + 20); // Spread around text height + 20px
+            
+            // Random direction and distance - more spread out
+            const angle = Math.random() * 2 * Math.PI;
+            const baseDistance = 60;
+            const maxDistance = 120;
+            const distance = baseDistance + (maxDistance - baseDistance) * intensityFactor + Math.random() * 40;
             const dx = Math.cos(angle) * distance;
             const dy = Math.sin(angle) * distance;
+            
+            // Set initial position around the text
+            particle.style.left = (textCenterX + startOffsetX) + 'px';
+            particle.style.top = (textCenterY + startOffsetY) + 'px';
             
             particle.style.setProperty('--dx', `${dx}px`);
             particle.style.setProperty('--dy', `${dy}px`);
             particle.style.setProperty('--intensity', intensityFactor);
             
             // Random delay for staggered effect, scaled by intensity
-            const maxDelay = 0.3 * (1 + intensityFactor);
+            const maxDelay = 0.2 * (1 + intensityFactor);
             particle.style.animationDelay = `${Math.random() * maxDelay}s`;
+            
+            // Random confetti colors
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e'];
+            particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Random confetti shapes by varying border-radius
+            const shapeType = Math.random();
+            if (shapeType < 0.3) {
+                // Square confetti
+                particle.style.borderRadius = '0';
+            } else if (shapeType < 0.6) {
+                // Rectangle confetti
+                particle.style.borderRadius = '2px';
+                particle.style.width = `${4 + 6 * intensityFactor}px`;
+                particle.style.height = `${8 + 8 * intensityFactor}px`;
+            } else {
+                // Round confetti (default)
+                particle.style.borderRadius = '50%';
+            }
             
             celebration.appendChild(particle);
         }
 
         // Clean up after animation, duration based on intensity
-        const cleanupDelay = 1500 + (1000 * intensityFactor);
+        const cleanupDelay = 2000 + (1000 * intensityFactor); // Longer to see confetti fall
         setTimeout(() => {
             if (celebration.parentNode) {
                 celebration.parentNode.removeChild(celebration);

@@ -214,12 +214,39 @@ body {
 /* Celebration particles effect */
 .time-celebration {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
+    overflow: hidden;
 }
 
+.confetti-particle {
+    position: absolute;
+    width: calc(6px + 4px * var(--intensity, 0.5));
+    height: calc(6px + 4px * var(--intensity, 0.5));
+    background: #ffd700;
+    border-radius: 50%;
+    animation: confetti calc(2s + 1s * var(--intensity, 0.5)) ease-out forwards;
+    z-index: 1000;
+}
+
+@keyframes confetti {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(0) rotate(0deg);
+    }
+    10% {
+        transform: translate(0, 0) scale(calc(0.8 + 0.6 * var(--intensity, 0.5))) rotate(45deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) scale(0) rotate(360deg);
+    }
+}
+
+/* Legacy particle class for backwards compatibility */
 .particle {
     position: absolute;
     width: calc(4px + 4px * var(--intensity, 0.5));
