@@ -1417,8 +1417,9 @@ body {
         gap: 1rem;
     }
     
+    /* Make time text BIGGER on mobile since there's more space available */
     .time-value {
-        font-size: 2rem;
+        font-size: 3rem; /* Increased from desktop size of 2.5rem */
     }
     
     .modal-content {
