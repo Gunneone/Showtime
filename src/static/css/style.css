@@ -1468,12 +1468,6 @@ body {
     text-align: center;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     border: 1px solid var(--blue-primary-alpha-30);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.award-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .award-icon {

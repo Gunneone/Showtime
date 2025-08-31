@@ -262,7 +262,8 @@ class CalculationService:
                         oldest_show = {
                             'name': show.get('name', 'Unknown'),
                             'first_air_date': first_air_date,
-                            'year': show_date.year
+                            'year': show_date.year,
+                            'backdrop_path': show.get('backdrop_path')
                         }
                 except ValueError:
                     pass
@@ -283,7 +284,8 @@ class CalculationService:
                 max_episodes = episodes_watched
                 most_episodes_show = {
                     'name': show.get('name', 'Unknown'),
-                    'episodes': episodes_watched
+                    'episodes': episodes_watched,
+                    'backdrop_path': show.get('backdrop_path')
                 }
             
             # Show with most watch time
@@ -293,16 +295,19 @@ class CalculationService:
                 most_watch_time_show = {
                     'name': show.get('name', 'Unknown'),
                     'watch_time': watch_time,
-                    'watch_time_formatted': self.format_time(watch_time)
+                    'watch_time_formatted': self.format_time(watch_time),
+                    'backdrop_path': show.get('backdrop_path')
                 }
             
             # Most obscure show (lowest popularity)
-            popularity = show.get('popularity', 0)
-            if popularity > 0 and popularity < lowest_popularity:
+            popularity = show.get('popularity')
+            # Only consider shows that have actual popularity data (not None or 0)
+            if popularity is not None and popularity > 0 and popularity < lowest_popularity:
                 lowest_popularity = popularity
                 most_obscure_show = {
                     'name': show.get('name', 'Unknown'),
-                    'popularity': popularity
+                    'popularity': popularity,
+                    'backdrop_path': show.get('backdrop_path')
                 }
         
         return {

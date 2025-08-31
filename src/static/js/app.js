@@ -2712,6 +2712,12 @@ const StatsApp = {
         awardCards.forEach(award => {
             const card = document.createElement('div');
             card.className = 'award-card';
+            
+            // Add backdrop image if available
+            const backdropStyle = award.show && award.show.backdrop_path 
+                ? `background-image: linear-gradient(rgba(26, 32, 44, 0.8), rgba(26, 32, 44, 0.8)), url(${award.show.backdrop_path}); background-size: cover; background-position: center;`
+                : '';
+            
             card.innerHTML = `
                 <div class="award-icon">
                     <i class="${award.icon}"></i>
@@ -2721,6 +2727,11 @@ const StatsApp = {
                     <p class="award-value">${award.getValue(award.show)}</p>
                 </div>
             `;
+            
+            if (backdropStyle) {
+                card.style.cssText += backdropStyle;
+            }
+            
             container.appendChild(card);
         });
     },

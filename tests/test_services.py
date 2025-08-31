@@ -321,7 +321,8 @@ def test_calculate_awards():
             'total_episodes': 62,
             'episode_run_time': 47,
             'first_air_date': '2008-01-20',
-            'popularity': 95.5
+            'popularity': 95.5,
+            'backdrop_path': '/breaking_bad_backdrop.jpg'
         },
         {
             'name': 'The Office',
@@ -330,7 +331,8 @@ def test_calculate_awards():
             'total_episodes': 201,
             'episode_run_time': 22,
             'first_air_date': '2005-03-24',
-            'popularity': 78.2
+            'popularity': 78.2,
+            'backdrop_path': '/office_backdrop.jpg'
         },
         {
             'name': 'Stranger Things',
@@ -339,7 +341,8 @@ def test_calculate_awards():
             'total_episodes': 42,
             'episode_run_time': 50,
             'first_air_date': '2016-07-15',
-            'popularity': 125.8
+            'popularity': 125.8,
+            'backdrop_path': '/stranger_things_backdrop.jpg'
         },
         {
             'name': 'Obscure Show',
@@ -348,7 +351,8 @@ def test_calculate_awards():
             'total_episodes': 6,
             'episode_run_time': 30,
             'first_air_date': '2022-01-01',
-            'popularity': 5.2
+            'popularity': 5.2,
+            'backdrop_path': '/obscure_backdrop.jpg'
         }
     ]
     
@@ -357,17 +361,21 @@ def test_calculate_awards():
     # Test oldest show
     assert awards['oldest_show']['name'] == 'The Office'
     assert awards['oldest_show']['year'] == 2005
+    assert awards['oldest_show']['backdrop_path'] == '/office_backdrop.jpg'
     
     # Test most episodes show
     assert awards['most_episodes_show']['name'] == 'The Office'
     assert awards['most_episodes_show']['episodes'] == 201  # 9 seasons * (201/9) episodes per season
+    assert awards['most_episodes_show']['backdrop_path'] == '/office_backdrop.jpg'
     
     # Test most watch time show
     assert awards['most_watch_time_show']['name'] == 'The Office'
+    assert awards['most_watch_time_show']['backdrop_path'] == '/office_backdrop.jpg'
     
     # Test most obscure show (lowest popularity)
     assert awards['most_obscure_show']['name'] == 'Obscure Show'
     assert awards['most_obscure_show']['popularity'] == 5.2
+    assert awards['most_obscure_show']['backdrop_path'] == '/obscure_backdrop.jpg'
 
 def test_calculate_awards_empty():
     """Test calculating awards with no shows."""
