@@ -2013,6 +2013,7 @@ const StatsApp = {
             if (watchedShows.length === 0) {
                 loadingElement.classList.add('hidden');
                 emptyElement.classList.remove('hidden');
+                this.hideStatsSections();
                 return;
             }
 
@@ -2050,8 +2051,13 @@ const StatsApp = {
         
         if (watchedShows.length === 0) {
             document.getElementById('statsEmpty').classList.remove('hidden');
+            this.hideStatsSections();
             return;
         }
+
+        // Show stats sections since we have data
+        this.showStatsSections();
+        document.getElementById('statsEmpty').classList.add('hidden');
 
         // Calculate basic stats quickly (no API calls)
         const totalShows = watchedShows.length;
@@ -2177,8 +2183,40 @@ const StatsApp = {
         });
     },
 
+    // Hide main statistics sections when no data
+    hideStatsSections() {
+        const sections = [
+            document.querySelector('.stats-overview'),
+            document.querySelector('.completion-stats'),
+            document.querySelector('.charts-section')
+        ];
+        
+        sections.forEach(section => {
+            if (section) {
+                section.classList.add('hidden');
+            }
+        });
+    },
+
+    // Show main statistics sections when data is available
+    showStatsSections() {
+        const sections = [
+            document.querySelector('.stats-overview'),
+            document.querySelector('.completion-stats'),
+            document.querySelector('.charts-section')
+        ];
+        
+        sections.forEach(section => {
+            if (section) {
+                section.classList.remove('hidden');
+            }
+        });
+    },
+
     // Display statistics progressively (from cache)
     displayStatsProgressive(stats) {
+        this.showStatsSections();
+        document.getElementById('statsEmpty').classList.add('hidden');
         this.displayStats(stats);
     },
 
