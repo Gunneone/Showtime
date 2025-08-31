@@ -1134,9 +1134,14 @@ const App = {
             particle.style.setProperty('--dy', `${dy}px`);
             particle.style.setProperty('--intensity', intensityFactor);
             
-            // Random delay for staggered effect, scaled by intensity
-            const maxDelay = 0.2 * (1 + intensityFactor);
+            // Staggered animation delay for smooth appearance
+            const maxDelay = 0.1 * (1 + intensityFactor);
             particle.style.animationDelay = `${Math.random() * maxDelay}s`;
+            
+            // Variable duration for staggered disappearance (3-5 seconds)
+            const baseDuration = 3 + intensityFactor;
+            const variableDuration = baseDuration + Math.random() * 2; // Add 0-2 seconds random variation
+            particle.style.setProperty('--duration', `${variableDuration}s`);
             
             // Random confetti colors
             const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e'];
@@ -1160,8 +1165,8 @@ const App = {
             celebration.appendChild(particle);
         }
 
-        // Clean up after animation, duration based on intensity
-        const cleanupDelay = 2000 + (1000 * intensityFactor); // Longer to see confetti fall
+        // Clean up after animation - extended duration to allow for longer particle animations
+        const cleanupDelay = 4000 + (2000 * intensityFactor); // Longer cleanup time (4-6 seconds)
         setTimeout(() => {
             if (celebration.parentNode) {
                 celebration.parentNode.removeChild(celebration);
