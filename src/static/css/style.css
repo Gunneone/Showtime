@@ -238,19 +238,23 @@ body {
         transform: translate(0, 0) scale(0.3) rotate(0deg);
     }
     5% {
-        transform: translate(calc(var(--dx) * 0.1), calc(var(--dy) * 0.1)) scale(calc(0.8 + 0.6 * var(--intensity, 0.5))) rotate(45deg);
+        transform: translate(calc(var(--dx) * 0.15), calc(var(--dy) * 0.15)) scale(calc(0.8 + 0.6 * var(--intensity, 0.5))) rotate(45deg);
+    }
+    30% {
+        opacity: 1;
+        transform: translate(calc(var(--dx) * 0.6), calc(var(--dy) * 0.6)) scale(calc(0.7 + 0.4 * var(--intensity, 0.5))) rotate(150deg);
     }
     60% {
         opacity: 1;
-        transform: translate(calc(var(--dx) * 0.8), calc(var(--dy) * 0.8)) scale(calc(0.6 + 0.4 * var(--intensity, 0.5))) rotate(240deg);
+        transform: translate(calc(var(--dx) * 0.85), calc(var(--dy) * 0.85)) scale(calc(0.5 + 0.3 * var(--intensity, 0.5))) rotate(270deg);
     }
     80% {
-        opacity: 1;
-        transform: translate(calc(var(--dx) * 0.98), calc(var(--dy) * 0.98)) scale(calc(0.4 + 0.3 * var(--intensity, 0.5))) rotate(320deg);
+        opacity: 0.6;
+        transform: translate(calc(var(--dx) * 0.95), calc(var(--dy) * 0.95)) scale(calc(0.3 + 0.2 * var(--intensity, 0.5))) rotate(330deg);
     }
     100% {
         opacity: 0;
-        transform: translate(var(--dx), var(--dy)) scale(0.2) rotate(360deg);
+        transform: translate(var(--dx), var(--dy)) scale(0.1) rotate(360deg);
     }
 }
 
