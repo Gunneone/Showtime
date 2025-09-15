@@ -1114,17 +1114,18 @@ const App = {
 
         // Calculate spread and decay based on intensity
         const spread = Math.round(60 + intensityFactor * 40); // 60-100 degrees spread
-        const startVelocity = Math.round(20 + intensityFactor * 25); // 20-45 velocity
+        const startVelocity = Math.round(15 + intensityFactor * 19); // Reduced from 20-45 to 15-34 (25% reduction)
         const decay = 0.91 - (intensityFactor * 0.05); // 0.91-0.86 decay (faster for higher intensity)
 
         // Create multiple bursts for a more dynamic effect
         const burstCount = Math.round(1 + intensityFactor * 2); // 1-3 bursts
         
+        // Primary upward bursts
         for (let burst = 0; burst < burstCount; burst++) {
             setTimeout(() => {
-                // Fire confetti burst
+                // Fire upward confetti burst
                 confetti({
-                    particleCount: Math.round(particleCount / burstCount),
+                    particleCount: Math.round(particleCount / burstCount * 0.7), // 70% of particles go up
                     spread: spread,
                     startVelocity: startVelocity,
                     origin: { 
@@ -1137,20 +1138,54 @@ const App = {
                     drift: (Math.random() - 0.5) * 2, // Random horizontal drift
                     gravity: 0.6 + (intensityFactor * 0.2), // 0.6-0.8 gravity
                     decay: decay,
-                    ticks: Math.round(120 + intensityFactor * 80) // 120-200 ticks duration
+                    ticks: Math.round(120 + intensityFactor * 80), // 120-200 ticks duration
+                    angle: 90 // Upward direction
                 });
             }, burst * 100); // Stagger bursts by 100ms
         }
 
-        // Additional radial burst for higher intensity
+        // Multi-directional bursts for all intensities (not just high intensity)
+        for (let burst = 0; burst < burstCount; burst++) {
+            setTimeout(() => {
+                // Create downward and sideways confetti for visual variety
+                const remainingParticles = Math.round(particleCount / burstCount * 0.3); // 30% of particles
+                const directions = [
+                    { angle: 210, velocity: startVelocity * 0.6 }, // Down-left
+                    { angle: 330, velocity: startVelocity * 0.6 }, // Down-right
+                    { angle: 270, velocity: startVelocity * 0.8 }  // Straight down
+                ];
+                
+                directions.forEach((direction, index) => {
+                    confetti({
+                        particleCount: Math.round(remainingParticles / directions.length),
+                        spread: 45, // Narrower spread for directional bursts
+                        startVelocity: direction.velocity,
+                        origin: { 
+                            x: originX, 
+                            y: originY 
+                        },
+                        colors: colors,
+                        shapes: ['square', 'circle'],
+                        scalar: 0.7 + (intensityFactor * 0.3), // Slightly smaller for secondary bursts
+                        drift: (Math.random() - 0.5) * 1.5,
+                        gravity: 0.5 + (intensityFactor * 0.15),
+                        decay: decay,
+                        ticks: Math.round(100 + intensityFactor * 60),
+                        angle: direction.angle
+                    });
+                });
+            }, burst * 100 + 50); // Slight delay after upward bursts
+        }
+
+        // Additional radial burst for higher intensity (enhanced to be more balanced)
         if (intensityFactor > 0.6) {
             setTimeout(() => {
-                // Create a radial explosion effect
+                // Create a balanced radial explosion effect
                 const radialCount = Math.round(particleCount * 0.3);
                 confetti({
                     particleCount: radialCount,
                     spread: 360, // Full circle
-                    startVelocity: Math.round(15 + intensityFactor * 20),
+                    startVelocity: Math.round(11 + intensityFactor * 15), // Reduced velocity for radial burst too
                     origin: { 
                         x: originX, 
                         y: originY 
