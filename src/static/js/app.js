@@ -1084,94 +1084,86 @@ const App = {
         requestAnimationFrame(animate);
     },
 
-    // Trigger celebration particle effect
+    // Trigger celebration particle effect using canvas-confetti
     triggerCelebrationEffect(element, timeDifference, intensityFactor) {
         const container = element.closest('.watch-time-card');
         if (!container) return;
 
-        // Create celebration container
-        const celebration = document.createElement('div');
-        celebration.className = 'time-celebration';
-        container.style.position = 'relative';
-        container.appendChild(celebration);
-
-        // Scale particle count based on intensity (8 to 30 particles)
-        const minParticles = 8;
-        const maxParticles = 30;
-        const particleCount = Math.round(minParticles + (maxParticles - minParticles) * intensityFactor);
-
-        // Get container bounds and find center
-        const containerRect = container.getBoundingClientRect();
-        const cardWidth = containerRect.width;
-        const cardHeight = containerRect.height;
-        
-        // Calculate center position of the card
-        const centerX = cardWidth / 2;
-        const centerY = cardHeight / 2;
-
-        // Generate particles from center moving outward
-        for (let i = 0; i < particleCount; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'confetti-particle';
-            
-            // Start all particles from the center (with minimal random offset for variety)
-            const startOffsetX = (Math.random() - 0.5) * 20; // Small random start offset
-            const startOffsetY = (Math.random() - 0.5) * 20; // Small random start offset
-            
-            // Random direction from center outward - more directional spread
-            const angle = Math.random() * 2 * Math.PI;
-            const baseDistance = 100;
-            const maxDistance = Math.min(cardWidth, cardHeight) * 0.4; // Use card dimensions for distance
-            const distance = baseDistance + (maxDistance - baseDistance) * intensityFactor + Math.random() * 60;
-            const dx = Math.cos(angle) * distance;
-            const dy = Math.sin(angle) * distance;
-            
-            // Set initial position at center
-            particle.style.left = (centerX + startOffsetX) + 'px';
-            particle.style.top = (centerY + startOffsetY) + 'px';
-            
-            particle.style.setProperty('--dx', `${dx}px`);
-            particle.style.setProperty('--dy', `${dy}px`);
-            particle.style.setProperty('--intensity', intensityFactor);
-            
-            // Staggered animation delay for smooth appearance
-            const maxDelay = 0.1 * (1 + intensityFactor);
-            particle.style.animationDelay = `${Math.random() * maxDelay}s`;
-            
-            // Variable duration for staggered disappearance (2-3 seconds)
-            const baseDuration = 2 + intensityFactor * 0.5; // 2-2.5 seconds base
-            const variableDuration = baseDuration + Math.random() * 1; // Add 0-1 seconds random variation
-            particle.style.setProperty('--duration', `${variableDuration}s`);
-            
-            // Random confetti colors
-            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e'];
-            particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            
-            // Random confetti shapes by varying border-radius
-            const shapeType = Math.random();
-            if (shapeType < 0.3) {
-                // Square confetti
-                particle.style.borderRadius = '0';
-            } else if (shapeType < 0.6) {
-                // Rectangle confetti - adjusted size range
-                particle.style.borderRadius = '2px';
-                particle.style.width = `${6 + 3 * intensityFactor}px`;  // 6-9px width
-                particle.style.height = `${10 + 4 * intensityFactor}px`; // 10-14px height
-            } else {
-                // Round confetti (default)
-                particle.style.borderRadius = '50%';
-            }
-            
-            celebration.appendChild(particle);
+        // Check if canvas-confetti is available
+        if (typeof confetti !== 'function') {
+            console.warn('canvas-confetti library not loaded');
+            return;
         }
 
-        // Clean up after animation - shorter duration to match faster particles
-        const cleanupDelay = 3000 + (1000 * intensityFactor); // Shorter cleanup time (3-4 seconds)
-        setTimeout(() => {
-            if (celebration.parentNode) {
-                celebration.parentNode.removeChild(celebration);
-            }
-        }, cleanupDelay);
+        // Get container bounds to determine the origin position
+        const containerRect = container.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate center position of the card relative to viewport
+        const originX = (containerRect.left + containerRect.width / 2) / viewportWidth;
+        const originY = (containerRect.top + containerRect.height / 2) / viewportHeight;
+
+        // Scale particle count based on intensity (15 to 60 particles for better visual impact)
+        const minParticles = 15;
+        const maxParticles = 60;
+        const particleCount = Math.round(minParticles + (maxParticles - minParticles) * intensityFactor);
+
+        // Configure confetti colors (vibrant selection)
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e'];
+
+        // Calculate spread and decay based on intensity
+        const spread = Math.round(60 + intensityFactor * 40); // 60-100 degrees spread
+        const startVelocity = Math.round(20 + intensityFactor * 25); // 20-45 velocity
+        const decay = 0.91 - (intensityFactor * 0.05); // 0.91-0.86 decay (faster for higher intensity)
+
+        // Create multiple bursts for a more dynamic effect
+        const burstCount = Math.round(1 + intensityFactor * 2); // 1-3 bursts
+        
+        for (let burst = 0; burst < burstCount; burst++) {
+            setTimeout(() => {
+                // Fire confetti burst
+                confetti({
+                    particleCount: Math.round(particleCount / burstCount),
+                    spread: spread,
+                    startVelocity: startVelocity,
+                    origin: { 
+                        x: originX, 
+                        y: originY 
+                    },
+                    colors: colors,
+                    shapes: ['square', 'circle'], // Mix of shapes
+                    scalar: 0.8 + (intensityFactor * 0.4), // 0.8-1.2 size scaling
+                    drift: (Math.random() - 0.5) * 2, // Random horizontal drift
+                    gravity: 0.6 + (intensityFactor * 0.2), // 0.6-0.8 gravity
+                    decay: decay,
+                    ticks: Math.round(120 + intensityFactor * 80) // 120-200 ticks duration
+                });
+            }, burst * 100); // Stagger bursts by 100ms
+        }
+
+        // Additional radial burst for higher intensity
+        if (intensityFactor > 0.6) {
+            setTimeout(() => {
+                // Create a radial explosion effect
+                const radialCount = Math.round(particleCount * 0.3);
+                confetti({
+                    particleCount: radialCount,
+                    spread: 360, // Full circle
+                    startVelocity: Math.round(15 + intensityFactor * 20),
+                    origin: { 
+                        x: originX, 
+                        y: originY 
+                    },
+                    colors: colors,
+                    shapes: ['circle'],
+                    scalar: 0.6 + (intensityFactor * 0.3),
+                    gravity: 0.4,
+                    decay: 0.89,
+                    ticks: Math.round(100 + intensityFactor * 60)
+                });
+            }, 150);
+        }
     },
 
     // Sort watched shows based on selected criteria
