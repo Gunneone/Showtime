@@ -1331,10 +1331,21 @@ body {
         padding: 0 15px;
     }
     
-    /* Mobile card optimizations - remove forced height, keep natural size */
+    /* Mobile card optimizations - reduce height by 35% while maintaining centering */
     .watch-time-card {
+        padding: 0.975rem; /* 35% reduction from 1.5rem */
         display: flex;
         flex-direction: column;
+        justify-content: space-between;
+        min-height: auto;
+    }
+    
+    /* Ensure the time display is properly centered in available space */
+    .watch-time-display {
+        margin: auto; /* Center the display vertically in the remaining space */
+        flex: 1; /* Take up available space */
+        display: flex;
+        align-items: center;
         justify-content: center;
     }
     
