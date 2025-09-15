@@ -624,7 +624,6 @@ body {
 
 .watched-show:hover {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    background: rgba(26, 32, 44, 0.9);
 }
 
 .watched-show-remove {
