@@ -1331,11 +1331,17 @@ body {
         padding: 0 15px;
     }
     
-    /* Mobile card optimizations - remove forced height, keep natural size */
+    /* Mobile card optimizations - reduce height by 35% while maintaining centering */
     .watch-time-card {
         display: flex;
         flex-direction: column;
         justify-content: center;
+        padding: 0.975rem; /* 35% reduction from 1.5rem */
+    }
+    
+    /* Reduce watch time display margins on mobile to contribute to 35% height reduction */
+    .watch-time-display {
+        margin: 1.3rem 0; /* 35% reduction from 2rem 0 */
     }
     
     /* Fix 2: Remove "Time well spent" text on mobile */
