@@ -231,6 +231,92 @@ class CalculationService:
         
         return length_ranges
     
+    def calculate_awards(self, watched_shows):
+        """Calculate awards for watched shows."""
+        if not watched_shows:
+            return {
+                'oldest_show': None,
+                'most_episodes_show': None,
+                'most_watch_time_show': None,
+                'most_obscure_show': None
+            }
+        
+        oldest_show = None
+        most_episodes_show = None
+        most_watch_time_show = None
+        most_obscure_show = None
+        
+        oldest_date = None
+        max_episodes = 0
+        max_watch_time = 0
+        lowest_popularity = float('inf')
+        
+        for show in watched_shows:
+            # Oldest show (by first_air_date)
+            first_air_date = show.get('first_air_date')
+            if first_air_date:
+                try:
+                    show_date = datetime.strptime(first_air_date, '%Y-%m-%d')
+                    if oldest_date is None or show_date < oldest_date:
+                        oldest_date = show_date
+                        oldest_show = {
+                            'name': show.get('name', 'Unknown'),
+                            'first_air_date': first_air_date,
+                            'year': show_date.year,
+                            'backdrop_path': show.get('backdrop_path')
+                        }
+                except ValueError:
+                    pass
+            
+            # Show with most episodes
+            seasons_watched = show.get('seasons_watched', 0)
+            total_episodes_in_show = show.get('total_episodes', 0)
+            total_seasons_in_show = show.get('total_seasons', 1)
+            
+            if total_episodes_in_show > 0 and total_seasons_in_show > 0:
+                episodes_per_season = total_episodes_in_show / total_seasons_in_show
+            else:
+                episodes_per_season = 20
+            
+            episodes_watched = round(seasons_watched * episodes_per_season)
+            
+            if episodes_watched > max_episodes:
+                max_episodes = episodes_watched
+                most_episodes_show = {
+                    'name': show.get('name', 'Unknown'),
+                    'episodes': episodes_watched,
+                    'backdrop_path': show.get('backdrop_path')
+                }
+            
+            # Show with most watch time
+            watch_time = self.calculate_show_time(show)
+            if watch_time > max_watch_time:
+                max_watch_time = watch_time
+                most_watch_time_show = {
+                    'name': show.get('name', 'Unknown'),
+                    'watch_time': watch_time,
+                    'watch_time_formatted': self.format_time(watch_time),
+                    'backdrop_path': show.get('backdrop_path')
+                }
+            
+            # Most obscure show (lowest popularity)
+            popularity = show.get('popularity')
+            # Only consider shows that have actual popularity data (not None or 0)
+            if popularity is not None and popularity > 0 and popularity < lowest_popularity:
+                lowest_popularity = popularity
+                most_obscure_show = {
+                    'name': show.get('name', 'Unknown'),
+                    'popularity': popularity,
+                    'backdrop_path': show.get('backdrop_path')
+                }
+        
+        return {
+            'oldest_show': oldest_show,
+            'most_episodes_show': most_episodes_show,
+            'most_watch_time_show': most_watch_time_show,
+            'most_obscure_show': most_obscure_show
+        }
+    
     def calculate_stats(self, watched_shows):
         """Calculate comprehensive viewing statistics."""
         if not watched_shows:
@@ -250,7 +336,13 @@ class CalculationService:
                     'completion_rate': 0
                 },
                 'fun_conversions': [],
-                'show_length_distribution': {}
+                'show_length_distribution': {},
+                'awards': {
+                    'oldest_show': None,
+                    'most_episodes_show': None,
+                    'most_watch_time_show': None,
+                    'most_obscure_show': None
+                }
             }
         
         total_shows = len(watched_shows)
@@ -343,6 +435,9 @@ class CalculationService:
         
         completion_rate = (completed_shows / total_shows * 100) if total_shows > 0 else 0
         
+        # Calculate awards
+        awards = self.calculate_awards(watched_shows)
+        
         return {
             'total_shows': total_shows,
             'total_seasons': total_seasons,
@@ -360,5 +455,6 @@ class CalculationService:
                 'completion_rate': round(completion_rate, 1)
             },
             'fun_conversions': self.calculate_fun_conversions(total_time_minutes),
-            'show_length_distribution': self.get_show_length_distribution(watched_shows)
+            'show_length_distribution': self.get_show_length_distribution(watched_shows),
+            'awards': awards
         }

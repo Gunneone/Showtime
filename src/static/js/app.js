@@ -2227,7 +2227,7 @@ const StatsApp = {
         // Add loading states to complex chart sections
         const sections = [
             'yearlyChart', 'topGenresChart', 'topNetworksChart', 
-            'timeConversions', 'genreBreakdown', 'yearlyBreakdown'
+            'awardsSection', 'timeConversions', 'genreBreakdown', 'yearlyBreakdown'
         ];
         
         sections.forEach(id => {
@@ -2242,7 +2242,7 @@ const StatsApp = {
     hideComplexSectionsLoading() {
         const sections = [
             'yearlyChart', 'topGenresChart', 'topNetworksChart', 
-            'timeConversions', 'genreBreakdown', 'yearlyBreakdown'
+            'awardsSection', 'timeConversions', 'genreBreakdown', 'yearlyBreakdown'
         ];
         
         sections.forEach(id => {
@@ -2296,6 +2296,7 @@ const StatsApp = {
         this.createYearlyChart(stats.yearly_breakdown);
         this.createTopGenresChart(stats.genre_breakdown);
         this.createTopNetworksChart(stats.network_breakdown);
+        this.displayAwards(stats.awards);
         this.displayFunConversions(stats.fun_conversions);
         
         // Legacy breakdowns for fallback
@@ -2324,6 +2325,7 @@ const StatsApp = {
         this.createYearlyChart(stats.yearly_breakdown);
         this.createTopGenresChart(stats.genre_breakdown);
         this.createTopNetworksChart(stats.network_breakdown);
+        this.displayAwards(stats.awards);
         this.displayFunConversions(stats.fun_conversions);
     },
 
@@ -2776,6 +2778,70 @@ const StatsApp = {
         chartHTML += '</div></div>';
         
         container.innerHTML = chartHTML;
+    },
+
+    // Display awards
+    displayAwards(awards) {
+        const container = document.getElementById('awardsSection');
+        container.innerHTML = '';
+
+        if (!awards) {
+            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No awards data available</p>';
+            return;
+        }
+
+        const awardCards = [
+            {
+                icon: 'fas fa-calendar-alt',
+                title: 'Oldest Show',
+                show: awards.oldest_show,
+                getValue: (show) => show ? `${show.name} (${show.year})` : 'No data'
+            },
+            {
+                icon: 'fas fa-list-ol',
+                title: 'Most Episodes',
+                show: awards.most_episodes_show,
+                getValue: (show) => show ? `${show.name} (${show.episodes} episodes)` : 'No data'
+            },
+            {
+                icon: 'fas fa-clock',
+                title: 'Most Watch Time',
+                show: awards.most_watch_time_show,
+                getValue: (show) => show ? `${show.name} (${show.watch_time_formatted})` : 'No data'
+            },
+            {
+                icon: 'fas fa-eye-slash',
+                title: 'Most Obscure',
+                show: awards.most_obscure_show,
+                getValue: (show) => show ? `${show.name} (${show.popularity.toFixed(1)} popularity)` : 'No data'
+            }
+        ];
+
+        awardCards.forEach(award => {
+            const card = document.createElement('div');
+            card.className = 'award-card';
+            
+            // Add backdrop image if available
+            const backdropStyle = award.show && award.show.backdrop_path 
+                ? `background-image: linear-gradient(rgba(26, 32, 44, 0.8), rgba(26, 32, 44, 0.8)), url(${award.show.backdrop_path}); background-size: cover; background-position: center;`
+                : '';
+            
+            card.innerHTML = `
+                <div class="award-icon">
+                    <i class="${award.icon}"></i>
+                </div>
+                <div class="award-content">
+                    <h5 class="award-title">${award.title}</h5>
+                    <p class="award-value">${award.getValue(award.show)}</p>
+                </div>
+            `;
+            
+            if (backdropStyle) {
+                card.style.cssText += backdropStyle;
+            }
+            
+            container.appendChild(card);
+        });
     },
 
     // Display fun time conversions

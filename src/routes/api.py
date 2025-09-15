@@ -205,6 +205,9 @@ def add_watched():
             existing_show['season_details'] = season_details_array
             # Update released seasons count (in case it changed since the show was added)
             existing_show['released_seasons'] = tmdb_service.get_released_seasons_count(data['id'], show_details.get('number_of_seasons', 1))
+            # Update TMDB data (popularity, backdrop_path) in case it's missing or changed
+            existing_show['backdrop_path'] = show_details.get('backdrop_path')
+            existing_show['popularity'] = show_details.get('popularity')
         else:
             # Add new show with precise runtime calculation
             seasons_watched = data.get('seasons_watched', 1)
@@ -227,7 +230,9 @@ def add_watched():
                 'id': show_details['id'],
                 'name': show_details['name'],
                 'poster_path': show_details.get('poster_path'),
+                'backdrop_path': show_details.get('backdrop_path'),
                 'first_air_date': show_details.get('first_air_date'),
+                'popularity': show_details.get('popularity'),
                 'seasons_watched': seasons_watched,
                 'total_seasons': show_details.get('number_of_seasons', 1),
                 'released_seasons': tmdb_service.get_released_seasons_count(data['id'], show_details.get('number_of_seasons', 1)),
@@ -298,6 +303,9 @@ def update_watched(show_id):
                 show_to_update['season_details'] = season_details_array
                 # Update released seasons count (in case it changed since the show was added)
                 show_to_update['released_seasons'] = tmdb_service.get_released_seasons_count(show_id, show_details.get('number_of_seasons', 1))
+                # Update TMDB data (popularity, backdrop_path) in case it's missing or changed
+                show_to_update['backdrop_path'] = show_details.get('backdrop_path')
+                show_to_update['popularity'] = show_details.get('popularity')
         
         # Return updated data for localStorage storage (no cookies)
         response_data = {
