@@ -766,7 +766,7 @@ const App = {
             }
 
             this.showToast(`Added "${show.name}" to your watched list!`);
-            this.loadWatchedShows();
+            this.loadWatchedShows(true);
             this.hideSearchResults();
             this.elements.searchInput.value = '';
             
@@ -825,7 +825,7 @@ const App = {
             }
 
             this.showToast(`Added "${showName}" with ${seasonsWatched} season${seasonsWatched !== 1 ? 's' : ''} to your watched list!`);
-            this.loadWatchedShows();
+            this.loadWatchedShows(true);
             this.hideSearchResults();
             this.elements.searchInput.value = '';
             
@@ -925,7 +925,7 @@ const App = {
 
             this.showToast(`Added "${this.state.selectedShow.name}" to your watched list!`);
             this.hideAddModal();
-            this.loadWatchedShows();
+            this.loadWatchedShows(true);
             this.hideSearchResults();
             this.elements.searchInput.value = '';
             
@@ -945,7 +945,7 @@ const App = {
     },
 
     // Load watched shows from localStorage and API
-    async loadWatchedShows() {
+    async loadWatchedShows(isUserTriggered = false) {
         try {
             // Get watched shows from localStorage
             const watchedShows = DataStorage.getWatchedShows();
@@ -968,7 +968,7 @@ const App = {
 
             this.state.watchedShows = data.watched_shows;
             
-            this.updateTotalTimeDisplay(data.total_time_formatted, data.total_time_minutes);
+            this.updateTotalTimeDisplay(data.total_time_formatted, data.total_time_minutes, isUserTriggered);
             
             // Apply current sort if any is selected, then display
             if (this.elements.sortSelect && this.elements.sortSelect.value) {
@@ -986,7 +986,7 @@ const App = {
     },
 
     // Update total time display with animations
-    updateTotalTimeDisplay(formattedTime, newTimeMinutes = null) {
+    updateTotalTimeDisplay(formattedTime, newTimeMinutes = null, isUserTriggered = false) {
         if (!this.elements.totalWatchTime) return;
         
         const timeValue = this.elements.totalWatchTime.querySelector('.time-value');
@@ -1014,15 +1014,20 @@ const App = {
         // Clear any existing animation classes
         timeValue.classList.remove('animating', 'increase', 'decrease');
 
-        // Skip animations on initial load
-        if (this.state.isInitialLoad) {
+        // Skip animations only on initial page load, not on user-triggered first show addition
+        if (this.state.isInitialLoad && !isUserTriggered) {
             timeValue.textContent = newText;
             this.state.isInitialLoad = false;
             return;
         }
 
-        // If we have both old and new minute values, animate the counting
-        if (this.state.previousTotalTime !== 0 && this.state.totalTime !== this.state.previousTotalTime) {
+        // Mark initial load as complete after first user interaction
+        if (this.state.isInitialLoad) {
+            this.state.isInitialLoad = false;
+        }
+
+        // Animate the counting for any change (including first show addition)
+        if (this.state.totalTime !== this.state.previousTotalTime) {
             this.animateTimeValue(timeValue, this.state.previousTotalTime, this.state.totalTime, isIncrease, isDecrease);
         } else {
             // Simple update for subsequent loads without previous state
@@ -1652,7 +1657,7 @@ const App = {
             }
 
             this.showToast(`Updated "${show ? show.name : 'show'}"!`);
-            this.loadWatchedShows();
+            this.loadWatchedShows(true);
         } catch (error) {
             console.error('Error updating show:', error);
             this.showToast('Failed to update show. Please try again.', 'error');
@@ -1699,7 +1704,7 @@ const App = {
             }
 
             this.showToast(`Removed "${show.name}" from your watched list`);
-            this.loadWatchedShows();
+            this.loadWatchedShows(true);
         } catch (error) {
             console.error('Error removing show:', error);
             this.showToast('Failed to remove show. Please try again.', 'error');
@@ -2034,7 +2039,7 @@ const App = {
             }
             
             // Load and display the imported shows immediately
-            this.loadWatchedShows();
+            this.loadWatchedShows(true);
             
             // Clear file input
             this.elements.importFileInput.value = '';
