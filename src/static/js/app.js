@@ -2891,11 +2891,17 @@ const StatsApp = {
     moveTooltip(event, tooltipId) {
         const tooltip = document.getElementById(tooltipId);
         if (tooltip) {
-            const rect = event.target.closest('.chart-container').getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            tooltip.style.left = (x + 5) + 'px';  // Closer to mouse
-            tooltip.style.top = (y - 5) + 'px';   // Closer to mouse
+            // Find the positioned container (the chart's relative positioned parent)
+            const positionedContainer = tooltip.offsetParent || tooltip.parentElement;
+            if (positionedContainer) {
+                const rect = positionedContainer.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                // Position tooltip close to the mouse pointer
+                tooltip.style.left = (x + 10) + 'px';  // Small offset to avoid covering cursor
+                tooltip.style.top = (y - 30) + 'px';   // Position above the cursor
+            }
         }
     },
 
