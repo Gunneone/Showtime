@@ -1392,6 +1392,7 @@ body {
         display: flex;
         align-items: center;
         justify-content: center;
+        gap: 0.5rem; /* Add spacing between icon and text on mobile */
     }
     
     .search-form {
