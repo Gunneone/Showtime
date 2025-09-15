@@ -164,7 +164,8 @@ const App = {
         pendingSearchController: null,
         displayedSearchResults: 0,
         displayedShowIds: new Set(),
-        maxSearchResults: 2
+        maxSearchResults: 2,
+        isInitialLoad: true
     },
 
     // DOM elements
@@ -1014,30 +1015,63 @@ const App = {
         // Clear any existing animation classes
         timeValue.classList.remove('animating', 'increase', 'decrease');
 
+        // Skip animations on initial load
+        if (this.state.isInitialLoad) {
+            timeValue.textContent = newText;
+            this.state.isInitialLoad = false;
+            return;
+        }
+
         // If we have both old and new minute values, animate the counting
         if (this.state.previousTotalTime !== 0 && this.state.totalTime !== this.state.previousTotalTime) {
             this.animateTimeValue(timeValue, this.state.previousTotalTime, this.state.totalTime, isIncrease, isDecrease);
         } else {
-            // Simple update for first load
+            // Simple update for subsequent loads without previous state
             timeValue.textContent = newText;
-            if (isIncrease || isDecrease) {
-                this.triggerCelebrationEffect(timeValue, isIncrease);
-            }
         }
     },
 
     // Animate time value with counting effect
     animateTimeValue(element, fromMinutes, toMinutes, isIncrease, isDecrease) {
-        const duration = 1200; // 1.2 seconds
+        const timeDifference = Math.abs(toMinutes - fromMinutes);
+        
+        // Calculate animation intensity based on time difference
+        // 1 day = 1440 minutes (minimum intensity)
+        // 5 days = 7200 minutes (maximum intensity)
+        const minThreshold = 1440; // 1 day
+        const maxThreshold = 7200; // 5 days
+        
+        let intensityFactor = Math.min(Math.max((timeDifference - minThreshold) / (maxThreshold - minThreshold), 0), 1);
+        
+        // Even small increases should have some animation, so ensure minimum intensity
+        if (timeDifference > 0) {
+            intensityFactor = Math.max(intensityFactor, 0.2); // Minimum 20% intensity
+        }
+        
+        // Scale duration based on intensity (0.8s to 1.6s)
+        const baseDuration = 800;
+        const maxDuration = 1600;
+        const duration = baseDuration + (maxDuration - baseDuration) * intensityFactor;
+        
         const startTime = performance.now();
         
-        // Add appropriate animation class
+        // Add appropriate animation class with intensity
         if (isIncrease) {
             element.classList.add('increase');
+            // Set CSS custom property for intensity
+            element.style.setProperty('--animation-intensity', intensityFactor);
         } else if (isDecrease) {
             element.classList.add('decrease');
+            element.style.setProperty('--animation-intensity', intensityFactor);
         }
         element.classList.add('animating');
+
+        // Start celebration effect immediately for increases
+        let celebrationStarted = false;
+        if (isIncrease) {
+            this.triggerCelebrationEffect(element, timeDifference, intensityFactor);
+            celebrationStarted = true;
+        }
 
         const animate = (currentTime) => {
             const elapsed = currentTime - startTime;
@@ -1055,14 +1089,15 @@ const App = {
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
-                // Animation complete - trigger celebration for significant increases
-                if (isIncrease && (toMinutes - fromMinutes) > 60) { // More than 1 hour increase
-                    this.triggerCelebrationEffect(element, true);
+                // Animation complete - trigger celebration for increases only if not already started
+                if (isIncrease && !celebrationStarted) {
+                    this.triggerCelebrationEffect(element, timeDifference, intensityFactor);
                 }
                 
-                // Clean up animation classes after a delay
+                // Clean up animation classes and custom properties after a delay
                 setTimeout(() => {
                     element.classList.remove('animating', 'increase', 'decrease');
+                    element.style.removeProperty('--animation-intensity');
                 }, 500);
             }
         };
@@ -1070,46 +1105,121 @@ const App = {
         requestAnimationFrame(animate);
     },
 
-    // Trigger celebration particle effect
-    triggerCelebrationEffect(element, isIncrease) {
-        if (!isIncrease) return;
-
-        const container = element.closest('.watch-time-display');
+    // Trigger celebration particle effect using canvas-confetti
+    triggerCelebrationEffect(element, timeDifference, intensityFactor) {
+        const container = element.closest('.watch-time-card');
         if (!container) return;
 
-        // Create celebration container
-        const celebration = document.createElement('div');
-        celebration.className = 'time-celebration';
-        container.style.position = 'relative';
-        container.appendChild(celebration);
-
-        // Generate particles
-        const particleCount = 12;
-        for (let i = 0; i < particleCount; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            
-            // Random direction and distance
-            const angle = (i / particleCount) * 2 * Math.PI;
-            const distance = 40 + Math.random() * 30;
-            const dx = Math.cos(angle) * distance;
-            const dy = Math.sin(angle) * distance;
-            
-            particle.style.setProperty('--dx', `${dx}px`);
-            particle.style.setProperty('--dy', `${dy}px`);
-            
-            // Random delay for staggered effect
-            particle.style.animationDelay = `${Math.random() * 0.3}s`;
-            
-            celebration.appendChild(particle);
+        // Check if canvas-confetti is available
+        if (typeof confetti !== 'function') {
+            console.warn('canvas-confetti library not loaded');
+            return;
         }
 
-        // Clean up after animation
-        setTimeout(() => {
-            if (celebration.parentNode) {
-                celebration.parentNode.removeChild(celebration);
-            }
-        }, 2000);
+        // Get container bounds to determine the origin position
+        const containerRect = container.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate center position of the card relative to viewport
+        const originX = (containerRect.left + containerRect.width / 2) / viewportWidth;
+        const originY = (containerRect.top + containerRect.height / 2) / viewportHeight;
+
+        // Scale particle count based on intensity (15 to 60 particles for better visual impact)
+        const minParticles = 15;
+        const maxParticles = 60;
+        const particleCount = Math.round(minParticles + (maxParticles - minParticles) * intensityFactor);
+
+        // Configure confetti colors (vibrant selection)
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e'];
+
+        // Calculate spread and decay based on intensity
+        const spread = Math.round(60 + intensityFactor * 40); // 60-100 degrees spread
+        const startVelocity = Math.round(15 + intensityFactor * 19); // Reduced from 20-45 to 15-34 (25% reduction)
+        const decay = 0.91 - (intensityFactor * 0.05); // 0.91-0.86 decay (faster for higher intensity)
+
+        // Create multiple bursts for a more dynamic effect
+        const burstCount = Math.round(1 + intensityFactor * 2); // 1-3 bursts
+        
+        // Primary upward bursts
+        for (let burst = 0; burst < burstCount; burst++) {
+            setTimeout(() => {
+                // Fire upward confetti burst
+                confetti({
+                    particleCount: Math.round(particleCount / burstCount * 0.7), // 70% of particles go up
+                    spread: spread,
+                    startVelocity: startVelocity,
+                    origin: { 
+                        x: originX, 
+                        y: originY 
+                    },
+                    colors: colors,
+                    shapes: ['square', 'circle'], // Mix of shapes
+                    scalar: 0.8 + (intensityFactor * 0.4), // 0.8-1.2 size scaling
+                    drift: (Math.random() - 0.5) * 2, // Random horizontal drift
+                    gravity: 0.6 + (intensityFactor * 0.2), // 0.6-0.8 gravity
+                    decay: decay,
+                    ticks: Math.round(120 + intensityFactor * 80), // 120-200 ticks duration
+                    angle: 90 // Upward direction
+                });
+            }, burst * 100); // Stagger bursts by 100ms
+        }
+
+        // Multi-directional bursts for all intensities (not just high intensity)
+        for (let burst = 0; burst < burstCount; burst++) {
+            setTimeout(() => {
+                // Create downward and sideways confetti for visual variety
+                const remainingParticles = Math.round(particleCount / burstCount * 0.3); // 30% of particles
+                const directions = [
+                    { angle: 210, velocity: startVelocity * 0.6 }, // Down-left
+                    { angle: 330, velocity: startVelocity * 0.6 }, // Down-right
+                    { angle: 270, velocity: startVelocity * 0.8 }  // Straight down
+                ];
+                
+                directions.forEach((direction, index) => {
+                    confetti({
+                        particleCount: Math.round(remainingParticles / directions.length),
+                        spread: 45, // Narrower spread for directional bursts
+                        startVelocity: direction.velocity,
+                        origin: { 
+                            x: originX, 
+                            y: originY 
+                        },
+                        colors: colors,
+                        shapes: ['square', 'circle'],
+                        scalar: 0.7 + (intensityFactor * 0.3), // Slightly smaller for secondary bursts
+                        drift: (Math.random() - 0.5) * 1.5,
+                        gravity: 0.5 + (intensityFactor * 0.15),
+                        decay: decay,
+                        ticks: Math.round(100 + intensityFactor * 60),
+                        angle: direction.angle
+                    });
+                });
+            }, burst * 100 + 50); // Slight delay after upward bursts
+        }
+
+        // Additional radial burst for higher intensity (enhanced to be more balanced)
+        if (intensityFactor > 0.6) {
+            setTimeout(() => {
+                // Create a balanced radial explosion effect
+                const radialCount = Math.round(particleCount * 0.3);
+                confetti({
+                    particleCount: radialCount,
+                    spread: 360, // Full circle
+                    startVelocity: Math.round(11 + intensityFactor * 15), // Reduced velocity for radial burst too
+                    origin: { 
+                        x: originX, 
+                        y: originY 
+                    },
+                    colors: colors,
+                    shapes: ['circle'],
+                    scalar: 0.6 + (intensityFactor * 0.3),
+                    gravity: 0.4,
+                    decay: 0.89,
+                    ticks: Math.round(100 + intensityFactor * 60)
+                });
+            }, 150);
+        }
     },
 
     // Sort watched shows based on selected criteria

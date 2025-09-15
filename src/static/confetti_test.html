@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎉 Enhanced Confetti Animation Test</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            padding: 40px; 
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            color: #e2e8f0; 
+            min-height: 100vh;
+            margin: 0;
+        }
+        .test-card {
+            background: rgba(45, 55, 72, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        .time-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #e2e8f0;
+            margin: 20px 0;
+        }
+        .test-btn {
+            background: #63b3ed;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(99, 179, 237, 0.3);
+        }
+        .test-btn:hover {
+            background: #3182ce;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(99, 179, 237, 0.4);
+        }
+        h1 { text-align: center; color: #63b3ed; margin-bottom: 2rem; }
+        h3 { color: #cbd5e0; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <h1>🎉 Enhanced Watchtime Confetti Animation Test</h1>
+    
+    <div class="test-card" id="testCard">
+        <h3>Total Time Watched</h3>
+        <div class="time-display" id="timeDisplay">28d 0h</div>
+        <p>Time well spent!</p>
+        
+        <div>
+            <button class="test-btn" onclick="testSmallIncrease()">Test Small Increase (+4h 27m)</button>
+            <button class="test-btn" onclick="testLargeIncrease()">Test Large Increase (+12d 20h)</button>
+            <button class="test-btn" onclick="testConfettiOnly()">Test Confetti Only</button>
+        </div>
+    </div>
+
+    <!-- canvas-confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    
+    <script>
+        // Enhanced canvas-confetti implementation matching the app
+        function triggerCelebrationEffect(element, timeDifference, intensityFactor) {
+            const container = element.closest('.test-card');
+            if (!container) return;
+
+            // Check if canvas-confetti is available
+            if (typeof confetti !== 'function') {
+                console.warn('canvas-confetti library not loaded');
+                return;
+            }
+
+            // Get container bounds to determine the origin position
+            const containerRect = container.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // Calculate center position of the card relative to viewport
+            const originX = (containerRect.left + containerRect.width / 2) / viewportWidth;
+            const originY = (containerRect.top + containerRect.height / 2) / viewportHeight;
+
+            // Scale particle count based on intensity (15 to 60 particles for better visual impact)
+            const minParticles = 15;
+            const maxParticles = 60;
+            const particleCount = Math.round(minParticles + (maxParticles - minParticles) * intensityFactor);
+
+            // Configure confetti colors (vibrant selection)
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e'];
+
+            // Calculate spread and decay based on intensity
+            const spread = Math.round(60 + intensityFactor * 40); // 60-100 degrees spread
+            const startVelocity = Math.round(15 + intensityFactor * 19); // Reduced from 20-45 to 15-34 (25% reduction)
+            const decay = 0.91 - (intensityFactor * 0.05); // 0.91-0.86 decay (faster for higher intensity)
+
+            // Create multiple bursts for a more dynamic effect
+            const burstCount = Math.round(1 + intensityFactor * 2); // 1-3 bursts
+            
+            console.log(`🎉 Triggering confetti: ${particleCount} particles, ${burstCount} bursts, intensity: ${intensityFactor.toFixed(2)}`);
+            
+            // Primary upward bursts
+            for (let burst = 0; burst < burstCount; burst++) {
+                setTimeout(() => {
+                    // Fire upward confetti burst
+                    confetti({
+                        particleCount: Math.round(particleCount / burstCount * 0.7), // 70% of particles go up
+                        spread: spread,
+                        startVelocity: startVelocity,
+                        origin: { 
+                            x: originX, 
+                            y: originY 
+                        },
+                        colors: colors,
+                        shapes: ['square', 'circle'], // Mix of shapes
+                        scalar: 0.8 + (intensityFactor * 0.4), // 0.8-1.2 size scaling
+                        drift: (Math.random() - 0.5) * 2, // Random horizontal drift
+                        gravity: 0.6 + (intensityFactor * 0.2), // 0.6-0.8 gravity
+                        decay: decay,
+                        ticks: Math.round(120 + intensityFactor * 80), // 120-200 ticks duration
+                        angle: 90 // Upward direction
+                    });
+                }, burst * 100); // Stagger bursts by 100ms
+            }
+
+            // Multi-directional bursts for all intensities (not just high intensity)
+            for (let burst = 0; burst < burstCount; burst++) {
+                setTimeout(() => {
+                    // Create downward and sideways confetti for visual variety
+                    const remainingParticles = Math.round(particleCount / burstCount * 0.3); // 30% of particles
+                    const directions = [
+                        { angle: 210, velocity: startVelocity * 0.6 }, // Down-left
+                        { angle: 330, velocity: startVelocity * 0.6 }, // Down-right
+                        { angle: 270, velocity: startVelocity * 0.8 }  // Straight down
+                    ];
+                    
+                    directions.forEach((direction, index) => {
+                        confetti({
+                            particleCount: Math.round(remainingParticles / directions.length),
+                            spread: 45, // Narrower spread for directional bursts
+                            startVelocity: direction.velocity,
+                            origin: { 
+                                x: originX, 
+                                y: originY 
+                            },
+                            colors: colors,
+                            shapes: ['square', 'circle'],
+                            scalar: 0.7 + (intensityFactor * 0.3), // Slightly smaller for secondary bursts
+                            drift: (Math.random() - 0.5) * 1.5,
+                            gravity: 0.5 + (intensityFactor * 0.15),
+                            decay: decay,
+                            ticks: Math.round(100 + intensityFactor * 60),
+                            angle: direction.angle
+                        });
+                    });
+                }, burst * 100 + 50); // Slight delay after upward bursts
+            }
+
+            // Additional radial burst for higher intensity (enhanced to be more balanced)
+            if (intensityFactor > 0.6) {
+                setTimeout(() => {
+                    // Create a balanced radial explosion effect
+                    const radialCount = Math.round(particleCount * 0.3);
+                    confetti({
+                        particleCount: radialCount,
+                        spread: 360, // Full circle
+                        startVelocity: Math.round(11 + intensityFactor * 15), // Reduced velocity for radial burst too
+                        origin: { 
+                            x: originX, 
+                            y: originY 
+                        },
+                        colors: colors,
+                        shapes: ['circle'],
+                        scalar: 0.6 + (intensityFactor * 0.3),
+                        gravity: 0.4,
+                        decay: 0.89,
+                        ticks: Math.round(100 + intensityFactor * 60)
+                    });
+                }, 150);
+            }
+        }
+
+        function testSmallIncrease() {
+            const element = document.getElementById('timeDisplay');
+            const timeDifference = 267; // 4h 27m in minutes
+            const intensityFactor = Math.min(Math.max((timeDifference - 1440) / (7200 - 1440), 0), 1);
+            const adjustedIntensity = Math.max(intensityFactor, 0.2); // Minimum 20% intensity
+            
+            console.log(`Small increase test: ${timeDifference} minutes, intensity: ${adjustedIntensity.toFixed(2)}`);
+            triggerCelebrationEffect(element, timeDifference, adjustedIntensity);
+        }
+
+        function testLargeIncrease() {
+            const element = document.getElementById('timeDisplay');
+            const timeDifference = 18740; // 12d 20h in minutes  
+            const intensityFactor = Math.min(Math.max((timeDifference - 1440) / (7200 - 1440), 0), 1);
+            
+            console.log(`Large increase test: ${timeDifference} minutes, intensity: ${intensityFactor.toFixed(2)}`);
+            triggerCelebrationEffect(element, timeDifference, intensityFactor);
+        }
+
+        function testConfettiOnly() {
+            const element = document.getElementById('timeDisplay');
+            // Medium intensity test
+            const intensityFactor = 0.5;
+            
+            console.log(`Confetti only test: intensity: ${intensityFactor}`);
+            triggerCelebrationEffect(element, 3600, intensityFactor);
+        }
+    </script>
+</body>
+</html>
