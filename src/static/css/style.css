@@ -98,7 +98,7 @@ body {
 }
 
 .watch-time-card {
-    background: rgba(26, 32, 44, 0.8);
+    background: rgba(56, 62, 74, 0.8);
     color: white;
     padding: 1.5rem;
     border-radius: 12px;
@@ -610,7 +610,7 @@ body {
 }
 
 .watched-show {
-    background: rgba(26, 32, 44, 0.8);
+    background: rgba(56, 62, 74, 0.8);
     border-radius: 12px;
     padding: 0;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -1137,7 +1137,7 @@ body {
 }
 
 .stat-card {
-    background: rgba(26, 32, 44, 0.8);
+    background: rgba(56, 62, 74, 0.8);
     border-radius: 12px;
     padding: 1.5rem;
     text-align: center;
@@ -1185,7 +1185,7 @@ body {
 }
 
 .completion-card {
-    background: rgba(26, 32, 44, 0.8);
+    background: rgba(56, 62, 74, 0.8);
     border-radius: 12px;
     padding: 1.5rem;
     text-align: center;
@@ -1457,7 +1457,7 @@ body {
 }
 
 .award-card {
-    background: rgba(26, 32, 44, 0.8);
+    background: rgba(56, 62, 74, 0.8);
     border-radius: 12px;
     padding: 1.5rem;
     text-align: center;
@@ -1494,7 +1494,7 @@ body {
 }
 
 .conversion-card {
-    background: rgba(26, 32, 44, 0.8);
+    background: rgba(56, 62, 74, 0.8);
     border-radius: 12px;
     padding: 1.5rem;
     text-align: center;
