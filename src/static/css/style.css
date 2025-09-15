@@ -34,6 +34,31 @@ body {
     min-height: 100vh;
 }
 
+/* Global subtle scrollbar styling for dark theme */
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: rgba(45, 55, 72, 0.3);
+    border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: rgba(99, 179, 237, 0.3);
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 179, 237, 0.5);
+}
+
+*::-webkit-scrollbar-corner {
+    background: rgba(45, 55, 72, 0.3);
+}
+
 .container {
     max-width: 1300px;
     margin: 0 auto;
@@ -320,11 +345,31 @@ body {
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    max-height: 400px;
+    max-height: 350px; /* Sized to fit 2 results and load more button */
     overflow-y: auto;
     margin-top: 8px;
     min-height: 50px; /* Ensure minimum height for visibility */
     width: 100%; /* Ensure full width */
+}
+
+/* Subtle scrollbar styling for dark theme */
+.search-results::-webkit-scrollbar {
+    width: 6px;
+}
+
+.search-results::-webkit-scrollbar-track {
+    background: rgba(45, 55, 72, 0.3);
+    border-radius: 6px;
+}
+
+.search-results::-webkit-scrollbar-thumb {
+    background: rgba(99, 179, 237, 0.4);
+    border-radius: 6px;
+    transition: background 0.3s ease;
+}
+
+.search-results::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 179, 237, 0.6);
 }
 
 .search-loading {
@@ -361,7 +406,7 @@ body {
     background: rgba(74, 85, 104, 0.3);
     backdrop-filter: blur(10px);
     border-radius: 8px;
-    padding: 1rem;
+    padding: 0.75rem; /* Reduced from 1rem to make more compact */
     cursor: pointer;
     transition: all 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -411,16 +456,6 @@ body {
     color: #a0aec0;
     font-size: 0.8rem;
     margin-bottom: 0.5rem;
-}
-
-.search-result-overview {
-    color: #cbd5e0;
-    font-size: 0.8rem;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
 }
 
 /* Instant search features */

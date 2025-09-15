@@ -595,7 +595,6 @@ const App = {
                 <div class="search-result-info">
                     <h4>${show.name}</h4>
                     <div class="search-result-date">${year}</div>
-                    <div class="search-result-overview">${truncatedOverview}</div>
                     <div class="search-result-seasons">
                         <div class="season-selector-label">Add seasons:</div>
                         <div class="season-selector-bars" data-show-id="${show.id}">
