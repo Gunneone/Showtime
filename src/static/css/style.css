@@ -275,33 +275,6 @@ body {
     color: #e2e8f0;
 }
 
-.search-button {
-    padding: 1rem 1.5rem;
-    background: linear-gradient(135deg, var(--blue-secondary) 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px var(--blue-secondary-alpha-30);
-    backdrop-filter: blur(10px);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    white-space: nowrap;
-}
-
-.search-button:hover {
-    box-shadow: 0 8px 25px var(--blue-secondary-alpha-40);
-    background: linear-gradient(135deg, #764ba2 0%, var(--blue-secondary) 100%);
-}
-
-.search-button:active {
-    transform: translateY(0);
-}
-
 .search-input::placeholder {
     color: #a0aec0;
 }
@@ -311,26 +284,6 @@ body {
     border-color: var(--blue-primary);
     background: rgba(45, 55, 72, 0.95);
     box-shadow: 0 4px 16px var(--blue-primary-alpha-20);
-}
-
-.search-btn {
-    padding: 1rem 2rem;
-    background: rgba(103, 126, 234, 0.9);
-    backdrop-filter: blur(10px);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 16px rgba(103, 126, 234, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.search-btn:hover {
-    box-shadow: 0 8px 24px rgba(103, 126, 234, 0.4);
-    background: rgba(103, 126, 234, 1);
 }
 
 /* Search results */
@@ -345,7 +298,9 @@ body {
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    max-height: 350px; /* Sized to fit 2 results and load more button */
+    /* Results load 5 at a time; show as many as the window allows and scroll
+       the rest rather than running off the bottom of the viewport */
+    max-height: min(800px, 66vh);
     overflow-y: auto;
     margin-top: 8px;
     min-height: 50px; /* Ensure minimum height for visibility */
@@ -456,26 +411,6 @@ body {
     color: #a0aec0;
     font-size: 0.8rem;
     margin-bottom: 0.5rem;
-}
-
-/* Instant search features */
-.search-results-header {
-    color: var(--blue-primary);
-    font-size: 0.8rem;
-    margin-bottom: 0.5rem;
-    text-align: center;
-    font-weight: 500;
-    padding: 0.5rem;
-    background: var(--blue-primary-alpha-10);
-    border-radius: 12px 12px 0 0;
-}
-
-.search-result-hint {
-    color: var(--blue-primary);
-    font-size: 0.7rem;
-    margin-top: 0.5rem;
-    font-weight: 500;
-    opacity: 0.8;
 }
 
 /* Search load more button */
@@ -1363,10 +1298,11 @@ body {
         gap: 0.75rem; /* Halved from 1.5rem */
     }
     
-    /* Fix 5: Remove internal scrolling in search results on mobile */
+    /* Search results flow inline on mobile, but stay capped so a full page of
+       results cannot push the rest of the page out of reach */
     .search-results {
-        max-height: none;
-        overflow-y: visible;
+        max-height: 70vh;
+        overflow-y: auto;
         position: relative; /* Change from absolute to relative */
         margin-top: 8px;
         margin-bottom: 1rem;
@@ -1397,15 +1333,6 @@ body {
     .search-form {
         flex-direction: column;
         gap: 0.75rem;
-    }
-    
-    .search-button {
-        padding: 0.875rem 1.25rem;
-        font-size: 0.9rem;
-    }
-    
-    .search-results {
-        grid-template-columns: 1fr;
     }
     
     .stats-grid {

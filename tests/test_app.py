@@ -52,3 +52,58 @@ def test_api_stats_calculate_empty(client):
     data = json.loads(response.data)
     assert data['total_shows'] == 0
     assert data['total_time_minutes'] == 0
+def test_api_search_rejects_non_numeric_page(client):
+    """Test API search rejects a page parameter that is not a number."""
+    response = client.get('/api/search?query=lost&page=abc')
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+
+def test_api_search_rejects_page_below_one(client):
+    """Test API search rejects a page parameter below 1."""
+    for page in (0, -3):
+        response = client.get(f'/api/search?query=lost&page={page}')
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'error' in data
+
+def test_api_search_reports_tmdb_failure(client, monkeypatch):
+    """Test API search surfaces a TMDB failure instead of returning 200."""
+    from src.routes import api
+
+    class FailingService:
+        def search_shows_with_fallback(self, query, page=1):
+            raise Exception('TMDB API authentication failed (HTTP 401)')
+
+    monkeypatch.setattr(api, 'get_tmdb_service', lambda: FailingService())
+
+    response = client.get('/api/search?query=some-query-that-is-not-cached')
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert 'error' in data
+    assert 'authentication failed' in data['error']
+
+def test_api_search_caches_pages_separately(client, monkeypatch):
+    """Test that each result page is cached under its own key."""
+    from src.routes import api
+
+    served = []
+
+    class PagedService:
+        def search_shows_with_fallback(self, query, page=1):
+            served.append(page)
+            return {'results': [{'id': page}], 'total_pages': 3,
+                    'total_results': 3, 'page': page}
+
+    monkeypatch.setattr(api, 'get_tmdb_service', lambda: PagedService())
+
+    first = json.loads(client.get('/api/search?query=paging-probe&page=1').data)
+    second = json.loads(client.get('/api/search?query=paging-probe&page=2').data)
+
+    assert first['results'][0]['id'] == 1
+    assert second['results'][0]['id'] == 2
+    assert served == [1, 2]
+
+    # Both pages are now cached, so no further calls reach the service
+    json.loads(client.get('/api/search?query=paging-probe&page=1').data)
+    assert served == [1, 2]

@@ -1,4 +1,6 @@
+import difflib
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date
 from ..config import Config
 from .persistent_cache_service import get_persistent_cache
@@ -432,55 +434,74 @@ class TMDBService:
                 'networks': []
             })
     
-    def search_shows(self, query, page=1, include_season_data=True):
-        """Search for TV shows with optional season data fetching."""
+    def _format_search_result(self, show):
+        """Project a raw TMDB search hit onto the shape the frontend expects."""
+        return {
+            'id': show['id'],
+            'name': show['name'],
+            'overview': show.get('overview', ''),
+            'first_air_date': show.get('first_air_date', ''),
+            'poster_path': self._get_full_image_url(show.get('poster_path')),
+            'vote_average': show.get('vote_average', 0),
+            'popularity': show.get('popularity', 0),
+            'number_of_seasons': None,
+            'number_of_released_seasons': None
+        }
+
+    def _attach_season_data(self, results):
+        """Fill in season counts for a page of results, in parallel.
+
+        Each show needs one TMDB call at most, and cached shows need none, so a
+        full page resolves in about the time of a single request.
+        """
+        def resolve(show_data):
+            try:
+                cached_data = self.persistent_cache.get_season_data(show_data['id'])
+                if cached_data and 'total_seasons' in cached_data and 'released_seasons_count' in cached_data:
+                    show_data['number_of_seasons'] = cached_data['total_seasons']
+                    show_data['number_of_released_seasons'] = cached_data['released_seasons_count']
+                    return
+
+                show_details = self.get_show_details(show_data['id'])
+                total_seasons = show_details.get('number_of_seasons', 1)
+                released_seasons = self._count_released_seasons(show_details.get('seasons'))
+
+                self.persistent_cache.set_season_data(show_data['id'], {
+                    'total_seasons': total_seasons,
+                    'released_seasons_count': released_seasons
+                })
+
+                show_data['number_of_seasons'] = total_seasons
+                show_data['number_of_released_seasons'] = released_seasons
+            except Exception as e:
+                print(f"Failed to get season data for show {show_data['id']}: {e}")
+                # Show at least one season bar so the result stays actionable
+                show_data['number_of_seasons'] = 1
+                show_data['number_of_released_seasons'] = 1
+
+        if not results:
+            return results
+
+        with ThreadPoolExecutor(max_workers=min(10, len(results))) as executor:
+            list(executor.map(resolve, results))
+
+        return results
+
+    def search_shows(self, query, page=1):
+        """Search for TV shows, with season counts resolved for every result."""
         endpoint = "search/tv"
         params = {
             'query': query,
             'page': page,
             'language': 'en-US'
         }
-        
+
         data = self._make_request(endpoint, params)
-        
-        # Format the results
-        results = []
-        for show in data.get('results', []):
-            show_data = {
-                'id': show['id'],
-                'name': show['name'],
-                'overview': show.get('overview', ''),
-                'first_air_date': show.get('first_air_date', ''),
-                'poster_path': self._get_full_image_url(show.get('poster_path')),
-                'vote_average': show.get('vote_average', 0),
-                'popularity': show.get('popularity', 0),
-                'number_of_seasons': None,
-                'number_of_released_seasons': None
-            }
-            
-            # Only fetch season data if requested (for backward compatibility with tests)
-            if include_season_data:
-                try:
-                    # Check cache first for better performance
-                    cached_data = self.persistent_cache.get_season_data(show['id'])
-                    if cached_data and 'total_seasons' in cached_data and 'released_seasons_count' in cached_data:
-                        show_data['number_of_seasons'] = cached_data['total_seasons']
-                        show_data['number_of_released_seasons'] = cached_data['released_seasons_count']
-                    else:
-                        # Fetch from API as fallback
-                        show_details = self.get_show_details(show['id'])
-                        total_seasons = show_details.get('number_of_seasons', 1)
-                        released_seasons = self.get_released_seasons_count(show['id'], total_seasons)
-                        show_data['number_of_seasons'] = total_seasons
-                        show_data['number_of_released_seasons'] = released_seasons
-                except Exception as e:
-                    print(f"Failed to get season data for show {show['id']}: {e}")
-                    # Use default values if fetching fails
-                    show_data['number_of_seasons'] = 1
-                    show_data['number_of_released_seasons'] = 1
-            
-            results.append(show_data)
-        
+
+        results = self._attach_season_data(
+            [self._format_search_result(show) for show in data.get('results', [])]
+        )
+
         return {
             'results': results,
             'total_pages': data.get('total_pages', 1),
@@ -488,6 +509,91 @@ class TMDBService:
             'page': data.get('page', 1)
         }
     
+    def _relaxed_queries(self, query, limit=5):
+        """Build looser variants of a query that missed, to catch typos.
+
+        TMDB matches titles literally, so a single wrong character returns
+        nothing. Dropping a word, or trimming a word's tail, usually leaves
+        enough of the title intact to match.
+        """
+        tokens = query.split()
+        candidates = []
+
+        for i, token in enumerate(tokens):
+            candidates.append(token)
+            # Trimming below four characters matches too much to be useful.
+            for trim in (1, 2, 3):
+                if len(token) - trim >= 4:
+                    candidates.append(token[:-trim])
+            if len(tokens) > 1:
+                candidates.append(' '.join(tokens[:i] + tokens[i + 1:]))
+
+        seen = set()
+        relaxed = []
+        for candidate in candidates:
+            candidate = candidate.strip()
+            key = candidate.lower()
+            if len(candidate) >= 3 and key != query.strip().lower() and key not in seen:
+                seen.add(key)
+                relaxed.append(candidate)
+
+        return relaxed[:limit]
+
+    def _rank_by_similarity(self, query, shows):
+        """Order shows by title similarity to the query, nudged by popularity."""
+        def score(show):
+            similarity = difflib.SequenceMatcher(
+                None, query.lower(), show['name'].lower()
+            ).ratio()
+            popularity = min(show.get('popularity') or 0, 300) / 300
+            return 0.75 * similarity + 0.25 * popularity
+
+        return sorted(shows, key=score, reverse=True)
+
+    def search_shows_with_fallback(self, query, page=1, pool_size=60, max_results=20):
+        """Search, and if nothing matched, retry with relaxed variants of the query.
+
+        Only the first page falls back; later pages of an empty result set do
+        not exist. Recovers most single-character typos, though not
+        transpositions early in a word.
+        """
+        data = self.search_shows(query, page)
+
+        if data['results'] or page != 1:
+            return data
+
+        pool = {}
+        for relaxed in self._relaxed_queries(query):
+            try:
+                candidates = self._make_request(
+                    "search/tv", {'query': relaxed, 'page': 1, 'language': 'en-US'}
+                )
+            except Exception as e:
+                print(f"Fallback search failed for {relaxed!r}: {e}")
+                continue
+
+            for show in candidates.get('results', []):
+                pool.setdefault(show['id'], show)
+
+            if len(pool) >= pool_size:
+                break
+
+        if not pool:
+            return data
+
+        ranked = self._rank_by_similarity(query, list(pool.values()))[:max_results]
+        results = self._attach_season_data(
+            [self._format_search_result(show) for show in ranked]
+        )
+
+        return {
+            'results': results,
+            'total_pages': 1,
+            'total_results': len(results),
+            'page': 1,
+            'did_you_mean': results[0]['name'] if results else None
+        }
+
     def get_show_season_data(self, show_id):
         """Get season data for a specific show (for on-demand loading)."""
         try:
@@ -544,7 +650,10 @@ class TMDBService:
             'episode_run_time': episode_run_time,
             'genres': show.get('genres', []),
             'status': show.get('status', ''),
-            'networks': show.get('networks', [])
+            'networks': show.get('networks', []),
+            # Carries per-season air dates, which lets callers work out how many
+            # seasons have actually aired without a request per season.
+            'seasons': show.get('seasons', [])
         }
     
     def get_season_details(self, show_id, season_number):
@@ -605,39 +714,50 @@ class TMDBService:
             # If air date is invalid, assume not released
             return False
     
+    def _count_released_seasons(self, seasons):
+        """Count consecutive aired seasons from a show's `seasons` array.
+
+        Season 0 holds specials and is ignored. Counting stops at the first
+        season that has not aired, since seasons air in order.
+        """
+        numbered = sorted(
+            (s for s in seasons or [] if s.get('season_number', 0) > 0),
+            key=lambda s: s['season_number']
+        )
+
+        released_count = 0
+        for season in numbered:
+            if self._is_season_released(season.get('air_date') or ''):
+                released_count += 1
+            else:
+                break
+
+        return released_count
+
     def get_released_seasons_count(self, show_id, total_seasons):
         """Get the number of released seasons for a show."""
         # Check cache first
-        cache_key = f"released_seasons_{show_id}"
         cached_data = self.persistent_cache.get_season_data(show_id)
-        
+
         if cached_data and 'released_seasons_count' in cached_data:
             return cached_data['released_seasons_count']
-        
-        # Not cached, calculate it
-        released_count = 0
-        
-        for season_num in range(1, total_seasons + 1):
-            try:
-                season_details = self.get_season_details(show_id, season_num)
-                air_date = season_details.get('air_date', '')
-                
-                if self._is_season_released(air_date):
-                    released_count += 1
-                else:
-                    # Stop counting once we hit an unreleased season
-                    # (assuming seasons are released in order)
-                    break
-            except Exception:
-                # If we can't get season details, stop counting
-                break
-        
+
+        # Not cached, derive it from the show details, which already carry an
+        # air date for every season.
+        try:
+            show_details = self.get_show_details(show_id)
+            released_count = self._count_released_seasons(show_details.get('seasons'))
+            total_seasons = show_details.get('number_of_seasons') or total_seasons
+        except Exception as e:
+            print(f"Failed to get season data for show {show_id}: {e}")
+            return 1
+
         # Cache the result
         season_data = cached_data or {}
         season_data['released_seasons_count'] = released_count
         season_data['total_seasons'] = total_seasons
         self.persistent_cache.set_season_data(show_id, season_data)
-        
+
         return released_count
     
     def _get_full_image_url(self, image_path):
