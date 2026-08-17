@@ -1,4 +1,5 @@
 import pytest
+import sqlite3
 from src.services.calculation_service import CalculationService
 from src.services.tmdb_service import TMDBService
 
@@ -387,3 +388,182 @@ def test_calculate_awards_empty():
     assert awards['most_episodes_show'] is None
     assert awards['most_watch_time_show'] is None
     assert awards['most_obscure_show'] is None
+
+# --- Search cache retention ---------------------------------------------------
+
+def _temp_cache(tmp_path):
+    from src.services.persistent_cache_service import PersistentCacheService
+    return PersistentCacheService(str(tmp_path / 'cache.db'))
+
+
+def test_search_cache_returns_fresh_entry(tmp_path):
+    """A recently stored search result is served from cache."""
+    cache = _temp_cache(tmp_path)
+    payload = {'results': [{'id': 1, 'name': 'Breaking Bad'}], 'total_results': 1}
+
+    cache.set_search_results('breaking bad', payload)
+
+    assert cache.get_search_results('breaking bad') == payload
+
+
+def test_search_cache_expires_entry_past_ttl(tmp_path):
+    """An entry older than the retention window is discarded, not served."""
+    import time
+    cache = _temp_cache(tmp_path)
+    payload = {'results': [{'id': 1, 'name': 'Breaking Bad'}], 'total_results': 1}
+
+    cache.set_search_results('breaking bad', payload)
+
+    # Age both layers past the 7-day window
+    stale = time.time() - cache.cache_duration - 60
+    cache.search_memory_cache.set('breaking bad', payload, stale)
+    with sqlite3.connect(cache.db_path) as conn:
+        conn.execute('UPDATE search_cache SET timestamp = ?', (stale,))
+        conn.commit()
+
+    assert cache.get_search_results('breaking bad') is None
+
+
+def test_search_cache_expires_memory_layer_independently(tmp_path):
+    """A stale in-memory entry is not served even while the DB row is fresh."""
+    import time
+    cache = _temp_cache(tmp_path)
+    payload = {'results': [{'id': 1, 'name': 'Lost'}], 'total_results': 1}
+
+    cache.set_search_results('lost', payload)
+    cache.search_memory_cache.set('lost', payload, time.time() - cache.cache_duration - 60)
+
+    # Falls through to the still-fresh database row
+    assert cache.get_search_results('lost') == payload
+
+
+def test_empty_search_results_expire_quickly(tmp_path):
+    """Zero-result responses use the short retention window."""
+    import time
+    cache = _temp_cache(tmp_path)
+    empty = {'results': [], 'total_results': 0}
+
+    cache.set_search_results('breking bad', empty)
+    assert cache.get_search_results('breking bad') == empty
+
+    stale = time.time() - cache.empty_cache_duration - 60
+    cache.search_memory_cache.set('breking bad', empty, stale)
+    with sqlite3.connect(cache.db_path) as conn:
+        conn.execute('UPDATE search_cache SET timestamp = ?', (stale,))
+        conn.commit()
+
+    assert cache.get_search_results('breking bad') is None
+
+
+def test_search_cache_is_scoped_per_page(tmp_path):
+    """Different result pages of the same query do not overwrite each other."""
+    cache = _temp_cache(tmp_path)
+    page1 = {'results': [{'id': 1}], 'page': 1}
+    page2 = {'results': [{'id': 2}], 'page': 2}
+
+    cache.set_search_results('lost', page1, 1)
+    cache.set_search_results('lost', page2, 2)
+
+    assert cache.get_search_results('lost', 1) == page1
+    assert cache.get_search_results('lost', 2) == page2
+
+
+def test_season_cache_expires_past_ttl(tmp_path):
+    """Season data is also subject to the retention window."""
+    import time
+    cache = _temp_cache(tmp_path)
+    cache.set_season_data(1396, {'total_seasons': 5, 'released_seasons_count': 5})
+
+    stale = time.time() - cache.cache_duration - 60
+    cache.season_memory_cache.set('1396', {'total_seasons': 5}, stale)
+    with sqlite3.connect(cache.db_path) as conn:
+        conn.execute('UPDATE season_cache SET timestamp = ?', (stale,))
+        conn.commit()
+
+    assert cache.get_season_data(1396) is None
+
+
+# --- Released season counting -------------------------------------------------
+
+def test_count_released_seasons_ignores_specials_and_stops_at_unaired():
+    """Season 0 is skipped and counting stops at the first unaired season."""
+    service = TMDBService()
+    seasons = [
+        {'season_number': 0, 'air_date': '2005-04-27'},   # specials, ignored
+        {'season_number': 1, 'air_date': '2004-09-22'},
+        {'season_number': 2, 'air_date': '2005-09-21'},
+        {'season_number': 3, 'air_date': '2999-01-01'},   # not yet aired
+        {'season_number': 4, 'air_date': '2010-02-02'},   # never reached
+    ]
+
+    assert service._count_released_seasons(seasons) == 2
+
+
+def test_count_released_seasons_handles_missing_air_dates():
+    """A season with no air date counts as unaired."""
+    service = TMDBService()
+
+    assert service._count_released_seasons([{'season_number': 1, 'air_date': None}]) == 0
+    assert service._count_released_seasons([]) == 0
+    assert service._count_released_seasons(None) == 0
+
+
+def test_released_seasons_count_uses_a_single_request(monkeypatch, tmp_path):
+    """The season count comes from one show-details call, not one call per season."""
+    from src.services.persistent_cache_service import PersistentCacheService
+    service = TMDBService()
+    service.persistent_cache = PersistentCacheService(str(tmp_path / 'cache.db'))
+
+    calls = []
+
+    def fake_request(endpoint, params=None):
+        calls.append(endpoint)
+        return {
+            'id': 4607,
+            'name': 'Lost',
+            'number_of_seasons': 6,
+            'seasons': [
+                {'season_number': 0, 'air_date': '2005-04-27'},
+                {'season_number': 1, 'air_date': '2004-09-22'},
+                {'season_number': 2, 'air_date': '2005-09-21'},
+                {'season_number': 3, 'air_date': '2006-10-04'},
+            ],
+        }
+
+    monkeypatch.setattr(service, '_make_request', fake_request)
+
+    assert service.get_released_seasons_count(4607, 6) == 3
+    assert calls == ['tv/4607']
+
+
+# --- Typo fallback ------------------------------------------------------------
+
+def test_relaxed_queries_trim_and_drop_tokens():
+    """Relaxed variants trim word tails and drop whole words."""
+    service = TMDBService()
+    variants = service._relaxed_queries('breking bad')
+
+    assert 'bad' in variants          # dropping the misspelled word
+    assert 'brekin' in variants       # trimming the misspelled word
+    assert 'breking bad' not in variants
+    assert all(len(v) >= 3 for v in variants)
+
+
+def test_relaxed_queries_for_single_token():
+    """A one-word query is relaxed by trimming its tail."""
+    service = TMDBService()
+    variants = service._relaxed_queries('seinfled')
+
+    assert 'seinfl' in variants
+    assert all(len(v) >= 4 for v in variants)
+
+
+def test_rank_by_similarity_prefers_the_closest_title():
+    """Ranking puts the nearest title first even when it is less popular."""
+    service = TMDBService()
+    shows = [
+        {'name': 'Big Bad BeetleBorgs', 'popularity': 200},
+        {'name': 'Breaking Bad', 'popularity': 150},
+    ]
+
+    assert service._rank_by_similarity('breking bad', shows)[0]['name'] == 'Breaking Bad'

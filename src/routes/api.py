@@ -88,36 +88,37 @@ def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched, show_
 
 @api_bp.route('/search')
 def search():
-    """Search for shows/movies using TMDB API with caching and optimized season data loading."""
+    """Search for shows using the TMDB API, with caching and season data included."""
     query = request.args.get('query', '').strip()
     if not query:
         return jsonify({'error': 'Query parameter is required'}), 400
-    
+
+    try:
+        page = int(request.args.get('page', 1))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Page parameter must be a number'}), 400
+
+    if page < 1:
+        return jsonify({'error': 'Page parameter must be 1 or greater'}), 400
+
     try:
         # Check cache first
         cache = get_search_cache()
-        cached_result = cache.get(query)
-        
+        cached_result = cache.get(query, page)
+
         if cached_result:
             # Return cached result
-            print(f"Cache hit for query: {query}")
+            print(f"Cache hit for query: {query} (page {page})")
             return jsonify(cached_result)
-        
+
         # Cache miss - call TMDB API
-        print(f"Cache miss for query: {query}")
+        print(f"Cache miss for query: {query} (page {page})")
         tmdb_service = get_tmdb_service()
-        
-        # Check if we're in testing mode
-        from flask import current_app
-        include_season_data = current_app and current_app.config.get('TESTING', False)
-        
-        # For production optimization, don't fetch season data upfront unless testing
-        # Season data will be fetched on-demand when results are displayed
-        results = tmdb_service.search_shows(query, include_season_data=include_season_data)
-        
+        results = tmdb_service.search_shows_with_fallback(query, page)
+
         # Cache the result
-        cache.set(query, results)
-        
+        cache.set(query, results, page)
+
         return jsonify(results)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
