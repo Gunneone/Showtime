@@ -396,12 +396,19 @@ body {
 
 .search-result-content {
     display: flex;
+    align-items: center;
     gap: 0.75rem;
 }
 
 .search-result-poster {
-    width: 40px;
-    height: 60px;
+    /* Matches the height of the text column next to it; width follows the 2:3
+       poster ratio. The absolutely positioned img below keeps the image out of the
+       row's height calculation, so a large poster can never stretch the card. */
+    align-self: center;
+    position: relative;
+    height: 4.8rem;
+    width: auto;
+    aspect-ratio: 2 / 3;
     background: #4a5568;
     border-radius: 6px;
     overflow: hidden;
@@ -409,21 +416,28 @@ body {
 }
 
 .search-result-poster img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
+.search-result-info {
+    min-width: 0;
+}
+
 .search-result-info h4 {
     color: #e2e8f0;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     font-size: 0.9rem;
 }
 
 .search-result-date {
     color: #a0aec0;
     font-size: 0.8rem;
-    margin-bottom: 0.5rem;
+    font-weight: 400;
+    margin-left: 0.4rem;
 }
 
 /* Search load more button */
@@ -462,13 +476,15 @@ body {
 
 /* Season selector bars for search results */
 .search-result-seasons {
-    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
 }
 
 .season-selector-label {
     color: #a0aec0;
     font-size: 0.75rem;
-    margin-bottom: 0.5rem;
     font-weight: 500;
 }
 
@@ -476,7 +492,6 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 2px;
-    margin-top: 0.25rem;
     position: relative;
     z-index: 10;
     border-radius: 4px;
