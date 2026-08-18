@@ -107,3 +107,57 @@ def test_api_search_caches_pages_separately(client, monkeypatch):
     # Both pages are now cached, so no further calls reach the service
     json.loads(client.get('/api/search?query=paging-probe&page=1').data)
     assert served == [1, 2]
+
+
+def test_api_recommendations_for_an_empty_library(client):
+    """An empty library still gets suggestions, from the popular list."""
+    response = client.post('/api/recommendations', json={'watched_shows': []})
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['mode'] == 'popular'
+    assert len(data['results']) > 0
+
+
+def test_api_recommendations_without_a_body(client):
+    """A request with no JSON body is treated as an empty library, not an error."""
+    response = client.post('/api/recommendations')
+
+    assert response.status_code == 200
+    assert json.loads(response.data)['mode'] == 'popular'
+
+
+def test_api_recommendations_rejects_a_malformed_library(client):
+    """watched_shows has to be a list."""
+    response = client.post('/api/recommendations', json={'watched_shows': 'Breaking Bad'})
+
+    assert response.status_code == 400
+    assert 'error' in json.loads(response.data)
+
+
+def test_api_recommendations_never_returns_a_watched_show(client):
+    """Anything already logged is filtered out of the response."""
+    watched = [{'id': 1, 'name': 'Breaking Bad', 'seasons_watched': 1},
+               {'id': 3, 'name': 'Game of Thrones', 'seasons_watched': 1}]
+
+    response = client.post('/api/recommendations', json={'watched_shows': watched})
+
+    assert response.status_code == 200
+    returned_ids = {show['id'] for show in json.loads(response.data)['results']}
+    assert not returned_ids & {1, 3}
+
+
+def test_api_recommendations_reports_service_failure(client, monkeypatch):
+    """A failure inside the service surfaces as a 500 with a message."""
+    from src.routes import api
+
+    class BrokenService:
+        def build_recommendations(self, watched_shows):
+            raise Exception('TMDB unavailable')
+
+    monkeypatch.setattr(api, 'get_rec_service', lambda: BrokenService())
+
+    response = client.post('/api/recommendations', json={'watched_shows': []})
+
+    assert response.status_code == 500
+    assert 'error' in json.loads(response.data)

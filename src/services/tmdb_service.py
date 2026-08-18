@@ -82,85 +82,59 @@ class TMDBService:
             
         if endpoint == "search/tv":
             query = params.get('query', '').lower()
-            mock_shows = [
-                {
-                    'id': 1,
-                    'name': 'Breaking Bad',
-                    'overview': 'A high school chemistry teacher turned methamphetamine cook.',
-                    'first_air_date': '2008-01-20',
-                    'poster_path': None,
-                    'vote_average': 9.5,
-                    'popularity': 100
-                },
-                {
-                    'id': 2,
-                    'name': 'The Office',
-                    'overview': 'A mockumentary about office workers in Scranton, PA.',
-                    'first_air_date': '2005-03-24',
-                    'poster_path': None,
-                    'vote_average': 8.9,
-                    'popularity': 95
-                },
-                {
-                    'id': 3,
-                    'name': 'Game of Thrones',
-                    'overview': 'Nine noble families fight for control over the mythical lands of Westeros.',
-                    'first_air_date': '2011-04-17',
-                    'poster_path': None,
-                    'vote_average': 9.3,
-                    'popularity': 98
-                },
-                {
-                    'id': 4,
-                    'name': 'Stranger Things',
-                    'overview': 'When a young boy disappears, his mother and friends must confront terrifying supernatural forces.',
-                    'first_air_date': '2016-07-15',
-                    'poster_path': None,
-                    'vote_average': 8.7,
-                    'popularity': 92
-                },
-                {
-                    'id': 5,
-                    'name': 'The Mandalorian',
-                    'overview': 'The travels of a lone bounty hunter in the outer reaches of the galaxy.',
-                    'first_air_date': '2019-11-12',
-                    'poster_path': None,
-                    'vote_average': 8.5,
-                    'popularity': 88
-                },
-                {
-                    'id': 6,
-                    'name': 'Wednesday',
-                    'overview': 'Smart, sarcastic and a little dead inside, Wednesday Addams investigates twisted mysteries while making new friends — and foes — at Nevermore Academy.',
-                    'first_air_date': '2022-11-23',
-                    'poster_path': None,
-                    'vote_average': 8.4,
-                    'popularity': 525
-                }
-            ]
-            
+            mock_shows = self._mock_shows()
+
             # Filter shows based on query
             if query:
                 filtered_shows = [
-                    show for show in mock_shows 
+                    show for show in mock_shows
                     if query in show['name'].lower() or query in show['overview'].lower()
                 ]
             else:
                 filtered_shows = mock_shows
-                
+
             return {
                 'results': filtered_shows,
                 'total_pages': 1,
                 'total_results': len(filtered_shows),
                 'page': 1
             }
-            
+
+        elif endpoint == "genre/tv/list":
+            return {'genres': [
+                {'id': 18, 'name': 'Drama'},
+                {'id': 80, 'name': 'Crime'},
+                {'id': 35, 'name': 'Comedy'},
+                {'id': 10765, 'name': 'Sci-Fi & Fantasy'}
+            ]}
+
+        elif endpoint == "discover/tv":
+            mock_shows = sorted(self._mock_shows(), key=lambda s: s['vote_average'], reverse=True)
+            return {
+                'results': mock_shows,
+                'total_pages': 1,
+                'total_results': len(mock_shows),
+                'page': params.get('page', 1)
+            }
+
+        elif endpoint.startswith("tv/") and endpoint.endswith("/recommendations"):
+            # Every show is "recommended" every other show, so tests can rely on
+            # overlap between seeds without pinning a hand-built graph.
+            show_id = int(endpoint.split('/')[1])
+            mock_shows = [show for show in self._mock_shows() if show['id'] != show_id]
+            return {
+                'results': mock_shows,
+                'total_pages': 1,
+                'total_results': len(mock_shows),
+                'page': params.get('page', 1)
+            }
+
         elif endpoint.startswith("tv/") and "/season/" in endpoint:
             # Handle season details requests
             parts = endpoint.split('/')
             show_id = int(parts[1])
             season_num = int(parts[3])
-            
+
             # Mock episode data for different shows
             mock_episodes = {
                 1: {  # Breaking Bad
@@ -212,10 +186,10 @@ class TMDBService:
                     ]
                 }
             }
-            
+        
             # Get episodes for this season
             episodes = mock_episodes.get(show_id, {}).get(season_num, [])
-            
+        
             # Mock season air dates by show and season
             season_air_dates = {
                 1: {  # Breaking Bad - all seasons released
@@ -260,11 +234,11 @@ class TMDBService:
                     4: '2026-06-01'  # Future season
                 }
             }
-            
+        
             # Get air date for this specific season
             show_air_dates = season_air_dates.get(show_id, {})
             season_air_date = show_air_dates.get(season_num, '2020-01-01')
-            
+        
             return {
                 'id': f'{show_id}_{season_num}',
                 'season_number': season_num,
@@ -273,10 +247,10 @@ class TMDBService:
                 'air_date': season_air_date,
                 'episodes': episodes
             }
-            
+
         elif endpoint.startswith("tv/"):
             show_id = int(endpoint.split('/')[1])
-            
+
             # Map of mock show details by ID
             mock_show_details = {
                 1: {
@@ -415,7 +389,7 @@ class TMDBService:
                     ]
                 }
             }
-            
+        
             return mock_show_details.get(show_id, {
                 'id': show_id,
                 'name': f'Unknown Show {show_id}',
@@ -433,7 +407,67 @@ class TMDBService:
                 'status': 'Ended',
                 'networks': []
             })
-    
+
+    def _mock_shows(self):
+        """The mock show catalogue shared by the search, popular, and
+        recommendation endpoints."""
+        return [
+            {
+                'id': 1,
+                'name': 'Breaking Bad',
+                'overview': 'A high school chemistry teacher turned methamphetamine cook.',
+                'first_air_date': '2008-01-20',
+                'poster_path': None,
+                'vote_average': 9.5,
+                'popularity': 100
+            },
+            {
+                'id': 2,
+                'name': 'The Office',
+                'overview': 'A mockumentary about office workers in Scranton, PA.',
+                'first_air_date': '2005-03-24',
+                'poster_path': None,
+                'vote_average': 8.9,
+                'popularity': 95
+            },
+            {
+                'id': 3,
+                'name': 'Game of Thrones',
+                'overview': 'Nine noble families fight for control over the mythical lands of Westeros.',
+                'first_air_date': '2011-04-17',
+                'poster_path': None,
+                'vote_average': 9.3,
+                'popularity': 98
+            },
+            {
+                'id': 4,
+                'name': 'Stranger Things',
+                'overview': 'When a young boy disappears, his mother and friends must confront terrifying supernatural forces.',
+                'first_air_date': '2016-07-15',
+                'poster_path': None,
+                'vote_average': 8.7,
+                'popularity': 92
+            },
+            {
+                'id': 5,
+                'name': 'The Mandalorian',
+                'overview': 'The travels of a lone bounty hunter in the outer reaches of the galaxy.',
+                'first_air_date': '2019-11-12',
+                'poster_path': None,
+                'vote_average': 8.5,
+                'popularity': 88
+            },
+            {
+                'id': 6,
+                'name': 'Wednesday',
+                'overview': 'Smart, sarcastic and a little dead inside, Wednesday Addams investigates twisted mysteries while making new friends — and foes — at Nevermore Academy.',
+                'first_air_date': '2022-11-23',
+                'poster_path': None,
+                'vote_average': 8.4,
+                'popularity': 525
+            }
+        ]
+
     def _format_search_result(self, show):
         """Project a raw TMDB search hit onto the shape the frontend expects."""
         return {
@@ -443,10 +477,23 @@ class TMDBService:
             'first_air_date': show.get('first_air_date', ''),
             'poster_path': self._get_full_image_url(show.get('poster_path')),
             'vote_average': show.get('vote_average', 0),
+            # Lifetime vote total. Unlike `popularity`, which is a rolling
+            # weekly trending score, this accumulates over a show's whole life,
+            # so ranking on it does not favour whatever aired recently.
+            'vote_count': show.get('vote_count', 0),
             'popularity': show.get('popularity', 0),
             'number_of_seasons': None,
             'number_of_released_seasons': None
         }
+
+    def attach_season_data(self, results):
+        """Fill in season counts on any list of formatted results.
+
+        Callers that assemble their own result list (recommendations, for
+        instance) need the same season counts a search page gets, since the
+        season-selector bars are built from them.
+        """
+        return self._attach_season_data(results)
 
     def _attach_season_data(self, results):
         """Fill in season counts for a page of results, in parallel.
@@ -656,6 +703,87 @@ class TMDBService:
             'seasons': show.get('seasons', [])
         }
     
+    def get_show_recommendations(self, show_id, page=1):
+        """Fetch TMDB's recommendations for one show, in search-result shape.
+
+        Season counts are deliberately left unresolved here: callers pool
+        recommendations from many shows and only need them on the handful that
+        survive ranking, so `_attach_season_data` runs once on that final list.
+        """
+        endpoint = f"tv/{show_id}/recommendations"
+        params = {
+            'page': page,
+            'language': 'en-US'
+        }
+
+        data = self._make_request(endpoint, params)
+
+        return [self._format_search_result(show) for show in data.get('results', [])]
+
+    def get_all_time_popular_shows(self, page=1):
+        """Fetch the most popular TV shows of all time, in search-result shape.
+
+        TMDB's `tv/popular` tracks what is popular *this week*, which churns.
+        Ranking by total vote count instead surfaces the shows the largest
+        audience has ever engaged with, which is stable and much closer to what
+        someone means by "most popular".
+        """
+        endpoint = "discover/tv"
+        params = {
+            'page': page,
+            'language': 'en-US',
+            'sort_by': 'vote_count.desc'
+        }
+
+        data = self._make_request(endpoint, params)
+
+        return [self._format_search_result(show) for show in data.get('results', [])]
+
+    def discover_shows(self, genre_ids, page=1, min_votes=500):
+        """Fetch well-known shows in the given genres, ranked all-time.
+
+        Genres are joined with `|` (OR) rather than `,` (AND): requiring every
+        genre at once collapses the pool to a few dozen titles, while OR keeps
+        it in the hundreds, which is what makes sampling worth doing.
+        """
+        endpoint = "discover/tv"
+        params = {
+            'page': page,
+            'language': 'en-US',
+            'sort_by': 'vote_count.desc',
+            'vote_count.gte': min_votes
+        }
+        if genre_ids:
+            params['with_genres'] = '|'.join(str(genre_id) for genre_id in genre_ids)
+
+        data = self._make_request(endpoint, params)
+
+        return [self._format_search_result(show) for show in data.get('results', [])]
+
+    # Fallback used when the genre list cannot be fetched. TMDB's TV genres
+    # change very rarely, so a stale copy is far better than losing the lane.
+    TV_GENRE_FALLBACK = {
+        'Action & Adventure': 10759, 'Animation': 16, 'Comedy': 35, 'Crime': 80,
+        'Documentary': 99, 'Drama': 18, 'Family': 10751, 'Kids': 10762,
+        'Mystery': 9648, 'News': 10763, 'Reality': 10764,
+        'Sci-Fi & Fantasy': 10765, 'Soap': 10766, 'Talk': 10767,
+        'War & Politics': 10768, 'Western': 37
+    }
+
+    def get_tv_genres(self):
+        """Map TV genre names to TMDB ids.
+
+        Logged shows store genres as names only, so this is what lets a taste
+        profile become a discover query.
+        """
+        try:
+            data = self._make_request("genre/tv/list", {'language': 'en-US'})
+            genres = {genre['name']: genre['id'] for genre in data.get('genres', [])}
+            return genres or dict(self.TV_GENRE_FALLBACK)
+        except Exception as e:
+            print(f"Failed to fetch TV genre list: {e}")
+            return dict(self.TV_GENRE_FALLBACK)
+
     def get_season_details(self, show_id, season_number):
         """Get detailed information about a specific season."""
         endpoint = f"tv/{show_id}/season/{season_number}"

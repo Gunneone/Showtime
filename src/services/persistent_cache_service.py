@@ -1,6 +1,7 @@
 """
 Persistent cache service using SQLite with in-memory LRU cache layer.
-Provides caching for search queries and show season data with 7-day retention.
+Provides caching for search queries, show season data, and per-show
+recommendations with 7-day retention.
 """
 
 import sqlite3
@@ -74,6 +75,7 @@ class PersistentCacheService:
         # In-memory LRU caches
         self.search_memory_cache = LRUCache(memory_cache_size)
         self.season_memory_cache = LRUCache(memory_cache_size)
+        self.recommendation_memory_cache = LRUCache(memory_cache_size)
         
         # Initialize database
         self._init_database()
@@ -100,10 +102,19 @@ class PersistentCacheService:
                 )
             ''')
             
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS recommendation_cache (
+                    show_id INTEGER PRIMARY KEY,
+                    recommendations TEXT NOT NULL,
+                    timestamp REAL NOT NULL
+                )
+            ''')
+
             # Create indexes for better query performance
             conn.execute('CREATE INDEX IF NOT EXISTS idx_search_timestamp ON search_cache(timestamp)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_season_timestamp ON season_cache(timestamp)')
-            
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_recommendation_timestamp ON recommendation_cache(timestamp)')
+
             conn.commit()
     
     def _normalize_query(self, query: str, page: int = 1) -> str:
@@ -254,6 +265,71 @@ class PersistentCacheService:
             except (sqlite3.Error, json.JSONEncodeError) as e:
                 print(f"Error writing season cache: {e}")
     
+    def get_recommendations(self, show_id: int) -> Optional[List[Dict[str, Any]]]:
+        """
+        Get cached recommendations for a show.
+        Checks memory cache first, then SQLite.
+        """
+        # Check memory cache first
+        cached_entry = self.recommendation_memory_cache.get(str(show_id))
+        if cached_entry is not None:
+            cached_data, cached_at = cached_entry
+            if (time.time() - cached_at) <= self.cache_duration:
+                return cached_data
+            self.recommendation_memory_cache.delete(str(show_id))
+
+        # Check SQLite database
+        with self.lock:
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.execute(
+                        'SELECT recommendations, timestamp FROM recommendation_cache WHERE show_id = ?',
+                        (show_id,)
+                    )
+                    row = cursor.fetchone()
+
+                    if row:
+                        recommendations_json, timestamp = row
+
+                        if (time.time() - timestamp) > self.cache_duration:
+                            conn.execute('DELETE FROM recommendation_cache WHERE show_id = ?', (show_id,))
+                            conn.commit()
+                            return None
+
+                        # Parse and cache in memory
+                        recommendations = json.loads(recommendations_json)
+                        self.recommendation_memory_cache.set(str(show_id), recommendations, timestamp)
+                        return recommendations
+
+            except (sqlite3.Error, json.JSONDecodeError) as e:
+                print(f"Error reading recommendation cache: {e}")
+                return None
+
+        return None
+
+    def set_recommendations(self, show_id: int, recommendations: List[Dict[str, Any]]) -> None:
+        """
+        Store recommendations for a show in cache.
+        Stores in both memory and SQLite.
+        """
+        current_time = time.time()
+
+        # Store in memory cache
+        self.recommendation_memory_cache.set(str(show_id), recommendations, current_time)
+
+        # Store in SQLite database
+        with self.lock:
+            try:
+                recommendations_json = json.dumps(recommendations)
+                with sqlite3.connect(self.db_path) as conn:
+                    conn.execute(
+                        'INSERT OR REPLACE INTO recommendation_cache (show_id, recommendations, timestamp) VALUES (?, ?, ?)',
+                        (show_id, recommendations_json, current_time)
+                    )
+                    conn.commit()
+            except (sqlite3.Error, TypeError) as e:
+                print(f"Error writing recommendation cache: {e}")
+
     def cleanup_expired(self) -> int:
         """
         Remove all expired cache entries from SQLite.
@@ -268,15 +344,17 @@ class PersistentCacheService:
                     # Count expired entries
                     cursor = conn.execute(
                         'SELECT COUNT(*) FROM search_cache WHERE timestamp < ? UNION ALL '
-                        'SELECT COUNT(*) FROM season_cache WHERE timestamp < ?',
-                        (cutoff_time, cutoff_time)
+                        'SELECT COUNT(*) FROM season_cache WHERE timestamp < ? UNION ALL '
+                        'SELECT COUNT(*) FROM recommendation_cache WHERE timestamp < ?',
+                        (cutoff_time, cutoff_time, cutoff_time)
                     )
                     results = cursor.fetchall()
                     total_expired = sum(row[0] for row in results)
-                    
+
                     # Remove expired entries
                     conn.execute('DELETE FROM search_cache WHERE timestamp < ?', (cutoff_time,))
                     conn.execute('DELETE FROM season_cache WHERE timestamp < ?', (cutoff_time,))
+                    conn.execute('DELETE FROM recommendation_cache WHERE timestamp < ?', (cutoff_time,))
                     conn.commit()
                     
                     return total_expired
@@ -290,13 +368,15 @@ class PersistentCacheService:
         # Clear memory caches
         self.search_memory_cache.clear()
         self.season_memory_cache.clear()
-        
+        self.recommendation_memory_cache.clear()
+
         # Clear SQLite database
         with self.lock:
             try:
                 with sqlite3.connect(self.db_path) as conn:
                     conn.execute('DELETE FROM search_cache')
                     conn.execute('DELETE FROM season_cache')
+                    conn.execute('DELETE FROM recommendation_cache')
                     conn.commit()
             except sqlite3.Error as e:
                 print(f"Error clearing cache: {e}")
@@ -311,7 +391,10 @@ class PersistentCacheService:
                     
                     cursor = conn.execute('SELECT COUNT(*) FROM season_cache')
                     season_count = cursor.fetchone()[0]
-                    
+
+                    cursor = conn.execute('SELECT COUNT(*) FROM recommendation_cache')
+                    recommendation_count = cursor.fetchone()[0]
+
                     return {
                         'search_cache': {
                             'memory_entries': self.search_memory_cache.size(),
@@ -320,6 +403,10 @@ class PersistentCacheService:
                         'season_cache': {
                             'memory_entries': self.season_memory_cache.size(),
                             'db_entries': season_count
+                        },
+                        'recommendation_cache': {
+                            'memory_entries': self.recommendation_memory_cache.size(),
+                            'db_entries': recommendation_count
                         }
                     }
             except sqlite3.Error as e:
