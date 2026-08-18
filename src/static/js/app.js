@@ -699,10 +699,9 @@ const App = {
                          loading="lazy">
                 </div>
                 <div class="search-result-info">
-                    <h4>${safeName}</h4>
-                    <div class="search-result-date">${year}</div>
+                    <h4>${safeName}<span class="search-result-date">${year}</span></h4>
                     <div class="search-result-seasons">
-                        <div class="season-selector-label">Add seasons:</div>
+                        <span class="season-selector-label">Seasons:</span>
                         <div class="season-selector-bars" data-show-id="${show.id}">
                             ${seasonBars}
                         </div>
