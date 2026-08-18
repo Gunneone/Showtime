@@ -750,13 +750,15 @@ const App = {
             this.hideSearchResults();
             this.elements.searchInput.value = '';
             
-            // Scroll to top card on mobile after adding show
-            this.scrollToTopCard();
-            
-            // Only focus search input on desktop, not mobile
+            // Only focus search input on desktop, not mobile.
+            // preventScroll keeps the browser from yanking the viewport back
+            // down to the search bar.
             if (!this.isMobile()) {
-                this.elements.searchInput.focus();
+                this.elements.searchInput.focus({ preventScroll: true });
             }
+
+            // Scroll to the total/celebration card after adding a show
+            this.scrollToTopCard();
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -809,13 +811,15 @@ const App = {
             this.hideSearchResults();
             this.elements.searchInput.value = '';
             
-            // Scroll to top card on mobile after adding show
-            this.scrollToTopCard();
-            
-            // Only focus search input on desktop, not mobile
+            // Only focus search input on desktop, not mobile.
+            // preventScroll keeps the browser from yanking the viewport back
+            // down to the search bar.
             if (!this.isMobile()) {
-                this.elements.searchInput.focus();
+                this.elements.searchInput.focus({ preventScroll: true });
             }
+
+            // Scroll to the total/celebration card after adding a show
+            this.scrollToTopCard();
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -909,13 +913,15 @@ const App = {
             this.hideSearchResults();
             this.elements.searchInput.value = '';
             
-            // Scroll to top card on mobile after adding show
-            this.scrollToTopCard();
-            
-            // Only focus search input on desktop, not mobile
+            // Only focus search input on desktop, not mobile.
+            // preventScroll keeps the browser from yanking the viewport back
+            // down to the search bar.
             if (!this.isMobile()) {
-                this.elements.searchInput.focus();
+                this.elements.searchInput.focus({ preventScroll: true });
             }
+
+            // Scroll to the total/celebration card after adding a show
+            this.scrollToTopCard();
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -1841,16 +1847,59 @@ const App = {
         });
     },
 
-    // Scroll to top card (used after adding show on mobile)
+    // Scroll to top card (used after adding show, so the total and the
+    // celebration animation are actually visible)
     scrollToTopCard() {
-        if (this.isMobile()) {
-            const topCard = document.querySelector('.watch-time-card');
-            if (topCard) {
-                topCard.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start' 
-                });
-            }
+        const topCard = document.querySelector('.watch-time-card');
+        if (!topCard) return;
+
+        const prefersReducedMotion = window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const behavior = prefersReducedMotion ? 'auto' : 'smooth';
+
+        // Cancel any re-assert still pending from a previous add
+        this.cancelTopCardScroll();
+
+        // The header is fixed, so scrolling the card flush to the viewport top
+        // would tuck its title underneath it
+        const header = document.querySelector('.header');
+        const headerOffset = header ? header.getBoundingClientRect().height + 12 : 0;
+
+        const scroll = () => {
+            const top = Math.max(
+                0,
+                window.scrollY + topCard.getBoundingClientRect().top - headerOffset
+            );
+            window.scrollTo({ top, behavior });
+        };
+
+        // Stop fighting the user the moment they scroll or tap something
+        const abort = () => this.cancelTopCardScroll();
+        this.topCardScrollAbort = abort;
+        ['wheel', 'touchstart', 'keydown'].forEach(evt =>
+            window.addEventListener(evt, abort, { passive: true, once: true })
+        );
+
+        scroll();
+
+        // Hiding the search results and re-rendering the watched list both change
+        // the page height while the smooth scroll is still running, which clamps
+        // or interrupts it. Re-assert the position until the layout has settled.
+        this.topCardScrollTimers = [60, 250, 600, 1000].map(delay =>
+            setTimeout(scroll, delay)
+        );
+    },
+
+    // Stop re-asserting the scroll position to the top card
+    cancelTopCardScroll() {
+        (this.topCardScrollTimers || []).forEach(clearTimeout);
+        this.topCardScrollTimers = [];
+
+        if (this.topCardScrollAbort) {
+            ['wheel', 'touchstart', 'keydown'].forEach(evt =>
+                window.removeEventListener(evt, this.topCardScrollAbort)
+            );
+            this.topCardScrollAbort = null;
         }
     },
 
