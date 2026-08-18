@@ -3,6 +3,7 @@ import json
 from ..services.tmdb_service import TMDBService
 from ..services.calculation_service import CalculationService
 from ..services.search_cache_service import get_search_cache
+from ..services.recommendation_service import RecommendationService
 
 api_bp = Blueprint('api', __name__)
 
@@ -18,6 +19,11 @@ def get_tmdb_service():
 def get_calc_service():
     """Get calculation service instance."""
     return CalculationService()
+
+def get_rec_service():
+    """Get recommendation service instance, sharing the TMDB service so the
+    testing mock applies to recommendations too."""
+    return RecommendationService(tmdb_service=get_tmdb_service())
 
 def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched, show_details):
     """Calculate precise runtime and collect per-season details (runtime + air date)."""
@@ -120,6 +126,24 @@ def search():
         cache.set(query, results, page)
 
         return jsonify(results)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/recommendations', methods=['POST'])
+def recommendations():
+    """Suggest shows to log, based on the shows already logged.
+
+    Watch data lives in the browser, so the client posts its list the same way
+    the calculation endpoints take it.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        watched_shows = data.get('watched_shows', [])
+
+        if not isinstance(watched_shows, list):
+            return jsonify({'error': 'watched_shows must be a list'}), 400
+
+        return jsonify(get_rec_service().build_recommendations(watched_shows))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

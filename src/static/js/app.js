@@ -167,7 +167,16 @@ const App = {
         maxSearchResults: 5,
         currentQuery: '',
         currentPage: 1,
-        isInitialLoad: true
+        isInitialLoad: true,
+        // Suggestions shown in the dropdown when there is nothing to search for.
+        // Redrawn on every focus: the server samples its candidate pool per
+        // request, so refetching is what makes the suggestions cycle.
+        recommendations: {
+            results: [],
+            mode: null,
+            loading: false,
+            shown: 0
+        }
     },
 
     // DOM elements
@@ -321,15 +330,23 @@ const App = {
             const query = this.elements.searchInput.value.trim();
 
             // Anything too short to search for should not leave older results
-            // on screen contradicting the input
+            // on screen contradicting the input; fall back to suggestions
             if (query.length < this.MIN_QUERY_LENGTH) {
                 this.hideSearchResults();
+                this.showRecommendations();
                 return;
             }
 
             searchTimeout = setTimeout(() => {
                 this.performSearch(query, true);
             }, 300);
+        });
+
+        // An empty search box is an invitation to suggest something
+        this.elements.searchInput.addEventListener('focus', () => {
+            if (this.elements.searchInput.value.trim().length < this.MIN_QUERY_LENGTH) {
+                this.showRecommendations();
+            }
         });
 
         // Manual search with Enter key
@@ -353,7 +370,7 @@ const App = {
             e.stopPropagation();
             const showId = parseInt(bar.dataset.showId, 10);
             const seasons = parseInt(bar.dataset.season, 10);
-            const show = (this.state.currentSearch?.results || []).find(s => s.id === showId);
+            const show = this.findResultShow(showId);
             if (show) {
                 this.addShowWithSeasons(showId, seasons, show.name);
             }
@@ -448,8 +465,8 @@ const App = {
     },
 
     // Show loading state in search results
-    showSearchLoading() {
-        this.elements.searchResults.innerHTML = '<div class="search-loading"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+    showSearchLoading(message = 'Searching...') {
+        this.elements.searchResults.innerHTML = `<div class="search-loading"><i class="fas fa-spinner fa-spin"></i> ${this.escapeHtml(message)}</div>`;
         this.elements.searchResults.classList.remove('hidden');
     },
 
@@ -473,6 +490,133 @@ const App = {
         this.elements.searchResults.innerHTML = '';
         this.state.displayedSearchResults = 0;
         this.state.displayedShowIds = new Set();
+    },
+
+    // Look up a show the dropdown is offering, whether it came from a search
+    // or from the recommendations
+    findResultShow(showId) {
+        return this.state.currentSearch?.results?.find(s => s.id === showId)
+            || this.state.recommendations.results.find(s => s.id === showId);
+    },
+
+    // Fetch a fresh set of suggestions. The server draws a random sample from
+    // its candidate pool each time, so this is called on every focus rather
+    // than cached client-side; with the server caches warm it costs no TMDB
+    // calls, only a re-sample.
+    async loadRecommendations() {
+        const watchedShows = DataStorage.getWatchedShows();
+
+        if (this.state.recommendations.loading) {
+            return;
+        }
+
+        this.state.recommendations.loading = true;
+
+        try {
+            const response = await fetch('/api/recommendations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ watched_shows: watchedShows })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to load recommendations');
+            }
+
+            this.state.recommendations.results = data.results || [];
+            this.state.recommendations.mode = data.mode;
+            this.state.recommendations.shown = 0;
+        } catch (error) {
+            console.error('Error loading recommendations:', error);
+            this.state.recommendations.results = [];
+            this.state.recommendations.mode = null;
+        } finally {
+            this.state.recommendations.loading = false;
+        }
+    },
+
+    // Load (if needed) and show suggestions in the dropdown
+    async showRecommendations() {
+        if (!this.elements.searchInput) return;
+
+        const wasEmpty = this.state.recommendations.results.length === 0;
+        if (wasEmpty && !this.state.recommendations.loading) {
+            this.showSearchLoading('Finding shows for you...');
+        }
+
+        await this.loadRecommendations();
+
+        // The user may have started typing while the request was in flight
+        if (this.elements.searchInput.value.trim().length >= this.MIN_QUERY_LENGTH) {
+            return;
+        }
+
+        this.displayRecommendations();
+    },
+
+    // Render the suggestions into the search dropdown
+    displayRecommendations() {
+        const { results, mode } = this.state.recommendations;
+
+        if (!results.length) {
+            this.hideSearchResults();
+            return;
+        }
+
+        this.elements.searchResults.innerHTML = '';
+        this.elements.searchResults.classList.remove('hidden');
+        this.state.displayedShowIds = new Set();
+
+        const header = document.createElement('div');
+        header.className = 'search-results-header';
+        header.textContent = mode === 'personalized'
+            ? "The algorithm thinks, you might've watched these..."
+            : 'The most popular shows of all time';
+        this.elements.searchResults.appendChild(header);
+
+        // On mobile the dropdown pushes the page down instead of floating over
+        // it, so only a few suggestions are rendered until asked for more
+        const initialCount = this.isMobile() ? this.state.maxSearchResults : results.length;
+        this.state.recommendations.shown = 0;
+        this.appendRecommendations(initialCount);
+    },
+
+    // Append the next batch of suggestions, adding a "show more" control if any
+    // are still held back
+    appendRecommendations(count) {
+        const { results } = this.state.recommendations;
+        const existingMore = this.elements.searchResults.querySelector('.search-load-more');
+        if (existingMore) existingMore.remove();
+
+        const endIndex = Math.min(this.state.recommendations.shown + count, results.length);
+
+        for (const show of results.slice(this.state.recommendations.shown, endIndex)) {
+            if (this.state.displayedShowIds.has(show.id)) continue;
+            this.elements.searchResults.appendChild(this.createSearchResultElement(show));
+            this.state.displayedShowIds.add(show.id);
+        }
+
+        this.state.recommendations.shown = endIndex;
+
+        if (endIndex < results.length) {
+            const moreDiv = document.createElement('div');
+            moreDiv.className = 'search-load-more';
+
+            const moreBtn = document.createElement('button');
+            moreBtn.className = 'load-more-btn';
+            moreBtn.innerHTML = '<i class="fas fa-plus"></i> load more';
+            moreBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.appendRecommendations(this.state.maxSearchResults);
+            });
+
+            moreDiv.appendChild(moreBtn);
+            this.elements.searchResults.appendChild(moreDiv);
+        }
     },
 
     // Escape text taken from TMDB before it goes into markup
@@ -769,8 +913,8 @@ const App = {
 
     // Add show with specific number of seasons (for season selector bars)
     async addShowWithSeasons(showId, seasonsWatched, showName) {
-        // Find the show in current search results
-        const show = this.state.currentSearch?.results?.find(s => s.id === showId);
+        // Find the show among whatever the dropdown is currently offering
+        const show = this.findResultShow(showId);
         if (!show) {
             this.showToast('Show not found. Please try again.', 'error');
             return;

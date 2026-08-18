@@ -327,6 +327,19 @@ body {
     background: rgba(99, 179, 237, 0.6);
 }
 
+/* Labels the suggestions shown when there is nothing to search for, so they
+   are never mistaken for search results */
+.search-results-header {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--blue-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px 12px 0 0;
+    background: rgba(74, 85, 104, 0.1);
+}
+
 .search-loading {
     text-align: center;
     padding: 2rem;
