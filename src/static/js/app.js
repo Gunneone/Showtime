@@ -978,26 +978,27 @@ const App = {
         const seasonsInput = document.getElementById('seasonsWatched');
 
         modalTitle.textContent = `Add "${show.name}"`;
-        
+
         // Better poster URL handling
         let posterUrl = '/static/images/no-poster.png';
         if (show.poster_path && show.poster_path !== 'null' && show.poster_path !== null) {
             posterUrl = show.poster_path;
         }
-        
+
         const year = show.first_air_date ? new Date(show.first_air_date).getFullYear() : 'Unknown';
         const overview = show.overview || 'No description available.';
+        const safeName = this.escapeHtml(show.name);
 
         modalInfo.innerHTML = `
             <div class="show-poster">
-                <img src="${posterUrl}" alt="${show.name}" 
+                <img src="${this.escapeHtml(posterUrl)}" alt="${safeName}"
                      onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
                      loading="lazy">
             </div>
             <div class="show-details">
-                <h5>${show.name}</h5>
+                <h5>${safeName}</h5>
                 <p><strong>First aired:</strong> ${year}</p>
-                <p>${overview}</p>
+                <p>${this.escapeHtml(overview)}</p>
             </div>
         `;
 
@@ -3118,7 +3119,7 @@ const StatsApp = {
                 </div>
                 <div class="award-content">
                     <h5 class="award-title">${award.title}</h5>
-                    <p class="award-value">${award.getValue(award.show)}</p>
+                    <p class="award-value">${App.escapeHtml(award.getValue(award.show))}</p>
                 </div>
             `;
             

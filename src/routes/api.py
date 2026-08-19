@@ -1,9 +1,12 @@
 from flask import Blueprint, request, jsonify, make_response
 import json
+import logging
 from ..services.tmdb_service import TMDBService
 from ..services.calculation_service import CalculationService
 from ..services.search_cache_service import get_search_cache
 from ..services.recommendation_service import RecommendationService
+
+logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api', __name__)
 
@@ -127,6 +130,7 @@ def search():
 
         return jsonify(results)
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/recommendations', methods=['POST'])
@@ -145,6 +149,7 @@ def recommendations():
 
         return jsonify(get_rec_service().build_recommendations(watched_shows))
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/show/<int:show_id>/seasons')
@@ -155,6 +160,7 @@ def get_show_seasons(show_id):
         season_data = tmdb_service.get_show_season_data(show_id)
         return jsonify(season_data)
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched', methods=['GET'])
@@ -188,6 +194,7 @@ def get_watched():
             'total_time_formatted': calc_service.format_time(total_time)
         })
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched', methods=['POST'])
@@ -286,6 +293,7 @@ def add_watched():
         
         return response
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched/<int:show_id>', methods=['PUT'])
@@ -346,6 +354,7 @@ def update_watched(show_id):
         
         return response
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched/<int:show_id>', methods=['DELETE'])
@@ -381,6 +390,7 @@ def remove_watched(show_id):
         
         return response
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched', methods=['DELETE'])
@@ -409,6 +419,7 @@ def clear_all_watched():
         
         return response
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched/calculate', methods=['POST'])
@@ -431,6 +442,7 @@ def calculate_watched():
             'total_time_formatted': calc_service.format_time(total_time)
         })
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/stats/calculate', methods=['POST'])
@@ -448,6 +460,7 @@ def calculate_stats():
         
         return jsonify(stats)
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/refresh-seasons', methods=['POST'])
@@ -493,6 +506,7 @@ def refresh_all_seasons():
             'updated_watched_shows': updated_shows
         })
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/refresh-show-seasons/<int:show_id>', methods=['POST'])
@@ -530,4 +544,5 @@ def refresh_show_seasons(show_id):
             'updated_watched_shows': watched_shows
         })
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
