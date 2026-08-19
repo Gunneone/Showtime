@@ -1,9 +1,12 @@
 import difflib
+import logging
 import requests
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date
 from ..config import Config
 from .persistent_cache_service import get_persistent_cache
+
+logger = logging.getLogger(__name__)
 
 class TMDBService:
     """Service for interacting with The Movie Database (TMDB) API."""
@@ -43,21 +46,20 @@ class TMDBService:
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
-            # Check if it's an authentication/invalid key error (401/404 often indicate invalid API key)
+            # str(e) on a requests exception can embed the full request URL,
+            # api_key included, so the detailed message is logged server-side
+            # only and never handed back to the caller.
             if hasattr(e, 'response') and e.response is not None:
                 status_code = e.response.status_code
                 if status_code in [401, 404]:
                     error_msg = f"TMDB API authentication failed (HTTP {status_code}). Please verify your TMDB_API_KEY is valid."
-                    print(f"TMDB API Error: {error_msg}")
-                    raise Exception(error_msg)
                 else:
-                    error_msg = f"TMDB API request failed (HTTP {status_code}): {str(e)}"
-                    print(f"TMDB API Error: {error_msg}")
-                    raise Exception(error_msg)
-            else:
-                error_msg = f"TMDB API request failed: {str(e)}"
-                print(f"TMDB API Error: {error_msg}")
+                    error_msg = f"TMDB API request failed (HTTP {status_code})"
+                logger.error("TMDB API error: %s", e)
                 raise Exception(error_msg)
+            else:
+                logger.error("TMDB API request failed: %s", e)
+                raise Exception("TMDB API request failed")
     
     def _is_placeholder_key(self):
         """Check if the API key appears to be a placeholder value."""
