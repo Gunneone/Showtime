@@ -508,6 +508,39 @@ def test_count_released_seasons_handles_missing_air_dates():
     assert service._count_released_seasons(None) == 0
 
 
+def test_count_released_seasons_ended_show_with_missing_air_dates():
+    """An 'Ended' show counts all its seasons even if TMDB left later air dates blank.
+
+    Regression test: TMDB's Naruto entry (id 46260) has 4 seasons, but only
+    season 1 carries an air_date - seasons 2-4 are null upstream. The old
+    logic stopped counting at season 2 and reported 1 released season.
+    """
+    service = TMDBService()
+    seasons = [
+        {'season_number': 1, 'air_date': '2002-10-03'},
+        {'season_number': 2, 'air_date': None},
+        {'season_number': 3, 'air_date': None},
+        {'season_number': 4, 'air_date': None},
+    ]
+
+    assert service._count_released_seasons(seasons, show_status='Ended') == 4
+    # Without a status (e.g. a still-airing show), a missing date with no
+    # later aired season to infer from still stops the count.
+    assert service._count_released_seasons(seasons) == 1
+
+
+def test_count_released_seasons_infers_from_later_aired_season():
+    """A missing air_date is treated as released if a later season has aired."""
+    service = TMDBService()
+    seasons = [
+        {'season_number': 1, 'air_date': '2020-01-01'},
+        {'season_number': 2, 'air_date': None},
+        {'season_number': 3, 'air_date': '2021-01-01'},
+    ]
+
+    assert service._count_released_seasons(seasons) == 3
+
+
 def test_released_seasons_count_uses_a_single_request(monkeypatch, tmp_path):
     """The season count comes from one show-details call, not one call per season."""
     from src.services.persistent_cache_service import PersistentCacheService

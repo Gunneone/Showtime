@@ -513,7 +513,9 @@ class TMDBService:
 
                 show_details = self.get_show_details(show_data['id'])
                 total_seasons = show_details.get('number_of_seasons', 1)
-                released_seasons = self._count_released_seasons(show_details.get('seasons'))
+                released_seasons = self._count_released_seasons(
+                    show_details.get('seasons'), show_details.get('status')
+                )
 
                 self.persistent_cache.set_season_data(show_data['id'], {
                     'total_seasons': total_seasons,
@@ -844,21 +846,37 @@ class TMDBService:
             # If air date is invalid, assume not released
             return False
     
-    def _count_released_seasons(self, seasons):
-        """Count consecutive aired seasons from a show's `seasons` array.
+    def _count_released_seasons(self, seasons, show_status=None):
+        """Count aired seasons from a show's `seasons` array.
 
-        Season 0 holds specials and is ignored. Counting stops at the first
-        season that has not aired, since seasons air in order.
+        Season 0 holds specials and is ignored. TMDB frequently leaves
+        `air_date` blank on older seasons of finished shows, so a season
+        with no date is still treated as released when a later season has
+        a past air_date (seasons air in order, so that later date implies
+        this one already happened) or when the show itself has finished
+        airing (`status` is 'Ended' or 'Canceled').
         """
         numbered = sorted(
             (s for s in seasons or [] if s.get('season_number', 0) > 0),
             key=lambda s: s['season_number']
         )
 
+        if show_status in ('Ended', 'Canceled'):
+            return len(numbered)
+
         released_count = 0
-        for season in numbered:
-            if self._is_season_released(season.get('air_date') or ''):
-                released_count += 1
+        for i, season in enumerate(numbered):
+            air_date = season.get('air_date') or ''
+            if self._is_season_released(air_date):
+                released_count = i + 1
+                continue
+            if air_date:
+                # Explicit date in the future: genuinely not aired yet.
+                break
+            # No date on record. Since seasons air in order, a later season
+            # with a real air date means this one already happened too.
+            if any(self._is_season_released(s.get('air_date') or '') for s in numbered[i + 1:]):
+                released_count = i + 1
             else:
                 break
 
@@ -876,7 +894,9 @@ class TMDBService:
         # air date for every season.
         try:
             show_details = self.get_show_details(show_id)
-            released_count = self._count_released_seasons(show_details.get('seasons'))
+            released_count = self._count_released_seasons(
+                show_details.get('seasons'), show_details.get('status')
+            )
             total_seasons = show_details.get('number_of_seasons') or total_seasons
         except Exception as e:
             print(f"Failed to get season data for show {show_id}: {e}")
