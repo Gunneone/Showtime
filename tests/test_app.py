@@ -161,3 +161,110 @@ def test_api_recommendations_reports_service_failure(client, monkeypatch):
 
     assert response.status_code == 500
     assert 'error' in json.loads(response.data)
+
+
+@pytest.fixture
+def no_admin_client():
+    """A client with the usage dashboard explicitly disabled.
+
+    Set rather than assumed: a developer's .env may define
+    SHOWTIME_ADMIN_TOKEN, which load_dotenv() would otherwise leak into the
+    test run and turn the dashboard on.
+    """
+    Config.TMDB_API_KEY = 'test-api-key'
+    Config.SECRET_KEY = 'test-secret-key'
+    original_token = Config.ADMIN_TOKEN
+    Config.ADMIN_TOKEN = None
+
+    app = create_app()
+    app.config['TESTING'] = True
+    try:
+        with app.test_client() as client:
+            yield client
+    finally:
+        Config.ADMIN_TOKEN = original_token
+
+
+@pytest.fixture
+def admin_client():
+    """A client with the usage dashboard enabled."""
+    Config.TMDB_API_KEY = 'test-api-key'
+    Config.SECRET_KEY = 'test-secret-key-not-a-default'
+    original_token = Config.ADMIN_TOKEN
+    Config.ADMIN_TOKEN = 'correct-horse-battery-staple'
+
+    app = create_app()
+    app.config['TESTING'] = True
+    try:
+        with app.test_client() as client:
+            yield client
+    finally:
+        Config.ADMIN_TOKEN = original_token
+
+
+def test_privacy_page(client):
+    """The privacy page loads and says where watch data actually lives."""
+    response = client.get('/privacy')
+    assert response.status_code == 200
+    assert b'Privacy' in response.data
+    assert b'never stored on the server' in response.data
+
+
+def test_privacy_is_linked_from_the_footer(client):
+    """A privacy page nobody can find is not much use."""
+    response = client.get('/')
+    assert b'href="/privacy"' in response.data
+
+
+def test_no_cookies_are_set_for_ordinary_visitors(client):
+    """The privacy page claims this, so it had better stay true."""
+    for path in ('/', '/stats', '/privacy'):
+        response = client.get(path)
+        assert 'Set-Cookie' not in response.headers, f'{path} set a cookie'
+
+
+def test_admin_dashboard_hidden_when_no_token_configured(no_admin_client):
+    """Without a token the dashboard should not even admit it exists."""
+    assert no_admin_client.get('/admin/usage').status_code == 404
+    assert no_admin_client.post('/admin/login', data={'token': 'anything'}).status_code == 404
+
+
+def test_admin_dashboard_requires_the_token(admin_client):
+    response = admin_client.get('/admin/usage')
+    assert response.status_code == 401
+    assert b'Access token' in response.data
+
+
+def test_admin_login_rejects_a_wrong_token(admin_client):
+    response = admin_client.post('/admin/login', data={'token': 'wrong'})
+    assert response.status_code == 401
+    assert 'Set-Cookie' not in response.headers
+
+
+def test_admin_login_accepts_the_token_and_renders_the_dashboard(admin_client):
+    response = admin_client.post(
+        '/admin/login', data={'token': 'correct-horse-battery-staple'}
+    )
+    assert response.status_code == 302
+
+    response = admin_client.get('/admin/usage')
+    assert response.status_code == 200
+    assert b'Visitors today' in response.data
+
+
+def test_admin_dashboard_is_not_linked_from_the_site(admin_client):
+    """It is an unlisted URL; nothing rendered should point at it."""
+    for path in ('/', '/stats', '/privacy'):
+        assert b'/admin/usage' not in admin_client.get(path).data
+
+
+def test_enabling_the_dashboard_with_a_default_secret_key_is_refused():
+    """A well-known SECRET_KEY would make the admin session cookie forgeable."""
+    original_key, original_token = Config.SECRET_KEY, Config.ADMIN_TOKEN
+    Config.SECRET_KEY = 'dev-secret-key-change-in-production'
+    Config.ADMIN_TOKEN = 'some-token'
+    try:
+        with pytest.raises(RuntimeError, match='SECRET_KEY'):
+            create_app()
+    finally:
+        Config.SECRET_KEY, Config.ADMIN_TOKEN = original_key, original_token

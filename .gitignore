@@ -12,6 +12,10 @@ logs/
 # Cache database
 cache.db
 
+# Local usage metrics database
+metrics.db
+data/
+
 # Distribution / packaging
 .Python
 build/

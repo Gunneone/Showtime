@@ -5,6 +5,7 @@ from ..services.tmdb_service import TMDBService
 from ..services.calculation_service import CalculationService
 from ..services.search_cache_service import get_search_cache
 from ..services.recommendation_service import RecommendationService
+from ..services.metrics_service import get_metrics_service
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,8 @@ def search():
         return jsonify({'error': 'Page parameter must be 1 or greater'}), 400
 
     try:
+        get_metrics_service().record_event('searches')
+
         # Check cache first
         cache = get_search_cache()
         cached_result = cache.get(query, page)
@@ -146,6 +149,8 @@ def recommendations():
 
         if not isinstance(watched_shows, list):
             return jsonify({'error': 'watched_shows must be a list'}), 400
+
+        get_metrics_service().record_event('recommendations_requested')
 
         return jsonify(get_rec_service().build_recommendations(watched_shows))
     except Exception as e:
@@ -226,6 +231,9 @@ def add_watched():
         existing_show = next((show for show in watched_shows if show['id'] == data['id']), None)
         
         if existing_show:
+            metrics = get_metrics_service()
+            metrics.record_event('shows_updated')
+            metrics.record_engagement(request)
             # Update existing show - recalculate runtime for new seasons count
             seasons_watched = data.get('seasons_watched', existing_show['seasons_watched'])
             existing_show['seasons_watched'] = seasons_watched
@@ -241,6 +249,11 @@ def add_watched():
             existing_show['backdrop_path'] = show_details.get('backdrop_path')
             existing_show['popularity'] = show_details.get('popularity')
         else:
+            metrics = get_metrics_service()
+            metrics.record_event('shows_added')
+            metrics.record_show_added(show_details)
+            metrics.record_engagement(request)
+
             # Add new show with precise runtime calculation
             seasons_watched = data.get('seasons_watched', 1)
             
@@ -303,6 +316,10 @@ def update_watched(show_id):
         data = request.get_json()
         if not data:
             return jsonify({'error': 'Request data is required'}), 400
+
+        metrics = get_metrics_service()
+        metrics.record_event('shows_updated')
+        metrics.record_engagement(request)
         
         # Get current watched shows from request body (localStorage) or fallback to cookies
         watched_shows = []
@@ -374,6 +391,10 @@ def remove_watched(show_id):
             watched_cookie = request.cookies.get('watched_shows', '[]')
             watched_shows = json.loads(watched_cookie)
         
+        metrics = get_metrics_service()
+        metrics.record_event('shows_removed')
+        metrics.record_engagement(request)
+
         # Remove the show
         watched_shows = [show for show in watched_shows if show['id'] != show_id]
         
@@ -397,6 +418,8 @@ def remove_watched(show_id):
 def clear_all_watched():
     """Clear all watched shows data."""
     try:
+        get_metrics_service().record_event('libraries_cleared')
+
         # Create response that clears both watched shows and sort preference cookies
         response = make_response(jsonify({'success': True, 'message': 'All data cleared successfully'}))
         
@@ -431,7 +454,9 @@ def calculate_watched():
             return jsonify({'error': 'Request data is required'}), 400
         
         watched_shows = data.get('watched_shows', [])
-        
+
+        get_metrics_service().record_library_size(request, len(watched_shows))
+
         # Calculate total watch time
         calc_service = get_calc_service()
         total_time = calc_service.calculate_total_time(watched_shows)
@@ -454,7 +479,9 @@ def calculate_stats():
             return jsonify({'error': 'Request data is required'}), 400
         
         watched_shows = data.get('watched_shows', [])
-        
+
+        get_metrics_service().record_library_size(request, len(watched_shows))
+
         calc_service = get_calc_service()
         stats = calc_service.calculate_stats(watched_shows)
         

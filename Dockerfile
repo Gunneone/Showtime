@@ -34,6 +34,11 @@ COPY . .
 # Make start script executable
 RUN chmod +x start.sh
 
+# Create the metrics volume mountpoint before dropping privileges. Docker
+# creates a named volume's mountpoint as root unless the directory already
+# exists in the image, which would leave the non-root user unable to write.
+RUN mkdir -p /app/data
+
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser && \
     chown -R appuser:appuser /app

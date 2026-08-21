@@ -14,6 +14,13 @@ services:
       - GUNICORN_TIMEOUT=60
       - GUNICORN_MAX_REQUESTS=500
       - GUNICORN_MAX_REQUESTS_JITTER=50
+      # Aggregate usage metrics. Lives on the named volume below so the counts
+      # survive a rebuild; leave SHOWTIME_ADMIN_TOKEN empty to keep the
+      # /admin/usage dashboard disabled (it 404s without a token).
+      - METRICS_DB_PATH=/app/data/metrics.db
+      - SHOWTIME_ADMIN_TOKEN=${SHOWTIME_ADMIN_TOKEN:-}
+    volumes:
+      - showtime-data:/app/data
     restart: unless-stopped
     # Reduce healthcheck frequency to avoid performance impact
     healthcheck:
@@ -28,3 +35,6 @@ services:
     dns:
       - 8.8.8.8
       - 8.8.4.4
+
+volumes:
+  showtime-data:

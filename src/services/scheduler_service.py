@@ -7,6 +7,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 from .persistent_cache_service import get_persistent_cache
+from .metrics_service import get_metrics_service
 
 
 class BackgroundScheduler:
@@ -57,7 +58,7 @@ class BackgroundScheduler:
         return time_since_last >= timedelta(hours=24)
     
     def _run_daily_cleanup(self):
-        """Run daily cache cleanup tasks."""
+        """Run daily cache cleanup and metrics rollup."""
         try:
             print("Running daily cache cleanup...")
             cleaned_count = self.persistent_cache.cleanup_expired()
@@ -65,6 +66,14 @@ class BackgroundScheduler:
             print(f"Daily cache cleanup completed. Removed {cleaned_count} expired entries.")
         except Exception as e:
             print(f"Error during daily cleanup: {e}")
+
+        # Separate try block: a cache failure must not stop the rollup, because
+        # the rollup is what deletes the day's visitor hashes.
+        try:
+            rolled = get_metrics_service().rollup_previous_days()
+            print(f"Metrics rollup completed for {rolled} day(s).")
+        except Exception as e:
+            print(f"Error during metrics rollup: {e}")
 
 
 # Global scheduler instance
