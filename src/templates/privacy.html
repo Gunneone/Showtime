@@ -18,7 +18,7 @@
             storage. It is never stored on the server, and there is no account
             to sign into &mdash; no email, no password, no &ldquo;create a free
             profile to continue&rdquo;. Clear your browser data and it is gone
-            for good, including from our side, because we never had a copy.
+            for good, including from my side, because I never had a copy.
         </p>
     </section>
 
@@ -26,15 +26,15 @@
         <h3><i class="fas fa-arrows-rotate"></i> What the server sees</h3>
         <p>
             To work out runtimes and build your statistics, your browser sends
-            its list up to the server, which looks up episode lengths, does the
+            the logged shows to the server, which looks up episode lengths, does the
             arithmetic, and sends the results straight back. That list is used
             to answer the request and then discarded. It is not written to disk
             and not stored against you.
         </p>
         <p>
-            Search results are cached here for seven days, purely so we are not
-            hammering TMDB. Without it, the hundredth person to type
-            <em>Breaking Bad</em> today would have us knocking on TMDB's door
+            Search results and seasons lengths are cached here for seven days, purely so I am not
+            hammering the TMDB API. Without it, the hundredth person to type
+            <em>Breaking Bad</em> today would have me knocking on TMDB's door
             for the hundredth time to be told, once again, that it ran for five
             seasons. That cache holds the search text and its results and
             nothing else &mdash; no visitor information is attached to it, so a
@@ -45,14 +45,14 @@
     <section class="content-section">
         <h3><i class="fas fa-cookie-bite"></i> Cookies (there aren't any)</h3>
         <p>
-            <strong>Showtime sets no cookies for ordinary visitors.</strong>
+            <strong>Showtime sets no cookies.</strong>
             No consent banner, no &ldquo;we value your privacy&rdquo; pop-up
             concealing four hundred advertising partners behind a
             &ldquo;legitimate interest&rdquo; toggle. There is genuinely
             nothing to consent to.
         </p>
         <p>
-            Don't take our word for it. Open your browser's developer tools and
+            You don't have to take my word for it. Open your browser's developer tools and
             look.
         </p>
     </section>
@@ -60,7 +60,7 @@
     <section class="content-section">
         <h3><i class="fas fa-chart-simple"></i> The usage counts we do keep</h3>
         <p>
-            We keep a small pile of totals, so we can tell whether anyone is
+            I keep a small pile of totals, so I can tell whether anyone is
             actually out there: visits per day, how many shows get added,
             searches performed, and a tally of which shows and genres are
             logged most often. These are plain numbers. There are no per-person
@@ -69,8 +69,7 @@
         <p>
             You only count as a visitor once you are actually tracking
             something. Merely opening the page doesn't do it &mdash; which
-            conveniently keeps crawlers and uptime bots out of the figures,
-            since none of them can run the code that reads your list.
+            conveniently keeps crawlers and uptime bots out of the figures.
         </p>
         <p>
             To count daily visitors without identifying anyone, your IP address
@@ -78,22 +77,9 @@
             into a meaningless string. That secret is regenerated every day and
             <strong>the old one is destroyed</strong>. So the hash cannot be
             reversed, and tomorrow you are a completely different meaningless
-            string. We could not follow you from one day to the next if we
-            wanted to &mdash; which is rather the point of building it this
-            way. The hashes themselves are deleted once the day has been
+            string. I could not follow you from one day to the next if I
+            wanted to. The hashes themselves are deleted once the day has been
             counted; only the total survives.
-        </p>
-        <p>
-            Your IP address is never written to disk in any form. There is a
-            real cost to this: we genuinely cannot tell you how many different
-            people used Showtime this month, only how many used it on any given
-            day. We would rather have the weaker number.
-        </p>
-        <p>
-            How many shows you track is recorded as a range &mdash;
-            &ldquo;6&ndash;20&rdquo;, &ldquo;51&ndash;100&rdquo; &mdash; never
-            an exact figure, so the person tracking 372 shows doesn't stand out
-            from the crowd. You know who you are. We don't.
         </p>
     </section>
 
@@ -124,7 +110,7 @@
             If your browser sends a <code>Do Not Track</code> or
             <code>Global Privacy Control</code> signal, you are left out of the
             visitor counts entirely &mdash; no hash is calculated for you at
-            all. Most of the web quietly ignores both. We would rather not.
+            all. Most of the web quietly ignores both. I would rather not.
         </p>
     </section>
 </article>
