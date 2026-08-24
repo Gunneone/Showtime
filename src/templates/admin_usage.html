@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Usage - Showtime{% endblock %}
+
+{% block content %}
+<section class="stats-overview">
+    <h2>Usage &middot; last {{ overview.days if overview else 30 }} days</h2>
+
+    {% if error %}
+    <p class="admin-error" role="alert"><i class="fas fa-circle-exclamation"></i> {{ error }}</p>
+    {% else %}
+
+    <p class="admin-range">
+        {{ overview.range_start }} &rarr; {{ overview.range_end }}
+    </p>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-user"></i></div>
+            <div class="stat-content">
+                <h3>{{ overview.visitors_today }}</h3>
+                <p>Visitors today</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-content">
+                <h3>{{ overview.avg_daily_visitors }}</h3>
+                <p>Avg / active day</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-arrow-trend-up"></i></div>
+            <div class="stat-content">
+                <h3>{{ overview.peak_daily_visitors }}</h3>
+                <p>Busiest day</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-plus"></i></div>
+            <div class="stat-content">
+                <h3>{{ overview.totals.shows_added }}</h3>
+                <p>Shows added</p>
+            </div>
+        </div>
+    </div>
+
+    <p class="admin-note">
+        <i class="fas fa-circle-info"></i>
+        A <strong>visitor</strong> is someone tracking at least one show &mdash; a
+        page load on its own is not counted, which keeps crawlers and the
+        healthcheck out of the numbers. There is also no monthly total by
+        design: the salt used to count visitors is destroyed daily, so the same
+        person is unlinkable across days and daily counts cannot be
+        de-duplicated into a monthly figure.
+    </p>
+
+    <h3 class="admin-heading">Events</h3>
+    <div class="admin-tiles">
+        <div class="admin-tile"><strong>{{ overview.totals.page_views }}</strong><span>Page views</span></div>
+        <div class="admin-tile"><strong>{{ overview.totals.searches }}</strong><span>Searches</span></div>
+        <div class="admin-tile"><strong>{{ overview.totals.shows_updated }}</strong><span>Shows updated</span></div>
+        <div class="admin-tile"><strong>{{ overview.totals.shows_removed }}</strong><span>Shows removed</span></div>
+        <div class="admin-tile"><strong>{{ overview.totals.recommendations_requested }}</strong><span>Recommendations</span></div>
+        <div class="admin-tile"><strong>{{ overview.totals.libraries_cleared }}</strong><span>Libraries cleared</span></div>
+    </div>
+
+    <h3 class="admin-heading">Visitors per day</h3>
+    {% if overview.daily %}
+    {% set peak = overview.peak_daily_visitors or 1 %}
+    <div class="admin-bars">
+        {% for entry in overview.daily %}
+        <div class="admin-bar-row">
+            <span class="admin-bar-label">{{ entry.day }}</span>
+            <span class="admin-bar-track">
+                <span class="admin-bar-fill" style="width: {{ (entry.unique_visitors / peak * 100) | round(1) }}%"></span>
+            </span>
+            <span class="admin-bar-value">{{ entry.unique_visitors }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="admin-empty">No activity recorded yet.</p>
+    {% endif %}
+
+    <h3 class="admin-heading">Library sizes</h3>
+    <p class="admin-subnote">
+        Shows tracked per client, sampled once a day. Ranges, not exact counts.
+        The &ldquo;0&rdquo; row is browsers with nothing tracked yet &mdash; they are
+        sampled here but are not counted as visitors above.
+    </p>
+    {% if overview.distribution_total %}
+    {% set dist_peak = overview.distribution | map(attribute='count') | max %}
+    <div class="admin-bars">
+        {% for row in overview.distribution %}
+        <div class="admin-bar-row">
+            <span class="admin-bar-label">{{ row.bucket }}</span>
+            <span class="admin-bar-track">
+                <span class="admin-bar-fill" style="width: {{ (row.count / (dist_peak or 1) * 100) | round(1) }}%"></span>
+            </span>
+            <span class="admin-bar-value">{{ row.count }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="admin-empty">No samples yet.</p>
+    {% endif %}
+
+    <div class="admin-columns">
+        <div>
+            <h3 class="admin-heading">Most logged shows</h3>
+            <p class="admin-subnote">All-time add events, not distinct people.</p>
+            {% if overview.top_shows %}
+            <ol class="admin-list">
+                {% for show in overview.top_shows %}
+                <li><span>{{ show.name }}</span><strong>{{ show.add_count }}</strong></li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <p class="admin-empty">Nothing logged yet.</p>
+            {% endif %}
+        </div>
+        <div>
+            <h3 class="admin-heading">Top genres</h3>
+            <p class="admin-subnote">Counted when a show is added.</p>
+            {% if overview.top_genres %}
+            <ol class="admin-list">
+                {% for genre in overview.top_genres %}
+                <li><span>{{ genre.genre }}</span><strong>{{ genre.add_count }}</strong></li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <p class="admin-empty">Nothing logged yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('main.admin_logout') }}" class="admin-logout">
+        <button type="submit" class="btn btn-secondary">Sign out</button>
+    </form>
+</section>
+{% endblock %}
