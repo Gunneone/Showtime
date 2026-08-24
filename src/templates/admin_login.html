@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Usage - Showtime{% endblock %}
+
+{% block content %}
+<div class="admin-login">
+    <div class="admin-login-card">
+        <div class="admin-login-icon"><i class="fas fa-lock"></i></div>
+        <h2>Usage dashboard</h2>
+        <p>This page is for the site operator.</p>
+
+        {% if failed %}
+        <p class="admin-login-error" role="alert">
+            <i class="fas fa-circle-exclamation"></i> Incorrect token.
+        </p>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('main.admin_login') }}" autocomplete="off">
+            <input type="password" name="token" class="admin-login-input"
+                   placeholder="Access token" aria-label="Access token" required autofocus>
+            <button type="submit" class="btn btn-primary">Sign in</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

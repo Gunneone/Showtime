@@ -164,8 +164,19 @@ const App = {
         pendingSearchController: null,
         displayedSearchResults: 0,
         displayedShowIds: new Set(),
-        maxSearchResults: 2,
-        isInitialLoad: true
+        maxSearchResults: 5,
+        currentQuery: '',
+        currentPage: 1,
+        isInitialLoad: true,
+        // Suggestions shown in the dropdown when there is nothing to search for.
+        // Redrawn on every focus: the server samples its candidate pool per
+        // request, so refetching is what makes the suggestions cycle.
+        recommendations: {
+            results: [],
+            mode: null,
+            loading: false,
+            shown: 0
+        }
     },
 
     // DOM elements
@@ -219,17 +230,6 @@ const App = {
         this.elements.importBtn = document.getElementById('importBtn');
         this.elements.importFileInput = document.getElementById('importFileInput');
         this.elements.refreshSeasonsBtn = document.getElementById('refreshSeasonsBtn');
-        
-        // Debug: Check if search results element is found
-        console.log('Search results element found:', this.elements.searchResults);
-        if (this.elements.searchResults) {
-            console.log('Search results element classes:', this.elements.searchResults.className);
-            console.log('Search results element computed style:', {
-                position: getComputedStyle(this.elements.searchResults).position,
-                display: getComputedStyle(this.elements.searchResults).display,
-                zIndex: getComputedStyle(this.elements.searchResults).zIndex
-            });
-        }
     },
 
     // Bind event listeners
@@ -317,27 +317,35 @@ const App = {
         this.bindModalEvents();
     },
 
+    // Minimum query length before a search is worth running
+    MIN_QUERY_LENGTH: 2,
+
     // Setup comprehensive search functionality
     setupSearchFunctionality() {
         let searchTimeout;
 
-        // Instant search with debouncing (wait 200ms, restart timer if query changes)
+        // Instant search with debouncing (wait 300ms, restart timer if query changes)
         this.elements.searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
             const query = this.elements.searchInput.value.trim();
-            
-            // Hide results if empty
-            if (query.length === 0) {
+
+            // Anything too short to search for should not leave older results
+            // on screen contradicting the input; fall back to suggestions
+            if (query.length < this.MIN_QUERY_LENGTH) {
                 this.hideSearchResults();
+                this.showRecommendations();
                 return;
             }
-            
-            // Trigger instant search after 200ms delay for queries >= 2 characters
-            // If user changes input during this time, timer restarts
-            if (query.length >= 2) {
-                searchTimeout = setTimeout(() => {
-                    this.performSearch(query, true);
-                }, 200);
+
+            searchTimeout = setTimeout(() => {
+                this.performSearch(query, true);
+            }, 300);
+        });
+
+        // An empty search box is an invitation to suggest something
+        this.elements.searchInput.addEventListener('focus', () => {
+            if (this.elements.searchInput.value.trim().length < this.MIN_QUERY_LENGTH) {
+                this.showRecommendations();
             }
         });
 
@@ -346,10 +354,25 @@ const App = {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const query = this.elements.searchInput.value.trim();
-                if (query.length >= 1) {
+                if (query.length >= this.MIN_QUERY_LENGTH) {
                     clearTimeout(searchTimeout);
                     this.performSearch(query, false);
                 }
+            }
+        });
+
+        // Season bars are rendered from untrusted TMDB titles, so they carry
+        // data attributes instead of inline handlers; resolve clicks here.
+        this.elements.searchResults.addEventListener('click', (e) => {
+            const bar = e.target.closest('.season-bar');
+            if (!bar || !this.elements.searchResults.contains(bar)) return;
+
+            e.stopPropagation();
+            const showId = parseInt(bar.dataset.showId, 10);
+            const seasons = parseInt(bar.dataset.season, 10);
+            const show = this.findResultShow(showId);
+            if (show) {
+                this.addShowWithSeasons(showId, seasons, show.name);
             }
         });
     },
@@ -377,12 +400,10 @@ const App = {
 
     // Perform search for TV shows
     async performSearch(query, isInstantSearch = false) {
-        if (!query || query.length === 0) {
+        if (!query || query.length < this.MIN_QUERY_LENGTH) {
             this.hideSearchResults();
             return;
         }
-
-        console.log('Performing search for:', query, 'isInstantSearch:', isInstantSearch);
 
         // Cancel any pending search request
         if (this.state.pendingSearchController) {
@@ -391,10 +412,13 @@ const App = {
 
         // Generate a unique request ID to track this search
         const requestId = ++this.state.searchRequestId;
-        
+
         // Create a new AbortController for this request
         const controller = new AbortController();
         this.state.pendingSearchController = controller;
+
+        // Declared out here so the catch block can read the server's message
+        let data = null;
 
         try {
             // Show loading state
@@ -403,55 +427,61 @@ const App = {
             const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`, {
                 signal: controller.signal
             });
-            const data = await response.json();
-            
-            console.log('Search response:', data);
-            
+            data = await response.json();
+
             if (!response.ok) {
                 throw new Error(data.error || 'Search failed');
             }
 
             // Only process this response if it's the most recent request
             if (requestId === this.state.searchRequestId) {
-                // Store full search results and display only first 2
                 this.state.currentSearch = data;
+                this.state.currentQuery = query;
+                this.state.currentPage = data.page || 1;
                 this.state.displayedSearchResults = 0;
-                
-                // Display first 2 results
+
                 this.displaySearchResults(data.results, isInstantSearch, true);
-                
-                // Clear the pending controller since this request completed successfully
                 this.state.pendingSearchController = null;
-            } else {
-                console.log('Ignoring outdated search response for:', query);
             }
-            
+
         } catch (error) {
             // Only show error if the request wasn't aborted and it's the most recent request
             if (error.name !== 'AbortError' && requestId === this.state.searchRequestId) {
                 console.error('Search error:', error);
-                
-                // Check if the response contains a specific error message
+
+                const serverError = data && data.error;
                 let errorMessage = 'Search failed. Please try again.';
-                if (data && data.error) {
-                    if (data.error.includes('API key')) {
-                        errorMessage = 'TMDB API key is not configured properly. Please contact the administrator.';
-                    } else {
-                        errorMessage = `Search failed: ${data.error}`;
-                    }
+                if (serverError) {
+                    errorMessage = serverError.includes('API key')
+                        ? 'TMDB API key is not configured properly. Please contact the administrator.'
+                        : `Search failed: ${serverError}`;
                 }
-                
+
                 this.showToast(errorMessage, 'error');
-                this.hideSearchResults();
+                this.showSearchError(errorMessage);
                 this.state.pendingSearchController = null;
             }
         }
     },
 
     // Show loading state in search results
-    showSearchLoading() {
-        this.elements.searchResults.innerHTML = '<div class="search-loading"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+    showSearchLoading(message = 'Searching...') {
+        this.elements.searchResults.innerHTML = `<div class="search-loading"><i class="fas fa-spinner fa-spin"></i> ${this.escapeHtml(message)}</div>`;
         this.elements.searchResults.classList.remove('hidden');
+    },
+
+    // Replace the dropdown contents with an error, so a failure never looks
+    // like a search that is still running
+    showSearchError(message) {
+        this.elements.searchResults.innerHTML = `
+            <div class="search-no-results">
+                <i class="fas fa-triangle-exclamation"></i>
+                <p>${this.escapeHtml(message)}</p>
+            </div>
+        `;
+        this.elements.searchResults.classList.remove('hidden');
+        this.state.displayedSearchResults = 0;
+        this.state.displayedShowIds = new Set();
     },
 
     // Hide search results
@@ -462,30 +492,150 @@ const App = {
         this.state.displayedShowIds = new Set();
     },
 
+    // Look up a show the dropdown is offering, whether it came from a search
+    // or from the recommendations
+    findResultShow(showId) {
+        return this.state.currentSearch?.results?.find(s => s.id === showId)
+            || this.state.recommendations.results.find(s => s.id === showId);
+    },
+
+    // Fetch a fresh set of suggestions. The server draws a random sample from
+    // its candidate pool each time, so this is called on every focus rather
+    // than cached client-side; with the server caches warm it costs no TMDB
+    // calls, only a re-sample.
+    async loadRecommendations() {
+        const watchedShows = DataStorage.getWatchedShows();
+
+        if (this.state.recommendations.loading) {
+            return;
+        }
+
+        this.state.recommendations.loading = true;
+
+        try {
+            const response = await fetch('/api/recommendations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ watched_shows: watchedShows })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to load recommendations');
+            }
+
+            this.state.recommendations.results = data.results || [];
+            this.state.recommendations.mode = data.mode;
+            this.state.recommendations.shown = 0;
+        } catch (error) {
+            console.error('Error loading recommendations:', error);
+            this.state.recommendations.results = [];
+            this.state.recommendations.mode = null;
+        } finally {
+            this.state.recommendations.loading = false;
+        }
+    },
+
+    // Load (if needed) and show suggestions in the dropdown
+    async showRecommendations() {
+        if (!this.elements.searchInput) return;
+
+        const wasEmpty = this.state.recommendations.results.length === 0;
+        if (wasEmpty && !this.state.recommendations.loading) {
+            this.showSearchLoading('Finding shows for you...');
+        }
+
+        await this.loadRecommendations();
+
+        // The user may have started typing while the request was in flight
+        if (this.elements.searchInput.value.trim().length >= this.MIN_QUERY_LENGTH) {
+            return;
+        }
+
+        this.displayRecommendations();
+    },
+
+    // Render the suggestions into the search dropdown
+    displayRecommendations() {
+        const { results, mode } = this.state.recommendations;
+
+        if (!results.length) {
+            this.hideSearchResults();
+            return;
+        }
+
+        this.elements.searchResults.innerHTML = '';
+        this.elements.searchResults.classList.remove('hidden');
+        this.state.displayedShowIds = new Set();
+
+        const header = document.createElement('div');
+        header.className = 'search-results-header';
+        header.textContent = mode === 'personalized'
+            ? "The algorithm thinks, you might've watched these..."
+            : 'The most popular shows of all time';
+        this.elements.searchResults.appendChild(header);
+
+        // On mobile the dropdown pushes the page down instead of floating over
+        // it, so only a few suggestions are rendered until asked for more
+        const initialCount = this.isMobile() ? this.state.maxSearchResults : results.length;
+        this.state.recommendations.shown = 0;
+        this.appendRecommendations(initialCount);
+    },
+
+    // Append the next batch of suggestions, adding a "show more" control if any
+    // are still held back
+    appendRecommendations(count) {
+        const { results } = this.state.recommendations;
+        const existingMore = this.elements.searchResults.querySelector('.search-load-more');
+        if (existingMore) existingMore.remove();
+
+        const endIndex = Math.min(this.state.recommendations.shown + count, results.length);
+
+        for (const show of results.slice(this.state.recommendations.shown, endIndex)) {
+            if (this.state.displayedShowIds.has(show.id)) continue;
+            this.elements.searchResults.appendChild(this.createSearchResultElement(show));
+            this.state.displayedShowIds.add(show.id);
+        }
+
+        this.state.recommendations.shown = endIndex;
+
+        if (endIndex < results.length) {
+            const moreDiv = document.createElement('div');
+            moreDiv.className = 'search-load-more';
+
+            const moreBtn = document.createElement('button');
+            moreBtn.className = 'load-more-btn';
+            moreBtn.innerHTML = '<i class="fas fa-plus"></i> load more';
+            moreBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.appendRecommendations(this.state.maxSearchResults);
+            });
+
+            moreDiv.appendChild(moreBtn);
+            this.elements.searchResults.appendChild(moreDiv);
+        }
+    },
+
+    // Escape text taken from TMDB before it goes into markup
+    escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    },
+
     // Display search results
     displaySearchResults(allResults, isInstantSearch = false, isInitialLoad = false) {
-        console.log('Displaying search results:', allResults, 'isInstantSearch:', isInstantSearch, 'isInitialLoad:', isInitialLoad);
-        console.log('Search results element:', this.elements.searchResults);
-        
         // Clear previous results only on initial load
         if (isInitialLoad) {
             this.elements.searchResults.innerHTML = '';
             this.state.displayedSearchResults = 0;
             this.state.displayedShowIds = new Set(); // Track displayed show IDs to prevent duplicates
         }
-        
-        this.elements.searchResults.classList.remove('hidden');
 
-        // Debug: Log the visibility and positioning
-        console.log('Search results visibility after show:', {
-            display: getComputedStyle(this.elements.searchResults).display,
-            position: getComputedStyle(this.elements.searchResults).position,
-            zIndex: getComputedStyle(this.elements.searchResults).zIndex,
-            top: getComputedStyle(this.elements.searchResults).top,
-            left: getComputedStyle(this.elements.searchResults).left,
-            width: getComputedStyle(this.elements.searchResults).width,
-            height: getComputedStyle(this.elements.searchResults).height
-        });
+        this.elements.searchResults.classList.remove('hidden');
 
         if (!allResults || allResults.length === 0) {
             this.elements.searchResults.innerHTML = `
@@ -500,53 +650,31 @@ const App = {
         // Determine how many results to show
         const startIndex = this.state.displayedSearchResults;
         const endIndex = Math.min(startIndex + this.state.maxSearchResults, allResults.length);
-        const resultsToShow = allResults.slice(startIndex, endIndex);
-        
-        // Create result elements - maintain order by processing sequentially
-        const createResults = async () => {
-            // Create all result elements first to maintain order
-            const resultElements = [];
-            
-            for (const show of resultsToShow) {
-                // Skip if already displayed to prevent duplicates
-                if (this.state.displayedShowIds && this.state.displayedShowIds.has(show.id)) {
-                    continue;
-                }
-                
-                const resultElement = await this.createSearchResultElement(show, isInstantSearch);
-                resultElements.push(resultElement);
-                
-                // Track displayed show ID
-                if (!this.state.displayedShowIds) {
-                    this.state.displayedShowIds = new Set();
-                }
-                this.state.displayedShowIds.add(show.id);
+
+        for (const show of allResults.slice(startIndex, endIndex)) {
+            // Skip if already displayed to prevent duplicates
+            if (this.state.displayedShowIds.has(show.id)) {
+                continue;
             }
-            
-            // Append all elements at once to maintain order
-            resultElements.forEach(element => {
-                this.elements.searchResults.appendChild(element);
-            });
-            
-            // Update displayed count
-            this.state.displayedSearchResults = endIndex;
-            
-            // Add "Load More" button if there are more results
-            if (endIndex < allResults.length) {
-                this.addLoadMoreButton(allResults, isInstantSearch);
-            }
-        };
-        
-        createResults().then(() => {
-            console.log('Search results displayed successfully');
-            
-            // Force a reflow to ensure visibility
-            this.elements.searchResults.offsetHeight;
-        });
+
+            this.elements.searchResults.appendChild(
+                this.createSearchResultElement(show, isInstantSearch)
+            );
+            this.state.displayedShowIds.add(show.id);
+        }
+
+        this.state.displayedSearchResults = endIndex;
+
+        // Offer more if this page has results left, or another page exists
+        const hasMoreLocally = endIndex < allResults.length;
+        const hasMorePages = (this.state.currentPage || 1) < (this.state.currentSearch?.total_pages || 1);
+        if (hasMoreLocally || hasMorePages) {
+            this.addLoadMoreButton(allResults, isInstantSearch);
+        }
     },
 
     // Create search result element
-    async createSearchResultElement(show, isInstantSearch = false) {
+    createSearchResultElement(show, isInstantSearch = false) {
         const div = document.createElement('div');
         div.className = 'search-result';
 
@@ -557,46 +685,23 @@ const App = {
         }
 
         const year = show.first_air_date ? new Date(show.first_air_date).getFullYear() : 'Unknown';
-        const overview = show.overview || 'No description available.';
-        const truncatedOverview = overview.length > 150 ? overview.substring(0, 150) + '...' : overview;
 
-        // Fetch season data if not already available
-        let releasedSeasons = 1;
-        if (show.number_of_released_seasons !== null && show.number_of_released_seasons !== undefined) {
-            releasedSeasons = show.number_of_released_seasons;
-        } else {
-            // Fetch season data from API
-            try {
-                const response = await fetch(`/api/show/${show.id}/seasons`);
-                if (response.ok) {
-                    const seasonData = await response.json();
-                    releasedSeasons = seasonData.number_of_released_seasons || 1;
-                    // Cache the season data in the show object for future use
-                    show.number_of_seasons = seasonData.number_of_seasons;
-                    show.number_of_released_seasons = seasonData.number_of_released_seasons;
-                } else {
-                    console.warn(`Failed to fetch season data for show ${show.id}`);
-                }
-            } catch (error) {
-                console.warn(`Error fetching season data for show ${show.id}:`, error);
-            }
-        }
-
-        // Create season selector bars
+        // Season counts now always arrive with the search response
+        const releasedSeasons = show.number_of_released_seasons || 1;
         const seasonBars = this.createSeasonSelectorBars(releasedSeasons, show);
+        const safeName = this.escapeHtml(show.name);
 
         div.innerHTML = `
             <div class="search-result-content">
                 <div class="search-result-poster">
-                    <img src="${posterUrl}" alt="${show.name}" 
+                    <img src="${this.escapeHtml(posterUrl)}" alt="${safeName}"
                          onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
                          loading="lazy">
                 </div>
                 <div class="search-result-info">
-                    <h4>${show.name}</h4>
-                    <div class="search-result-date">${year}</div>
+                    <h4>${safeName}<span class="search-result-date">${year}</span></h4>
                     <div class="search-result-seasons">
-                        <div class="season-selector-label">Add seasons:</div>
+                        <span class="season-selector-label">Seasons:</span>
                         <div class="season-selector-bars" data-show-id="${show.id}">
                             ${seasonBars}
                         </div>
@@ -605,13 +710,10 @@ const App = {
             </div>
         `;
 
-        // Add hover effects for season bars
-        setTimeout(() => {
-            const seasonBarsContainer = div.querySelector('.season-selector-bars');
-            if (seasonBarsContainer) {
-                this.setupSeasonBarHoverEffects(seasonBarsContainer);
-            }
-        }, 0);
+        const seasonBarsContainer = div.querySelector('.season-selector-bars');
+        if (seasonBarsContainer) {
+            this.setupSeasonBarHoverEffects(seasonBarsContainer);
+        }
 
         // Add click handler for entire search result to add all seasons when clicking outside season buttons
         div.addEventListener('click', (e) => {
@@ -643,34 +745,58 @@ const App = {
     },
 
     // Load more search results
-    loadMoreSearchResults(event) {
+    async loadMoreSearchResults(event) {
         // Prevent event from bubbling up and potentially closing the search results
         if (event) {
             event.stopPropagation();
             event.preventDefault();
         }
-        
+
         if (!this.state.currentSearch || !this.state.currentSearch.results) return;
-        
+
         // Remove the load more button
         const loadMoreBtn = this.elements.searchResults.querySelector('.search-load-more');
         if (loadMoreBtn) {
             loadMoreBtn.remove();
         }
-        
+
+        // Pull the next page from TMDB once the current one is exhausted
+        const results = this.state.currentSearch.results;
+        if (this.state.displayedSearchResults >= results.length) {
+            const nextPage = (this.state.currentPage || 1) + 1;
+            if (nextPage > (this.state.currentSearch.total_pages || 1)) return;
+
+            try {
+                const response = await fetch(
+                    `/api/search?query=${encodeURIComponent(this.state.currentQuery)}&page=${nextPage}`
+                );
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Search failed');
+
+                this.state.currentPage = data.page || nextPage;
+                this.state.currentSearch.results = results.concat(data.results || []);
+            } catch (error) {
+                console.error('Load more error:', error);
+                this.showToast('Could not load more results. Please try again.', 'error');
+                this.addLoadMoreButton(results, false);
+                return;
+            }
+        }
+
         // Display next batch of results (without clearing existing ones)
         this.displaySearchResults(this.state.currentSearch.results, false, false);
     },
 
     // Create season selector bars
+    // Clicks are handled by a delegated listener on the results container, so
+    // no show data has to survive a trip through an inline attribute.
     createSeasonSelectorBars(totalSeasons, show) {
         let barsHtml = '';
         for (let i = 1; i <= totalSeasons; i++) {
             barsHtml += `
-                <div class="season-bar" 
-                     data-season="${i}" 
-                     data-show-id="${show.id}"
-                     onclick="App.addShowWithSeasons(${show.id}, ${i}, '${show.name.replace(/'/g, "\\'")}')">
+                <div class="season-bar"
+                     data-season="${i}"
+                     data-show-id="${show.id}">
                     ${i}
                 </div>
             `;
@@ -709,10 +835,6 @@ const App = {
                     bars[i].classList.add('highlighted');
                 }
             });
-            
-            bar.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent triggering search result click
-            });
         });
         
         container.addEventListener('mouseleave', () => {
@@ -724,22 +846,23 @@ const App = {
     // Show add show modal
     async showAddModal(show) {
         this.state.selectedShow = show;
-        
-        try {
-            // Get detailed show information
-            const response = await fetch(`/api/search?query=${encodeURIComponent(show.name)}`);
-            const data = await response.json();
-            
-            // Find the exact show from search results
-            const detailedShow = data.results.find(s => s.id === show.id) || show;
-            
-            this.populateAddModal(detailedShow);
-            this.elements.addShowModal.classList.remove('hidden');
-        } catch (error) {
-            console.error('Error loading show details:', error);
-            this.populateAddModal(show);
-            this.elements.addShowModal.classList.remove('hidden');
+
+        // Season counts come back with search results, so only look them up
+        // when this show arrived from somewhere that lacks them.
+        if (show.number_of_released_seasons === null || show.number_of_released_seasons === undefined) {
+            try {
+                const response = await fetch(`/api/show/${show.id}/seasons`);
+                if (response.ok) {
+                    const seasonData = await response.json();
+                    show = { ...show, ...seasonData };
+                }
+            } catch (error) {
+                console.error('Error loading show details:', error);
+            }
         }
+
+        this.populateAddModal(show);
+        this.elements.addShowModal.classList.remove('hidden');
     },
 
     // Add show directly (for instant search) with default 1 season
@@ -770,13 +893,15 @@ const App = {
             this.hideSearchResults();
             this.elements.searchInput.value = '';
             
-            // Scroll to top card on mobile after adding show
-            this.scrollToTopCard();
-            
-            // Only focus search input on desktop, not mobile
+            // Only focus search input on desktop, not mobile.
+            // preventScroll keeps the browser from yanking the viewport back
+            // down to the search bar.
             if (!this.isMobile()) {
-                this.elements.searchInput.focus();
+                this.elements.searchInput.focus({ preventScroll: true });
             }
+
+            // Scroll to the total/celebration card after adding a show
+            this.scrollToTopCard();
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -787,8 +912,8 @@ const App = {
 
     // Add show with specific number of seasons (for season selector bars)
     async addShowWithSeasons(showId, seasonsWatched, showName) {
-        // Find the show in current search results
-        const show = this.state.currentSearch?.results?.find(s => s.id === showId);
+        // Find the show among whatever the dropdown is currently offering
+        const show = this.findResultShow(showId);
         if (!show) {
             this.showToast('Show not found. Please try again.', 'error');
             return;
@@ -829,13 +954,15 @@ const App = {
             this.hideSearchResults();
             this.elements.searchInput.value = '';
             
-            // Scroll to top card on mobile after adding show
-            this.scrollToTopCard();
-            
-            // Only focus search input on desktop, not mobile
+            // Only focus search input on desktop, not mobile.
+            // preventScroll keeps the browser from yanking the viewport back
+            // down to the search bar.
             if (!this.isMobile()) {
-                this.elements.searchInput.focus();
+                this.elements.searchInput.focus({ preventScroll: true });
             }
+
+            // Scroll to the total/celebration card after adding a show
+            this.scrollToTopCard();
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -851,26 +978,27 @@ const App = {
         const seasonsInput = document.getElementById('seasonsWatched');
 
         modalTitle.textContent = `Add "${show.name}"`;
-        
+
         // Better poster URL handling
         let posterUrl = '/static/images/no-poster.png';
         if (show.poster_path && show.poster_path !== 'null' && show.poster_path !== null) {
             posterUrl = show.poster_path;
         }
-        
+
         const year = show.first_air_date ? new Date(show.first_air_date).getFullYear() : 'Unknown';
         const overview = show.overview || 'No description available.';
+        const safeName = this.escapeHtml(show.name);
 
         modalInfo.innerHTML = `
             <div class="show-poster">
-                <img src="${posterUrl}" alt="${show.name}" 
+                <img src="${this.escapeHtml(posterUrl)}" alt="${safeName}"
                      onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
                      loading="lazy">
             </div>
             <div class="show-details">
-                <h5>${show.name}</h5>
+                <h5>${safeName}</h5>
                 <p><strong>First aired:</strong> ${year}</p>
-                <p>${overview}</p>
+                <p>${this.escapeHtml(overview)}</p>
             </div>
         `;
 
@@ -929,13 +1057,15 @@ const App = {
             this.hideSearchResults();
             this.elements.searchInput.value = '';
             
-            // Scroll to top card on mobile after adding show
-            this.scrollToTopCard();
-            
-            // Only focus search input on desktop, not mobile
+            // Only focus search input on desktop, not mobile.
+            // preventScroll keeps the browser from yanking the viewport back
+            // down to the search bar.
             if (!this.isMobile()) {
-                this.elements.searchInput.focus();
+                this.elements.searchInput.focus({ preventScroll: true });
             }
+
+            // Scroll to the total/celebration card after adding a show
+            this.scrollToTopCard();
         } catch (error) {
             console.error('Error adding show:', error);
             this.showToast('Failed to add show. Please try again.', 'error');
@@ -1358,13 +1488,13 @@ const App = {
                 <i class="fas fa-times"></i>
             </div>
             <div class="watched-show-poster">
-                <img src="${posterUrl}" alt="${show.name}" 
+                <img src="${this.escapeHtml(posterUrl)}" alt="${this.escapeHtml(show.name)}"
                      onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
                      loading="lazy">
             </div>
             <div class="watched-show-content">
                 <div class="watched-show-info">
-                    <h4>${show.name}</h4>
+                    <h4>${this.escapeHtml(show.name)}</h4>
                     <div class="watched-show-seasons">
                         <div class="seasons-display" onclick="App.editSeasons(${show.id})">
                             <i class="fas fa-eye"></i> ${show.seasons_watched} of ${releasedSeasons} season${releasedSeasons !== 1 ? 's' : ''} watched 
@@ -1861,16 +1991,59 @@ const App = {
         });
     },
 
-    // Scroll to top card (used after adding show on mobile)
+    // Scroll to top card (used after adding show, so the total and the
+    // celebration animation are actually visible)
     scrollToTopCard() {
-        if (this.isMobile()) {
-            const topCard = document.querySelector('.watch-time-card');
-            if (topCard) {
-                topCard.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start' 
-                });
-            }
+        const topCard = document.querySelector('.watch-time-card');
+        if (!topCard) return;
+
+        const prefersReducedMotion = window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const behavior = prefersReducedMotion ? 'auto' : 'smooth';
+
+        // Cancel any re-assert still pending from a previous add
+        this.cancelTopCardScroll();
+
+        // The header is fixed, so scrolling the card flush to the viewport top
+        // would tuck its title underneath it
+        const header = document.querySelector('.header');
+        const headerOffset = header ? header.getBoundingClientRect().height + 12 : 0;
+
+        const scroll = () => {
+            const top = Math.max(
+                0,
+                window.scrollY + topCard.getBoundingClientRect().top - headerOffset
+            );
+            window.scrollTo({ top, behavior });
+        };
+
+        // Stop fighting the user the moment they scroll or tap something
+        const abort = () => this.cancelTopCardScroll();
+        this.topCardScrollAbort = abort;
+        ['wheel', 'touchstart', 'keydown'].forEach(evt =>
+            window.addEventListener(evt, abort, { passive: true, once: true })
+        );
+
+        scroll();
+
+        // Hiding the search results and re-rendering the watched list both change
+        // the page height while the smooth scroll is still running, which clamps
+        // or interrupts it. Re-assert the position until the layout has settled.
+        this.topCardScrollTimers = [60, 250, 600, 1000].map(delay =>
+            setTimeout(scroll, delay)
+        );
+    },
+
+    // Stop re-asserting the scroll position to the top card
+    cancelTopCardScroll() {
+        (this.topCardScrollTimers || []).forEach(clearTimeout);
+        this.topCardScrollTimers = [];
+
+        if (this.topCardScrollAbort) {
+            ['wheel', 'touchstart', 'keydown'].forEach(evt =>
+                window.removeEventListener(evt, this.topCardScrollAbort)
+            );
+            this.topCardScrollAbort = null;
         }
     },
 
@@ -2946,7 +3119,7 @@ const StatsApp = {
                 </div>
                 <div class="award-content">
                     <h5 class="award-title">${award.title}</h5>
-                    <p class="award-value">${award.getValue(award.show)}</p>
+                    <p class="award-value">${App.escapeHtml(award.getValue(award.show))}</p>
                 </div>
             `;
             

@@ -61,6 +61,19 @@ class CalculationService:
         
         return int(total_time_minutes)
     
+    def is_show_completed(self, show):
+        """Has every released season of this show been watched?
+
+        Shared with the recommender, so "finished" means the same thing on the
+        stats page and in the suggestions.
+        """
+        seasons_watched = show.get('seasons_watched', 0)
+        # Compare against released seasons, falling back to total_seasons for
+        # older records saved before released_seasons was tracked
+        released_seasons = show.get('released_seasons', show.get('total_seasons', 1))
+
+        return seasons_watched >= released_seasons
+
     def calculate_total_time(self, watched_shows):
         """Calculate total watch time across all shows."""
         total_minutes = 0
@@ -423,12 +436,7 @@ class CalculationService:
         in_progress_shows = 0
         
         for show in watched_shows:
-            seasons_watched = show.get('seasons_watched', 0)
-            # Use released seasons count for completion calculation
-            # Fall back to total_seasons for older shows that don't have released_seasons data
-            show_released_seasons = show.get('released_seasons', show.get('total_seasons', 1))
-            
-            if seasons_watched >= show_released_seasons:
+            if self.is_show_completed(show):
                 completed_shows += 1
             else:
                 in_progress_shows += 1

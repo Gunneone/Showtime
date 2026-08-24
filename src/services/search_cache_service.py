@@ -13,28 +13,30 @@ class SearchCacheService:
     
     def __init__(self):
         self.persistent_cache = get_persistent_cache()
-    
-    def get(self, query: str) -> Optional[Dict[str, Any]]:
+
+    def get(self, query: str, page: int = 1) -> Optional[Dict[str, Any]]:
         """
         Get cached search result for a query.
-        
+
         Args:
             query: The search query
-            
+            page: The result page the query refers to
+
         Returns:
             Cached result if found and not expired, None otherwise
         """
-        return self.persistent_cache.get_search_results(query)
-    
-    def set(self, query: str, data: Dict[str, Any]) -> None:
+        return self.persistent_cache.get_search_results(query, page)
+
+    def set(self, query: str, data: Dict[str, Any], page: int = 1) -> None:
         """
         Store search result in cache.
-        
+
         Args:
             query: The search query
             data: The search result data to cache
+            page: The result page the query refers to
         """
-        self.persistent_cache.set_search_results(query, data)
+        self.persistent_cache.set_search_results(query, data, page)
     
     def cleanup_expired(self) -> int:
         """
@@ -64,10 +66,14 @@ class SearchCacheService:
         }
 
 
-# Global cache instance
-_search_cache = SearchCacheService()
+# Global cache instance, built lazily so that importing this module does not
+# create the database or start the cleanup thread as a side effect.
+_search_cache = None
 
 
 def get_search_cache() -> SearchCacheService:
     """Get the global search cache instance."""
+    global _search_cache
+    if _search_cache is None:
+        _search_cache = SearchCacheService()
     return _search_cache

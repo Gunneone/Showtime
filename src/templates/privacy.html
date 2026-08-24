@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy - Showtime{% endblock %}
+
+{% block content %}
+<article class="content-page">
+    <h2>Privacy</h2>
+    <p class="content-lead">
+        Most privacy policies are long because the company has a great deal to
+        explain. This one is short for the opposite reason. Here is exactly
+        what happens to your data.
+    </p>
+
+    <section class="content-section">
+        <h3><i class="fas fa-hard-drive"></i> Your shows stay in your browser</h3>
+        <p>
+            The list of shows you track is saved in your own browser's local
+            storage. It is never stored on the server, and there is no account
+            to sign into &mdash; no email, no password, no &ldquo;create a free
+            profile to continue&rdquo;. Clear your browser data and it is gone
+            for good, including from my side, because I never had a copy.
+        </p>
+    </section>
+
+    <section class="content-section">
+        <h3><i class="fas fa-arrows-rotate"></i> What the server sees</h3>
+        <p>
+            To work out runtimes and build your statistics, your browser sends
+            the logged shows to the server, which looks up episode lengths, does the
+            arithmetic, and sends the results straight back. That list is used
+            to answer the request and then discarded. It is not written to disk
+            and not stored against you.
+        </p>
+        <p>
+            Search results and seasons lengths are cached here for seven days, purely so I am not
+            hammering the TMDB API. Without it, the hundredth person to type
+            <em>Breaking Bad</em> today would have me knocking on TMDB's door
+            for the hundredth time to be told, once again, that it ran for five
+            seasons. That cache holds the search text and its results and
+            nothing else &mdash; no visitor information is attached to it, so a
+            cached search cannot be traced back to whoever typed it.
+        </p>
+    </section>
+
+    <section class="content-section">
+        <h3><i class="fas fa-cookie-bite"></i> Cookies (there aren't any)</h3>
+        <p>
+            <strong>Showtime sets no cookies.</strong>
+            No consent banner, no &ldquo;we value your privacy&rdquo; pop-up
+            concealing four hundred advertising partners behind a
+            &ldquo;legitimate interest&rdquo; toggle. There is genuinely
+            nothing to consent to.
+        </p>
+        <p>
+            You don't have to take my word for it. Open your browser's developer tools and
+            look.
+        </p>
+    </section>
+
+    <section class="content-section">
+        <h3><i class="fas fa-chart-simple"></i> The usage counts we do keep</h3>
+        <p>
+            I keep a small pile of totals, so I can tell whether anyone is
+            actually out there: visits per day, how many shows get added,
+            searches performed, and a tally of which shows and genres are
+            logged most often. These are plain numbers. There are no per-person
+            records sitting behind them.
+        </p>
+        <p>
+            You only count as a visitor once you are actually tracking
+            something. Merely opening the page doesn't do it &mdash; which
+            conveniently keeps crawlers and uptime bots out of the figures.
+        </p>
+        <p>
+            To count daily visitors without identifying anyone, your IP address
+            and browser user-agent are mixed with a random secret and hashed
+            into a meaningless string. That secret is regenerated every day and
+            <strong>the old one is destroyed</strong>. So the hash cannot be
+            reversed, and tomorrow you are a completely different meaningless
+            string. I could not follow you from one day to the next if I
+            wanted to. The hashes themselves are deleted once the day has been
+            counted; only the total survives.
+        </p>
+    </section>
+
+    <section class="content-section">
+        <h3><i class="fas fa-user-shield"></i> No third-party tracking</h3>
+        <p>
+            No analytics services, no advertising networks, no tracking pixels,
+            no social media widgets. Nothing about you is sold, shared or
+            handed to anyone &mdash; largely because there is nothing to hand
+            over.
+        </p>
+        <p>Your browser does load a couple of files from other hosts:</p>
+        <ul>
+            <li><strong>themoviedb.org</strong> &mdash; show artwork and metadata</li>
+            <li><strong>cdnjs.cloudflare.com</strong> &mdash; the Font Awesome icon set</li>
+        </ul>
+        <p>
+            Those hosts see the request your browser makes for the file, as
+            they would on any site with external assets. Neither is told
+            anything about what you track. The confetti, you will be relieved
+            to hear, is served from here.
+        </p>
+    </section>
+
+    <section class="content-section">
+        <h3><i class="fas fa-ban"></i> Opting out</h3>
+        <p>
+            If your browser sends a <code>Do Not Track</code> or
+            <code>Global Privacy Control</code> signal, you are left out of the
+            visitor counts entirely &mdash; no hash is calculated for you at
+            all. Most of the web quietly ignores both. I would rather not.
+        </p>
+    </section>
+</article>
+{% endblock %}

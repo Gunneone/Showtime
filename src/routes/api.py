@@ -1,8 +1,13 @@
 from flask import Blueprint, request, jsonify, make_response
 import json
+import logging
 from ..services.tmdb_service import TMDBService
 from ..services.calculation_service import CalculationService
 from ..services.search_cache_service import get_search_cache
+from ..services.recommendation_service import RecommendationService
+from ..services.metrics_service import get_metrics_service
+
+logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api', __name__)
 
@@ -18,6 +23,11 @@ def get_tmdb_service():
 def get_calc_service():
     """Get calculation service instance."""
     return CalculationService()
+
+def get_rec_service():
+    """Get recommendation service instance, sharing the TMDB service so the
+    testing mock applies to recommendations too."""
+    return RecommendationService(tmdb_service=get_tmdb_service())
 
 def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched, show_details):
     """Calculate precise runtime and collect per-season details (runtime + air date)."""
@@ -88,38 +98,63 @@ def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched, show_
 
 @api_bp.route('/search')
 def search():
-    """Search for shows/movies using TMDB API with caching and optimized season data loading."""
+    """Search for shows using the TMDB API, with caching and season data included."""
     query = request.args.get('query', '').strip()
     if not query:
         return jsonify({'error': 'Query parameter is required'}), 400
-    
+
     try:
+        page = int(request.args.get('page', 1))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Page parameter must be a number'}), 400
+
+    if page < 1:
+        return jsonify({'error': 'Page parameter must be 1 or greater'}), 400
+
+    try:
+        get_metrics_service().record_event('searches')
+
         # Check cache first
         cache = get_search_cache()
-        cached_result = cache.get(query)
-        
+        cached_result = cache.get(query, page)
+
         if cached_result:
             # Return cached result
-            print(f"Cache hit for query: {query}")
+            print(f"Cache hit for query: {query} (page {page})")
             return jsonify(cached_result)
-        
+
         # Cache miss - call TMDB API
-        print(f"Cache miss for query: {query}")
+        print(f"Cache miss for query: {query} (page {page})")
         tmdb_service = get_tmdb_service()
-        
-        # Check if we're in testing mode
-        from flask import current_app
-        include_season_data = current_app and current_app.config.get('TESTING', False)
-        
-        # For production optimization, don't fetch season data upfront unless testing
-        # Season data will be fetched on-demand when results are displayed
-        results = tmdb_service.search_shows(query, include_season_data=include_season_data)
-        
+        results = tmdb_service.search_shows_with_fallback(query, page)
+
         # Cache the result
-        cache.set(query, results)
-        
+        cache.set(query, results, page)
+
         return jsonify(results)
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/recommendations', methods=['POST'])
+def recommendations():
+    """Suggest shows to log, based on the shows already logged.
+
+    Watch data lives in the browser, so the client posts its list the same way
+    the calculation endpoints take it.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        watched_shows = data.get('watched_shows', [])
+
+        if not isinstance(watched_shows, list):
+            return jsonify({'error': 'watched_shows must be a list'}), 400
+
+        get_metrics_service().record_event('recommendations_requested')
+
+        return jsonify(get_rec_service().build_recommendations(watched_shows))
+    except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/show/<int:show_id>/seasons')
@@ -130,6 +165,7 @@ def get_show_seasons(show_id):
         season_data = tmdb_service.get_show_season_data(show_id)
         return jsonify(season_data)
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched', methods=['GET'])
@@ -163,6 +199,7 @@ def get_watched():
             'total_time_formatted': calc_service.format_time(total_time)
         })
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched', methods=['POST'])
@@ -194,6 +231,9 @@ def add_watched():
         existing_show = next((show for show in watched_shows if show['id'] == data['id']), None)
         
         if existing_show:
+            metrics = get_metrics_service()
+            metrics.record_event('shows_updated')
+            metrics.record_engagement(request)
             # Update existing show - recalculate runtime for new seasons count
             seasons_watched = data.get('seasons_watched', existing_show['seasons_watched'])
             existing_show['seasons_watched'] = seasons_watched
@@ -209,6 +249,11 @@ def add_watched():
             existing_show['backdrop_path'] = show_details.get('backdrop_path')
             existing_show['popularity'] = show_details.get('popularity')
         else:
+            metrics = get_metrics_service()
+            metrics.record_event('shows_added')
+            metrics.record_show_added(show_details)
+            metrics.record_engagement(request)
+
             # Add new show with precise runtime calculation
             seasons_watched = data.get('seasons_watched', 1)
             
@@ -261,6 +306,7 @@ def add_watched():
         
         return response
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched/<int:show_id>', methods=['PUT'])
@@ -270,6 +316,10 @@ def update_watched(show_id):
         data = request.get_json()
         if not data:
             return jsonify({'error': 'Request data is required'}), 400
+
+        metrics = get_metrics_service()
+        metrics.record_event('shows_updated')
+        metrics.record_engagement(request)
         
         # Get current watched shows from request body (localStorage) or fallback to cookies
         watched_shows = []
@@ -321,6 +371,7 @@ def update_watched(show_id):
         
         return response
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched/<int:show_id>', methods=['DELETE'])
@@ -340,6 +391,10 @@ def remove_watched(show_id):
             watched_cookie = request.cookies.get('watched_shows', '[]')
             watched_shows = json.loads(watched_cookie)
         
+        metrics = get_metrics_service()
+        metrics.record_event('shows_removed')
+        metrics.record_engagement(request)
+
         # Remove the show
         watched_shows = [show for show in watched_shows if show['id'] != show_id]
         
@@ -356,12 +411,15 @@ def remove_watched(show_id):
         
         return response
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched', methods=['DELETE'])
 def clear_all_watched():
     """Clear all watched shows data."""
     try:
+        get_metrics_service().record_event('libraries_cleared')
+
         # Create response that clears both watched shows and sort preference cookies
         response = make_response(jsonify({'success': True, 'message': 'All data cleared successfully'}))
         
@@ -384,6 +442,7 @@ def clear_all_watched():
         
         return response
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/watched/calculate', methods=['POST'])
@@ -395,7 +454,9 @@ def calculate_watched():
             return jsonify({'error': 'Request data is required'}), 400
         
         watched_shows = data.get('watched_shows', [])
-        
+
+        get_metrics_service().record_library_size(request, len(watched_shows))
+
         # Calculate total watch time
         calc_service = get_calc_service()
         total_time = calc_service.calculate_total_time(watched_shows)
@@ -406,6 +467,7 @@ def calculate_watched():
             'total_time_formatted': calc_service.format_time(total_time)
         })
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/stats/calculate', methods=['POST'])
@@ -417,12 +479,15 @@ def calculate_stats():
             return jsonify({'error': 'Request data is required'}), 400
         
         watched_shows = data.get('watched_shows', [])
-        
+
+        get_metrics_service().record_library_size(request, len(watched_shows))
+
         calc_service = get_calc_service()
         stats = calc_service.calculate_stats(watched_shows)
         
         return jsonify(stats)
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/refresh-seasons', methods=['POST'])
@@ -468,6 +533,7 @@ def refresh_all_seasons():
             'updated_watched_shows': updated_shows
         })
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/refresh-show-seasons/<int:show_id>', methods=['POST'])
@@ -505,4 +571,5 @@ def refresh_show_seasons(show_id):
             'updated_watched_shows': watched_shows
         })
     except Exception as e:
+        logger.exception("Unhandled error in %s", request.path)
         return jsonify({'error': str(e)}), 500

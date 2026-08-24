@@ -9,7 +9,7 @@ Never wonder again how much time you've invested in your favorite series!
 * **🔍 Smart Search**: Quick search for TV shows and movies using The Movie Database (TMDB) API
 * **📝 Easy Tracking**: Add shows by simply clicking search results and specifying seasons watched
 * **📈 Progress Monitoring**: Keep track of which seasons you've completed for each show
-* **💾 Persistent Storage**: Your viewing history is saved locally in your browser cookies
+* **💾 Persistent Storage**: Your viewing history is saved in your browser's local storage — never on the server
 * **📊 Statistics Dashboard**: Detailed analytics on your viewing habits
 * **🏷️ Genre Tracking**: See which genres you spend the most time watching
 * **📱 Responsive Design**: Optimized for both desktop and mobile devices
@@ -184,7 +184,7 @@ docker run -d \
 1. **Search**: Use the search bar at the top of the page to find a TV show
 2. **Select**: Click on the show you want to add from the search results
 3. **Specify Seasons**: Enter the number of seasons you've watched
-4. **Add**: Click "Add to Watched" to save it to your list (stored in cookies)
+4. **Add**: Click "Add to Watched" to save it to your list (stored in localStorage)
 
 ### Tracking Your Progress
 
@@ -257,6 +257,8 @@ Showtime/
 | `FLASK_ENV`    | Environment mode              | No       | `production` |
 | `SECRET_KEY`   | Flask secret key              | Yes      | -            |
 | `TMDB_API_KEY` | TMDB API key                  | Yes      | -            |
+| `SHOWTIME_ADMIN_TOKEN` | Password for the `/admin/usage` dashboard. Unset = dashboard disabled (404) | No | - |
+| `METRICS_DB_PATH` | Where aggregate usage counts are stored | No | `metrics.db` |
 
 ### TMDB API Setup
 
@@ -264,6 +266,52 @@ Showtime/
 2. Go to Settings > API
 3. Request an API key
 4. Add the key to your `.env` file
+
+## 📊 Usage Statistics & Privacy
+
+Showtime keeps a small set of aggregate counters so the operator can tell
+whether anyone is using it. It is built so that it *cannot* become a tracking
+system:
+
+* No third-party analytics, no tracking pixels, no ad networks.
+* No cookies at all for ordinary visitors.
+* Watch histories are aggregated on write and never retained — no per-visitor
+  record of what anyone watches exists.
+* A *visitor* means someone tracking at least one show — a bare page load is
+  not counted. Crawlers run no JavaScript and have no localStorage, so they
+  never report a library and never appear in the numbers. (The trade-off: a
+  brand-new user is not counted until they log their first show.)
+* Daily visitors are counted via `sha256(daily_salt + ip + user_agent)`, where
+  the salt is random per day and **destroyed when the day rolls over**. The hash
+  cannot be reversed, and the same person hashes differently tomorrow, so
+  cross-day correlation is impossible by construction. IP addresses are never
+  written to disk.
+* Visitor hashes exist for at most ~48h; a nightly rollup collapses them into
+  plain counts and deletes them.
+* `DNT: 1` and `Sec-GPC: 1` opt out of visitor counting entirely.
+
+A deliberate consequence: because the salt rotates daily, **there is no monthly
+unique-visitor figure** — daily counts cannot be de-duplicated across days. The
+dashboard reports daily uniques and an average per active day instead.
+
+Full details are on the site's `/privacy` page.
+
+### The usage dashboard
+
+Set `SHOWTIME_ADMIN_TOKEN` and the dashboard becomes available at
+`/admin/usage`. It is not linked from anywhere in the UI, and with no token
+configured the route returns 404 rather than a login form.
+
+Because the dashboard authenticates with a signed session cookie, enabling it
+requires a real `SECRET_KEY` — the app refuses to start if a token is set while
+`SECRET_KEY` is still one of the repo's default values. Generate one with:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Under Docker the counts live on the `showtime-data` volume, so they survive a
+rebuild.
 
 ## 📈 Roadmap
 
@@ -283,7 +331,7 @@ Showtime/
 
 ### Future Enhancements
 * [ ] Improved Social sharing features
-* [ ] Improved analytics and insights
+* [x] Improved analytics and insights (privacy-preserving aggregate usage stats)
 
 ## 📝 License
 
