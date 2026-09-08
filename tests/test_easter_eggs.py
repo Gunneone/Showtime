@@ -84,20 +84,18 @@ def test_segment_display_font_is_vendored_and_wired_up(client):
     css = read('src/static/css/style.css')
 
     # The face itself, served from this origin rather than a font CDN.
-    assert "font-family: 'Seven Segment';" in css
-    assert "url('../fonts/SevenSegment.ttf') format('truetype')" in css
-    assert client.get('/static/fonts/SevenSegment.ttf').status_code == 200
+    assert "font-family: 'DSEG14 Classic';" in css
+    assert "url('../fonts/DSEG14Classic-Regular.ttf') format('truetype')" in css
+    assert client.get('/static/fonts/DSEG14Classic-Regular.ttf').status_code == 200
 
-    # The font is free for personal use only, so where it came from and what
-    # that means has to stay written down next to it.
-    fonts_readme = read('src/static/fonts/README.md')
-    assert 'dafont.com/seven-segment.font' in fonts_readme
-    assert 'free for personal use' in fonts_readme.lower()
+    # The licence has to travel with the font, and it has to be one the
+    # repository is free to redistribute.
+    assert 'SIL OPEN FONT LICENSE' in read('src/static/fonts/DSEG-LICENSE.txt')
 
     # Only the show's name is set in it, and there is a fallback for the
     # moment before the font arrives.
     assert '.watched-show.easter-egg-segment-display .watched-show-info h4 {' in css
-    assert "font-family: 'Seven Segment', 'Courier New', monospace;" in css
+    assert "font-family: 'DSEG14 Classic', 'Courier New', monospace;" in css
 
     # A calculator display is all caps, so the name is set that way.
     assert 'text-transform: uppercase;' in css
