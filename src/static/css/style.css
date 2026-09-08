@@ -671,10 +671,11 @@ body {
     align-self: flex-start;
 }
 
-/* Segmented LCD display face, vendored in static/fonts (SIL OFL 1.1). */
+/* Seven-segment display face, vendored in static/fonts - see the README
+   there for its licence, which is not the repository's own. */
 @font-face {
-    font-family: 'DSEG14 Classic';
-    src: url('../fonts/DSEG14Classic-Regular.ttf') format('truetype');
+    font-family: 'Seven Segment';
+    src: url('../fonts/SevenSegment.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
@@ -693,17 +694,16 @@ body {
     border-radius: 0 12px 12px 0;
 }
 
-/* 24 and The IT Crowd: the title reads off a calculator display. The face is
-   wide and draws only the lit segments, so it gets a little more size than
-   the surrounding text but stays clear of the remove button. */
+/* 24 and The IT Crowd: the title reads off a calculator display. The font
+   only draws the seven segments, so it needs the room the extra size and
+   letter spacing give it. */
 .watched-show.easter-egg-segment-display .watched-show-info h4 {
-    font-family: 'DSEG14 Classic', 'Courier New', monospace;
+    font-family: 'Seven Segment', 'Courier New', monospace;
     /* A calculator display has no lower case. */
     text-transform: uppercase;
-    font-size: 1.2rem;
-    letter-spacing: 0.04em;
-    line-height: 1.4;
-    padding-right: 1.25rem;
+    font-size: 1.35rem;
+    letter-spacing: 0.06em;
+    line-height: 1.35;
 }
 
 /* Full-screen overlay used by custom celebration animations. */
