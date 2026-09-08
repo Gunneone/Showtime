@@ -14,6 +14,7 @@ Never wonder again how much time you've invested in your favorite series!
 * **🏷️ Genre Tracking**: See which genres you spend the most time watching
 * **📱 Responsive Design**: Optimized for both desktop and mobile devices
 * **📊 Export Data**: Export your viewing history in various formats
+* **🥚 Easter Eggs**: A few shows get their own card style or celebration animation — go find them
 
 ## 🛠️ Technology Stack
 
@@ -204,7 +205,7 @@ Showtime/
 │   ├── config.py          # Configuration settings
 │   ├── static/            # Static files (CSS, JS, images)
 │   │   ├── css/
-│   │   ├── js/
+│   │   ├── js/         # app.js, easter-eggs.js, vendored libraries
 │   │   └── images/
 │   ├── templates/         # HTML templates
 │   │   ├── base.html
@@ -224,6 +225,31 @@ Showtime/
 └── tests/                 # Test files
     ├── test_app.py
     └── test_services.py
+```
+
+## 🥚 Easter Eggs
+
+Individual shows can get a little something extra. Both kinds live in
+`src/static/js/easter-eggs.js`:
+
+* **`cardClass`** — an extra CSS class on the show's card in the watched list,
+  so the show can have its own look (styles go in `src/static/css/style.css`).
+* **`celebration`** — an animation that replaces the default confetti burst
+  when that show pushes the total watch time up.
+
+Currently: **Monk** shows its poster on the right-hand side of the card, and
+the **Dragon Ball** shows throw dragon balls instead of confetti.
+
+To add one, define it in `definitions` and map the TMDB show id(s) onto it in
+`showIds` — the rest of the app picks it up automatically:
+
+```js
+definitions: {
+    myEgg: { cardClass: 'easter-egg-my-egg', celebration: 'myAnimation' }
+},
+showIds: {
+    1234: 'myEgg'   // TMDB id of the show
+}
 ```
 
 ## 🧪 API Endpoints

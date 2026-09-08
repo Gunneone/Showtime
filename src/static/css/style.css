@@ -671,6 +671,41 @@ body {
     align-self: flex-start;
 }
 
+/* Easter eggs
+   Per-show flourishes. Registered in static/js/easter-eggs.js, which puts the
+   matching class on the show's card. */
+
+/* Monk: the poster sits on the right instead of the left. */
+.watched-show.easter-egg-monk {
+    flex-direction: row-reverse;
+}
+
+.watched-show.easter-egg-monk .watched-show-poster {
+    border-radius: 0 12px 12px 0;
+}
+
+/* The remove button moves with the content, and the text makes room for it. */
+.watched-show.easter-egg-monk .watched-show-remove {
+    right: auto;
+    left: 0.5rem;
+}
+
+.watched-show.easter-egg-monk .watched-show-content {
+    padding-left: 2rem;
+}
+
+/* Full-screen overlay used by custom celebration animations. */
+.easter-egg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Same layer canvas-confetti uses, so it sits below modals and toasts. */
+    z-index: 100;
+}
+
 /* Inline season editing */
 .seasons-display {
     cursor: pointer;

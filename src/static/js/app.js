@@ -168,6 +168,9 @@ const App = {
         currentQuery: '',
         currentPage: 1,
         isInitialLoad: true,
+        // Show that caused the next watch-time increase, so an easter egg can
+        // replace the confetti with its own celebration. Cleared once used.
+        celebrationShowId: null,
         // Suggestions shown in the dropdown when there is nothing to search for.
         // Redrawn on every focus: the server samples its candidate pool per
         // request, so refetching is what makes the suggestions cycle.
@@ -889,6 +892,7 @@ const App = {
             }
 
             this.showToast(`Added "${show.name}" to your watched list!`);
+            this.markCelebrationShow(show.id);
             this.loadWatchedShows(true);
             this.hideSearchResults();
             this.elements.searchInput.value = '';
@@ -950,6 +954,7 @@ const App = {
             }
 
             this.showToast(`Added "${showName}" with ${seasonsWatched} season${seasonsWatched !== 1 ? 's' : ''} to your watched list!`);
+            this.markCelebrationShow(show.id);
             this.loadWatchedShows(true);
             this.hideSearchResults();
             this.elements.searchInput.value = '';
@@ -1052,7 +1057,9 @@ const App = {
             }
 
             this.showToast(`Added "${this.state.selectedShow.name}" to your watched list!`);
+            const addedShowId = this.state.selectedShow.id;
             this.hideAddModal();
+            this.markCelebrationShow(addedShowId);
             this.loadWatchedShows(true);
             this.hideSearchResults();
             this.elements.searchInput.value = '';
@@ -1239,16 +1246,20 @@ const App = {
         requestAnimationFrame(animate);
     },
 
+    // Remember which show is about to change the total, so its easter egg (if
+    // any) can take over the celebration.
+    markCelebrationShow(showId) {
+        this.state.celebrationShowId = showId;
+    },
+
     // Trigger celebration particle effect using canvas-confetti
     triggerCelebrationEffect(element, timeDifference, intensityFactor) {
         const container = element.closest('.watch-time-card');
         if (!container) return;
 
-        // Check if canvas-confetti is available
-        if (typeof confetti !== 'function') {
-            console.warn('canvas-confetti library not loaded');
-            return;
-        }
+        // The show that triggered this increase only gets one celebration.
+        const celebrationShowId = this.state.celebrationShowId;
+        this.state.celebrationShowId = null;
 
         // Get container bounds to determine the origin position
         const containerRect = container.getBoundingClientRect();
@@ -1263,6 +1274,22 @@ const App = {
         const minParticles = 15;
         const maxParticles = 60;
         const particleCount = Math.round(minParticles + (maxParticles - minParticles) * intensityFactor);
+
+        // Hand over to the show's easter egg animation when it has one.
+        if (typeof EasterEggs !== 'undefined' && EasterEggs.celebrate(celebrationShowId, {
+            originX: originX,
+            originY: originY,
+            particleCount: particleCount,
+            intensityFactor: intensityFactor
+        })) {
+            return;
+        }
+
+        // Check if canvas-confetti is available
+        if (typeof confetti !== 'function') {
+            console.warn('canvas-confetti library not loaded');
+            return;
+        }
 
         // Configure confetti colors (vibrant selection)
         const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e'];
@@ -1473,7 +1500,9 @@ const App = {
     // Create watched show element
     createWatchedShowElement(show) {
         const div = document.createElement('div');
-        div.className = 'watched-show';
+        // Some shows carry an easter egg that gives their card its own look.
+        const eggClass = (typeof EasterEggs !== 'undefined') ? EasterEggs.cardClass(show.id) : '';
+        div.className = eggClass ? `watched-show ${eggClass}` : 'watched-show';
         div.setAttribute('data-show-id', show.id); // Add data attribute for easy identification
 
         const posterUrl = show.poster_path || '/static/images/no-poster.png';
@@ -1787,6 +1816,7 @@ const App = {
             }
 
             this.showToast(`Updated "${show ? show.name : 'show'}"!`);
+            this.markCelebrationShow(showId);
             this.loadWatchedShows(true);
         } catch (error) {
             console.error('Error updating show:', error);
@@ -2211,7 +2241,9 @@ const App = {
                 this.state.watchedShows = importedShows;
             }
             
-            // Load and display the imported shows immediately
+            // Load and display the imported shows immediately. An import is
+            // not one show's doing, so no easter egg gets the celebration.
+            this.markCelebrationShow(null);
             this.loadWatchedShows(true);
             
             // Clear file input
