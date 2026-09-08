@@ -416,6 +416,9 @@ const AvatarElementsAnimation = {
         { x: 1, y: 1 }
     ],
 
+    // Below this the card is too narrow to pull the emblems in from its edges.
+    roomyCardWidth: 520,
+
     /**
      * Fetch the library and the animation, once. Safe to call at any time and
      * as often as you like; every caller gets the same promise.
@@ -466,8 +469,19 @@ const AvatarElementsAnimation = {
         // card without touching each other or its edges.
         const size = Math.round(Math.max(34, Math.min(bounds.height * 0.42, bounds.width * 0.2, 104)));
         const inset = Math.max(8, size * 0.18);
+
+        // How far out from the middle of the card the emblems sit. On a card
+        // with room they stop halfway between the total in the middle and the
+        // edge, which keeps the last of them off the share button in the
+        // corner. A narrow card has no such room: there they go as far out as
+        // they fit, to stay clear of the total itself.
+        const outermost = bounds.width / 2 - inset - size / 2;
+        const reach = bounds.width >= this.roomyCardWidth
+            ? Math.min(bounds.width * 0.25, outermost)
+            : outermost;
+
         const spots = this.corners.map(corner => ({
-            x: bounds.left + bounds.width / 2 + corner.x * (bounds.width / 2 - inset - size / 2),
+            x: bounds.left + bounds.width / 2 + corner.x * reach,
             y: bounds.top + bounds.height / 2 + corner.y * (bounds.height / 2 - inset - size / 2)
         }));
 
