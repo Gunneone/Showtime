@@ -207,6 +207,7 @@ Showtime/
 │   │   ├── css/
 │   │   ├── js/         # app.js, easter-eggs.js, vendored libraries
 │   │   ├── fonts/      # vendored fonts
+│   │   ├── animations/ # vendored Lottie animations
 │   │   └── images/
 │   ├── templates/         # HTML templates
 │   │   ├── base.html
@@ -241,7 +242,8 @@ Individual shows can get a little something extra. Both kinds live in
 Currently: **Monk** shows its poster on the right-hand side of the card, the
 **Dragon Ball** shows throw the seven dragon balls instead of confetti, and
 **Avatar: The Last Airbender** bends the four elements in the order of the
-opening titles - water, then earth, then fire, then air. **24** and **The IT
+opening titles - water, then earth, then fire, then air - as a Lottie
+animation, loaded only when that easter egg fires. **24** and **The IT
 Crowd** have their names printed on a seven-segment calculator display, using
 the [Seven Segment](https://www.dafont.com/seven-segment.font) font vendored
 under `src/static/fonts/` (free for personal use only - see the README there).

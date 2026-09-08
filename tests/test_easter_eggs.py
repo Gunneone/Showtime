@@ -75,9 +75,45 @@ def test_avatar_bends_the_four_elements_in_order():
     assert "order: ['water', 'earth', 'fire', 'air']" in js, \
         "the elements should be bent in the order water, earth, fire, air"
 
+    # Each element is played as its own segment of the source animation.
     for element in ('water', 'earth', 'fire', 'air'):
-        assert re.search(rf"^\s*{element}\(origin\) \{{", js, re.MULTILINE), \
-            f"'{element}' needs a builder for its particles"
+        assert re.search(rf"^\s*{element}: \[\d+, \d+\]", js, re.MULTILINE), \
+            f"'{element}' needs a frame range in the source animation"
+
+
+def test_avatar_celebration_fits_in_three_seconds():
+    js = read('src/static/js/easter-eggs.js')
+
+    def number(name):
+        match = re.search(rf"^\s*{name}: ([\d.]+),", js, re.MULTILINE)
+        assert match, f"{name} should be a number the animation can be timed by"
+        return float(match.group(1))
+
+    element = number('elementSeconds')
+    stagger = number('staggerSeconds')
+
+    # Three gaps between four elements, plus the last one playing out.
+    assert stagger * 3 + element <= 3.0, "the whole celebration should fit in three seconds"
+    # Each element is still on screen when the next one starts to draw.
+    assert stagger < element, "consecutive elements should overlap"
+
+
+def test_avatar_animation_and_library_are_vendored(client):
+    js = read('src/static/js/easter-eggs.js')
+
+    # Both are fetched from this origin, and only when they are needed.
+    assert "libraryUrl: '/static/js/vendor/lottie_light.min.js'" in js
+    assert "animationUrl: '/static/animations/avatar-elements.json'" in js
+    assert client.get('/static/js/vendor/lottie_light.min.js').status_code == 200
+    assert client.get('/static/animations/avatar-elements.json').status_code == 200
+
+    # Nobody who never watches Avatar should download a quarter of a megabyte,
+    # so neither file may be pulled in by the page itself.
+    base = read('src/templates/base.html')
+    assert 'lottie' not in base
+
+    # Adding the show is what starts the fetch.
+    assert 'EasterEggs.preload(showId)' in read('src/static/js/app.js')
 
 
 def test_segment_display_font_is_vendored_and_wired_up(client):

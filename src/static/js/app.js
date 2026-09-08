@@ -1247,9 +1247,14 @@ const App = {
     },
 
     // Remember which show is about to change the total, so its easter egg (if
-    // any) can take over the celebration.
+    // any) can take over the celebration. Told this early, an easter egg that
+    // has something to fetch can start fetching now rather than when the
+    // animation is already due.
     markCelebrationShow(showId) {
         this.state.celebrationShowId = showId;
+        if (typeof EasterEggs !== 'undefined') {
+            EasterEggs.preload(showId);
+        }
     },
 
     // Trigger celebration particle effect using canvas-confetti
@@ -1275,12 +1280,20 @@ const App = {
         const maxParticles = 60;
         const particleCount = Math.round(minParticles + (maxParticles - minParticles) * intensityFactor);
 
-        // Hand over to the show's easter egg animation when it has one.
+        // Hand over to the show's easter egg animation when it has one. The
+        // card's bounds go with the origin, for effects that want to place
+        // themselves inside it rather than burst out of the middle.
         if (typeof EasterEggs !== 'undefined' && EasterEggs.celebrate(celebrationShowId, {
             originX: originX,
             originY: originY,
             particleCount: particleCount,
-            intensityFactor: intensityFactor
+            intensityFactor: intensityFactor,
+            bounds: {
+                left: containerRect.left,
+                top: containerRect.top,
+                width: containerRect.width,
+                height: containerRect.height
+            }
         })) {
             return;
         }

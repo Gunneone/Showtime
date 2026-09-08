@@ -706,6 +706,20 @@ body {
     line-height: 1.35;
 }
 
+/* One element of a Lottie celebration, placed over the page. */
+.easter-egg-lottie {
+    position: fixed;
+    pointer-events: none;
+    /* Same layer canvas-confetti uses, so it sits below modals and toasts. */
+    z-index: 100;
+}
+
+/* The Earth Kingdom green the animation is drawn in is darker than the page,
+   so it is lifted here rather than by editing the vendored artwork. */
+.easter-egg-lottie--earth {
+    filter: brightness(1.8);
+}
+
 /* Full-screen overlay used by custom celebration animations. */
 .easter-egg-canvas {
     position: fixed;

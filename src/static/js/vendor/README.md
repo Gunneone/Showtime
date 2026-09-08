@@ -4,6 +4,17 @@ Served from this origin rather than a CDN so that using Showtime does not
 disclose visitors to a third party. Update by re-downloading the same file and
 re-checking the version below.
 
+## lottie_light.min.js
+
+* Library: [lottie-web](https://github.com/airbnb/lottie-web) 5.13.0 (MIT licence)
+* Source: `https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie_light.min.js`
+* Retrieved: 2026-09-08
+* sha256 of the file as downloaded: `9588432bec30c8ef8200bac4a67d8aaad881047bc2a6c9fa624d90ec96402410`
+
+The `light` build: the SVG renderer without expression support, which the
+animation in `static/animations` does not use. Loaded on demand by the Avatar
+easter egg rather than by every page, since it is 164KB.
+
 ## confetti.browser.min.js
 
 * Library: [canvas-confetti](https://github.com/catdad/canvas-confetti) 1.9.2 (ISC licence)
