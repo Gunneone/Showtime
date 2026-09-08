@@ -698,6 +698,8 @@ body {
    letter spacing give it. */
 .watched-show.easter-egg-segment-display .watched-show-info h4 {
     font-family: 'Segment7', 'Courier New', monospace;
+    /* A calculator display has no lower case. */
+    text-transform: uppercase;
     font-size: 1.35rem;
     letter-spacing: 0.06em;
     line-height: 1.35;

@@ -96,6 +96,9 @@ def test_segment_display_font_is_vendored_and_wired_up(client):
     assert '.watched-show.easter-egg-segment-display .watched-show-info h4 {' in css
     assert "font-family: 'Segment7', 'Courier New', monospace;" in css
 
+    # A calculator display is all caps, so the name is set that way.
+    assert 'text-transform: uppercase;' in css
+
 
 def test_monk_restyles_the_card_and_dragonball_replaces_the_confetti():
     js = read('src/static/js/easter-eggs.js')
