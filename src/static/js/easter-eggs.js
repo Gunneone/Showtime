@@ -121,12 +121,14 @@ const DragonBallAnimation = {
     },
 
     /**
-     * Spawn a burst of dragon balls.
+     * Throw the seven dragon balls: one of each, from one star to seven.
+     *
+     * They are deliberately few, large and slow - the point is that you can
+     * see which ball is which on the way past.
      *
      * @param {Object} options
-     * @param {number} options.originX        horizontal origin, 0-1 of viewport
-     * @param {number} options.originY        vertical origin, 0-1 of viewport
-     * @param {number} options.particleCount  number of balls to throw
+     * @param {number} options.originX         horizontal origin, 0-1 of viewport
+     * @param {number} options.originY         vertical origin, 0-1 of viewport
      * @param {number} options.intensityFactor 0-1, scales speed and size
      */
     fire(options) {
@@ -134,32 +136,48 @@ const DragonBallAnimation = {
         const originX = (opts.originX !== undefined ? opts.originX : 0.5) * window.innerWidth;
         const originY = (opts.originY !== undefined ? opts.originY : 0.5) * window.innerHeight;
         const intensity = Math.min(Math.max(opts.intensityFactor || 0, 0), 1);
-        const count = Math.max(1, Math.round(opts.particleCount || 20));
 
         this.ensureCanvas();
 
-        for (let i = 0; i < count; i++) {
-            // Fan the balls upwards: mostly up, some to either side.
-            const angle = (-90 + (Math.random() - 0.5) * (70 + intensity * 50)) * Math.PI / 180;
-            const speed = (5 + Math.random() * 5) * (1 + intensity * 0.8);
-            const radius = (7 + Math.random() * 5) * (0.85 + intensity * 0.35);
+        // Everything is measured against a desktop-sized window, so that on a
+        // phone the balls stay on screen just as long instead of shooting off
+        // the sides.
+        const scale = Math.min(1, window.innerWidth / 900);
+
+        // Spread the seven evenly across an upward fan so none of them hides
+        // behind another, and shuffle which star count goes where.
+        const stars = this.shuffle([1, 2, 3, 4, 5, 6, 7]);
+        const fan = 100 + intensity * 40;
+
+        stars.forEach((starCount, i) => {
+            const spot = (i + 0.5) / stars.length - 0.5;
+            const angle = (-90 + spot * fan + (Math.random() - 0.5) * 6) * Math.PI / 180;
+            const speed = (3.4 + Math.random() * 0.8) * (1 + intensity * 0.35) * scale;
 
             this.particles.push({
                 x: originX,
                 y: originY,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                radius: radius,
+                radius: 26 * (0.9 + intensity * 0.3) * Math.max(scale, 0.72),
                 rotation: Math.random() * Math.PI * 2,
-                spin: (Math.random() - 0.5) * 0.15,
-                // Every ball is one of the seven.
-                stars: 1 + Math.floor(Math.random() * 7),
+                spin: (Math.random() - 0.5) * 0.03,
+                stars: starCount,
                 life: 0,
-                ttl: Math.round(110 + intensity * 70 + Math.random() * 30)
+                ttl: Math.round(220 + intensity * 40)
             });
-        }
+        });
 
         this.start();
+    },
+
+    // Fisher-Yates, so the balls come out in a different order every time.
+    shuffle(values) {
+        for (let i = values.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [values[i], values[j]] = [values[j], values[i]];
+        }
+        return values;
     },
 
     start() {
@@ -177,8 +195,11 @@ const DragonBallAnimation = {
 
         ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-        const gravity = 0.22;
-        const drag = 0.99;
+        // Gentle, so the balls hang in the air long enough to be read. Gravity
+        // is scaled the same way the launch speed is, to keep the arc the same
+        // shape on a small screen.
+        const gravity = 0.06 * Math.min(1, window.innerWidth / 900);
+        const drag = 0.995;
 
         this.particles = this.particles.filter(p => {
             p.life += 1;
