@@ -84,17 +84,20 @@ def test_segment_display_font_is_vendored_and_wired_up(client):
     css = read('src/static/css/style.css')
 
     # The face itself, served from this origin rather than a font CDN.
-    assert "font-family: 'Segment7';" in css
-    assert "url('../fonts/Segment7Standard.otf') format('opentype')" in css
-    assert client.get('/static/fonts/Segment7Standard.otf').status_code == 200
+    assert "font-family: 'Seven Segment';" in css
+    assert "url('../fonts/SevenSegment.ttf') format('truetype')" in css
+    assert client.get('/static/fonts/SevenSegment.ttf').status_code == 200
 
-    # The licence has to travel with the font.
-    assert 'SIL OPEN FONT LICENSE' in read('src/static/fonts/OFL.txt')
+    # The font is free for personal use only, so where it came from and what
+    # that means has to stay written down next to it.
+    fonts_readme = read('src/static/fonts/README.md')
+    assert 'dafont.com/seven-segment.font' in fonts_readme
+    assert 'free for personal use' in fonts_readme.lower()
 
     # Only the show's name is set in it, and there is a fallback for the
     # moment before the font arrives.
     assert '.watched-show.easter-egg-segment-display .watched-show-info h4 {' in css
-    assert "font-family: 'Segment7', 'Courier New', monospace;" in css
+    assert "font-family: 'Seven Segment', 'Courier New', monospace;" in css
 
     # A calculator display is all caps, so the name is set that way.
     assert 'text-transform: uppercase;' in css

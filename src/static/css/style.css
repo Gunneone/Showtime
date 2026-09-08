@@ -671,10 +671,11 @@ body {
     align-self: flex-start;
 }
 
-/* Seven-segment display face, vendored in static/fonts (SIL OFL 1.1). */
+/* Seven-segment display face, vendored in static/fonts - see the README
+   there for its licence, which is not the repository's own. */
 @font-face {
-    font-family: 'Segment7';
-    src: url('../fonts/Segment7Standard.otf') format('opentype');
+    font-family: 'Seven Segment';
+    src: url('../fonts/SevenSegment.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
@@ -697,7 +698,7 @@ body {
    only draws the seven segments, so it needs the room the extra size and
    letter spacing give it. */
 .watched-show.easter-egg-segment-display .watched-show-info h4 {
-    font-family: 'Segment7', 'Courier New', monospace;
+    font-family: 'Seven Segment', 'Courier New', monospace;
     /* A calculator display has no lower case. */
     text-transform: uppercase;
     font-size: 1.35rem;

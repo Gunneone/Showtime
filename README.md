@@ -243,8 +243,8 @@ Currently: **Monk** shows its poster on the right-hand side of the card, the
 **Avatar: The Last Airbender** bends the four elements in the order of the
 opening titles - water, then earth, then fire, then air. **24** and **The IT
 Crowd** have their names printed on a seven-segment calculator display, using
-the [Segment7](https://fontlibrary.org/en/font/segment7) font vendored under
-`src/static/fonts/`.
+the [Seven Segment](https://www.dafont.com/seven-segment.font) font vendored
+under `src/static/fonts/` (free for personal use only - see the README there).
 
 To add one, define it in `definitions` and map the TMDB show id(s) onto it in
 `showIds` — the rest of the app picks it up automatically:
