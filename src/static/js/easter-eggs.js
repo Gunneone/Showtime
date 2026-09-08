@@ -345,14 +345,30 @@ const DragonBallAnimation = {
 
 /**
  * Bends the four elements in the order of the opening titles: water, earth,
- * fire, air. Each element gets its own burst and its own way of moving -
- * water swirls, earth erupts and tumbles back down, fire rises and flickers,
- * air spirals outwards and away.
+ * fire, air.
+ *
+ * The style is the point. Everything is drawn the way hand-drawn animation
+ * draws an effect: a tapered brush stroke that follows the path the thing has
+ * just travelled, filled flat, inked along its edge and lit with a brighter
+ * core. One `drawStroke` serves water, fire and air, and the earth chunks are
+ * inked the same way, so the four elements read as one set however
+ * differently they move.
  */
 const ElementBendingAnimation = {
     // The bending order, and how long each element waits for its turn (ms).
     order: ['water', 'earth', 'fire', 'air'],
     stagger: 620,
+
+    /**
+     * Flat colour, the ink line around it, and the brighter core inside -
+     * the three tones every cel-shaded effect is built from.
+     */
+    palettes: {
+        water: { fill: '#38a3f0', ink: '#0d4f96', core: '#c7ecff' },
+        earth: { fill: '#9b7250', ink: '#4a3524', core: '#dcc7a8' },
+        fire: { fill: '#ff8a2b', ink: '#b03a06', core: '#ffe685' },
+        air: { fill: '#bfe6ef', ink: '#5f92a4', core: '#ffffff' }
+    },
 
     /**
      * @param {Object} options
@@ -378,123 +394,185 @@ const ElementBendingAnimation = {
         });
     },
 
+    /**
+     * A stroke: something that leaves a trail behind it and is drawn as one
+     * tapered ribbon through that trail.
+     *
+     * `move(particle)` places the head each frame; everything else here is the
+     * bookkeeping every stroke needs.
+     */
+    stroke(config) {
+        const particle = {
+            x: config.x,
+            y: config.y,
+            width: config.width,
+            palette: config.palette,
+            trailLength: config.trailLength || 14,
+            trail: [{ x: config.x, y: config.y }],
+            ttl: config.ttl,
+            draw: (ctx, p) => this.drawStroke(ctx, p)
+        };
+
+        particle.update = p => {
+            config.move(p);
+            p.trail.push({ x: p.x, y: p.y });
+            if (p.trail.length > p.trailLength) p.trail.shift();
+        };
+
+        return particle;
+    },
+
     // One builder per element, each returning that element's particles.
     elements: {
-        // Water: droplets swirling around the origin on a widening ellipse.
+        // Water: long ribbons whipping out of the card on a curving path.
         water(origin) {
-            const size = 9 * origin.scale;
-            const direction = Math.random() < 0.5 ? 1 : -1;
+            const palette = this.palettes.water;
+            const turn = Math.random() < 0.5 ? 1 : -1;
 
-            return this.spread(14).map((spot, i) => {
-                const particle = {
+            return this.spread(6).map((spot, i) => {
+                const state = {
+                    angle: spot * Math.PI * 1.5 - Math.PI * 0.9,
+                    distance: (14 + i * 9) * origin.scale,
+                    speed: (2.9 + Math.random() * 0.7) * origin.scale
+                };
+
+                return this.stroke({
                     x: origin.x,
                     y: origin.y,
-                    angle: spot * Math.PI * 1.6 - Math.PI / 2,
-                    // Each droplet starts a little further out than the last,
-                    // so the stream trails behind its head in a spiral.
-                    distance: (12 + i * 5) * origin.scale,
-                    swirl: direction * (0.055 + Math.random() * 0.02),
-                    speed: (1.5 + Math.random() * 0.9) * origin.scale,
-                    size: size * (0.7 + Math.random() * 0.6),
-                    ttl: 105,
-                    colour: ['#81d4fa', '#4fc3f7', '#29b6f6'][i % 3],
-                    draw: (ctx, p) => this.drawDroplet(ctx, p)
-                };
-
-                particle.update = p => {
-                    p.angle += p.swirl;
-                    p.distance += p.speed;
-                    // A little bob, so the stream ripples rather than sliding.
-                    const bob = Math.sin(p.life * 0.18) * 5 * origin.scale;
-                    p.x = origin.x + Math.cos(p.angle) * p.distance;
-                    p.y = origin.y + Math.sin(p.angle) * p.distance * 0.62 + bob;
-                    p.rotation = p.angle + Math.PI / 2;
-                };
-
-                return particle;
+                    width: (7 + Math.random() * 3) * origin.scale,
+                    palette: palette,
+                    trailLength: 18,
+                    ttl: 115,
+                    move: p => {
+                        // A widening arc, with the curl easing off as the
+                        // stroke runs out of momentum.
+                        state.angle += turn * 0.052;
+                        state.distance += state.speed;
+                        state.speed *= 0.994;
+                        p.x = origin.x + Math.cos(state.angle) * state.distance;
+                        p.y = origin.y + Math.sin(state.angle) * state.distance * 0.62
+                            + Math.sin(p.life * 0.16) * 4 * origin.scale;
+                    }
+                });
             });
         },
 
-        // Earth: chunky rocks thrown up out of the card and tumbling back down.
+        // Earth: inked chunks thrown up out of the card, each dragging the
+        // smear of dust that the same arc leaves behind it.
         earth(origin) {
-            const size = 13 * origin.scale;
+            const palette = this.palettes.earth;
+            const gravity = 0.23 * origin.scale;
+            const drag = 0.995;
+            const particles = [];
 
-            return this.spread(10).map(spot => {
-                const angle = (-90 + (spot - 0.5) * 96) * Math.PI / 180;
-                const speed = (5.5 + Math.random() * 2.2) * origin.scale;
-
-                return {
-                    x: origin.x + (spot - 0.5) * 40 * origin.scale,
-                    y: origin.y + 10 * origin.scale,
+            this.spread(7).forEach((spot, i) => {
+                const angle = (-90 + (spot - 0.5) * 92) * Math.PI / 180;
+                const speed = (5.4 + Math.random() * 2) * origin.scale;
+                const size = (13 + Math.random() * 8) * origin.scale;
+                const start = {
+                    x: origin.x + (spot - 0.5) * 46 * origin.scale,
+                    y: origin.y + 8 * origin.scale,
                     vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    gravity: 0.24 * origin.scale,
-                    drag: 0.995,
+                    vy: Math.sin(angle) * speed
+                };
+
+                // The smear runs the same numbers as the chunk, so it traces
+                // exactly the arc the chunk is flying. It goes in first, to be
+                // drawn underneath.
+                const dust = { ...start };
+                particles.push(this.stroke({
+                    x: dust.x,
+                    y: dust.y,
+                    width: size * 0.5,
+                    palette: palette,
+                    trailLength: 10,
+                    ttl: 125,
+                    move: p => {
+                        dust.vx *= drag;
+                        dust.vy = dust.vy * drag + gravity;
+                        dust.x += dust.vx;
+                        dust.y += dust.vy;
+                        p.x = dust.x;
+                        p.y = dust.y;
+                    }
+                }));
+
+                particles.push({
+                    x: start.x,
+                    y: start.y,
+                    vx: start.vx,
+                    vy: start.vy,
+                    gravity: gravity,
+                    drag: drag,
                     rotation: Math.random() * Math.PI * 2,
-                    spin: (Math.random() - 0.5) * 0.12,
-                    size: size * (0.7 + Math.random() * 0.7),
-                    facets: 5 + Math.floor(Math.random() * 3),
-                    ttl: 120,
-                    draw: (ctx, p) => this.drawRock(ctx, p)
-                };
+                    spin: (Math.random() - 0.5) * 0.11,
+                    size: size,
+                    facets: 5 + (i % 3),
+                    palette: palette,
+                    ttl: 125,
+                    draw: (ctx, p) => this.drawChunk(ctx, p)
+                });
             });
+
+            return particles;
         },
 
-        // Fire: flames rising from a low, wide band, flickering as they go.
+        // Fire: flames licking upwards, each one a stroke that wavers as it
+        // rises and burns down to nothing.
         fire(origin) {
-            const size = 13 * origin.scale;
+            const palette = this.palettes.fire;
 
-            return this.spread(13).map(spot => {
-                const particle = {
+            return this.spread(8).map(spot => {
+                const state = {
+                    rise: (2.8 + Math.random() * 1.3) * origin.scale,
+                    sway: (Math.random() - 0.5) * 1.1 * origin.scale,
+                    phase: Math.random() * Math.PI * 2
+                };
+
+                return this.stroke({
                     x: origin.x + (spot - 0.5) * 150 * origin.scale,
-                    y: origin.y + 24 * origin.scale,
-                    rise: (2.4 + Math.random() * 1.4) * origin.scale,
-                    sway: (Math.random() - 0.5) * 1.2 * origin.scale,
-                    phase: Math.random() * Math.PI * 2,
-                    size: size * (0.65 + Math.random() * 0.7),
+                    y: origin.y + 26 * origin.scale,
+                    width: (9 + Math.random() * 5) * origin.scale,
+                    palette: palette,
+                    trailLength: 13,
                     ttl: 95,
-                    draw: (ctx, p) => this.drawFlame(ctx, p)
-                };
-
-                particle.update = p => {
-                    // Flames pick up speed as they rise and taper as they go out.
-                    p.y -= p.rise * (1 + p.life / 60);
-                    p.x += p.sway + Math.sin(p.life * 0.22 + p.phase) * 0.9 * origin.scale;
-                    p.size *= 0.985;
-                };
-
-                return particle;
+                    move: p => {
+                        p.y -= state.rise * (1 + p.life / 70);
+                        p.x += state.sway + Math.sin(p.life * 0.19 + state.phase) * 2.1 * origin.scale;
+                        // Flames narrow as they climb, the way a real one does.
+                        p.width *= 0.982;
+                    }
+                });
             });
         },
 
-        // Air: pale crescents spiralling outwards and away.
+        // Air: long thin ribbons spiralling out and away.
         air(origin) {
-            const size = 17 * origin.scale;
-            const direction = Math.random() < 0.5 ? 1 : -1;
+            const palette = this.palettes.air;
+            const turn = Math.random() < 0.5 ? 1 : -1;
 
-            return this.spread(12).map((spot, i) => {
-                const particle = {
+            return this.spread(6).map((spot, i) => {
+                const state = {
+                    angle: spot * Math.PI * 2,
+                    distance: (20 + i * 8) * origin.scale,
+                    speed: (3 + Math.random() * 0.8) * origin.scale
+                };
+
+                return this.stroke({
                     x: origin.x,
                     y: origin.y,
-                    angle: spot * Math.PI * 2,
-                    distance: (18 + i * 7) * origin.scale,
-                    swirl: direction * 0.075,
-                    speed: (2.6 + Math.random() * 1.3) * origin.scale,
-                    size: size * (0.7 + Math.random() * 0.6),
+                    width: (4.5 + Math.random() * 2) * origin.scale,
+                    palette: palette,
+                    trailLength: 22,
                     ttl: 110,
-                    draw: (ctx, p) => this.drawGust(ctx, p)
-                };
-
-                particle.update = p => {
-                    p.angle += p.swirl;
-                    p.distance += p.speed;
-                    p.speed *= 1.012;
-                    p.x = origin.x + Math.cos(p.angle) * p.distance;
-                    p.y = origin.y + Math.sin(p.angle) * p.distance * 0.7;
-                    p.rotation = p.angle + Math.PI / 2;
-                };
-
-                return particle;
+                    move: p => {
+                        state.angle += turn * 0.08;
+                        state.distance += state.speed;
+                        state.speed *= 1.012;
+                        p.x = origin.x + Math.cos(state.angle) * state.distance;
+                        p.y = origin.y + Math.sin(state.angle) * state.distance * 0.7;
+                    }
+                });
             });
         }
     },
@@ -504,32 +582,76 @@ const ElementBendingAnimation = {
         return Array.from({ length: count }, (_, i) => (i + 0.5) / count);
     },
 
-    // A rounded teardrop, point first, with a highlight.
-    drawDroplet(ctx, p) {
-        const size = p.size;
+    /**
+     * Draw a stroke's trail as one tapered ribbon: flat fill, ink line, and a
+     * brighter core along the middle.
+     *
+     * The loop has already moved the origin to the head of the stroke, so the
+     * trail is drawn relative to it.
+     */
+    drawStroke(ctx, p) {
+        const points = p.trail.map(t => ({ x: t.x - p.x, y: t.y - p.y }));
+        if (points.length < 3) return;
 
-        ctx.beginPath();
-        ctx.moveTo(0, -size * 1.7);
-        ctx.bezierCurveTo(size, -size * 0.5, size, size * 0.6, 0, size);
-        ctx.bezierCurveTo(-size, size * 0.6, -size, -size * 0.5, 0, -size * 1.7);
-        ctx.fillStyle = p.colour;
+        // A stroke that has not moved has no direction to be thick in.
+        const travel = Math.hypot(
+            points[0].x - points[points.length - 1].x,
+            points[0].y - points[points.length - 1].y
+        );
+        if (travel < 2) return;
+
+        this.ribbonPath(ctx, points, p.width);
+        ctx.fillStyle = p.palette.fill;
         ctx.fill();
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = Math.max(1, p.width * 0.2);
+        ctx.strokeStyle = p.palette.ink;
+        ctx.stroke();
 
-        ctx.beginPath();
-        ctx.ellipse(-size * 0.3, size * 0.05, size * 0.22, size * 0.34, -0.4, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+        this.ribbonPath(ctx, points, p.width * 0.38);
+        ctx.fillStyle = p.palette.core;
+        ctx.globalAlpha *= 0.85;
         ctx.fill();
     },
 
-    // A lumpy little boulder with a lighter top face.
-    drawRock(ctx, p) {
+    /**
+     * Trace a ribbon around a run of points, thickest in the middle and
+     * tapering to a point at both ends - the shape a brush leaves behind.
+     */
+    ribbonPath(ctx, points, width) {
+        const last = points.length - 1;
+        const left = [];
+        const right = [];
+
+        for (let i = 0; i <= last; i++) {
+            const before = points[Math.max(0, i - 1)];
+            const after = points[Math.min(last, i + 1)];
+            let dx = after.x - before.x;
+            let dy = after.y - before.y;
+            const length = Math.hypot(dx, dy) || 1;
+            dx /= length;
+            dy /= length;
+
+            const half = width * Math.pow(Math.sin(Math.PI * (i / last)), 0.55);
+            left.push({ x: points[i].x - dy * half, y: points[i].y + dx * half });
+            right.push({ x: points[i].x + dy * half, y: points[i].y - dx * half });
+        }
+
+        ctx.beginPath();
+        left.forEach((point, i) => (i === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y)));
+        for (let i = last; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
+        ctx.closePath();
+    },
+
+    // An inked lump of rock: flat fill, heavy outline, one lit facet.
+    drawChunk(ctx, p) {
         const size = p.size;
 
         ctx.beginPath();
         for (let i = 0; i < p.facets; i++) {
             const angle = (i / p.facets) * Math.PI * 2;
             // Deterministic wobble, so a rock keeps its shape as it tumbles.
-            const radius = size * (0.78 + 0.22 * Math.abs(Math.sin(i * 2.3 + p.facets)));
+            const radius = size * (0.62 + 0.38 * Math.abs(Math.sin(i * 2.3 + p.facets)));
             const x = Math.cos(angle) * radius;
             const y = Math.sin(angle) * radius;
             if (i === 0) {
@@ -539,54 +661,19 @@ const ElementBendingAnimation = {
             }
         }
         ctx.closePath();
-        ctx.fillStyle = '#a1887f';
+        ctx.fillStyle = p.palette.fill;
         ctx.fill();
-        ctx.lineWidth = Math.max(0.5, size * 0.1);
-        ctx.strokeStyle = '#6d4c41';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = Math.max(1.2, size * 0.16);
+        ctx.strokeStyle = p.palette.ink;
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.moveTo(-size * 0.45, -size * 0.2);
-        ctx.lineTo(0, -size * 0.62);
-        ctx.lineTo(size * 0.4, -size * 0.18);
+        ctx.moveTo(-size * 0.42, -size * 0.22);
+        ctx.lineTo(-size * 0.05, -size * 0.6);
+        ctx.lineTo(size * 0.36, -size * 0.16);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(215, 204, 200, 0.5)';
+        ctx.fillStyle = p.palette.core;
         ctx.fill();
-    },
-
-    // A flame: an outer teardrop pointing up with a brighter core inside it.
-    drawFlame(ctx, p) {
-        const size = p.size;
-
-        const flame = (height, width, colour) => {
-            ctx.beginPath();
-            ctx.moveTo(0, -height);
-            ctx.bezierCurveTo(width, -height * 0.35, width, size * 0.55, 0, size * 0.75);
-            ctx.bezierCurveTo(-width, size * 0.55, -width, -height * 0.35, 0, -height);
-            ctx.fillStyle = colour;
-            ctx.fill();
-        };
-
-        flame(size * 2, size * 0.85, '#ff7043');
-        flame(size * 1.35, size * 0.5, '#ffb300');
-        flame(size * 0.75, size * 0.26, '#fff59d');
-    },
-
-    // A gust: two thin crescents trailing each other.
-    drawGust(ctx, p) {
-        const size = p.size;
-
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'rgba(224, 247, 250, 0.9)';
-        ctx.lineWidth = Math.max(1, size * 0.16);
-        ctx.beginPath();
-        ctx.arc(0, 0, size, Math.PI * 0.15, Math.PI * 1.05);
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(178, 235, 242, 0.7)';
-        ctx.lineWidth = Math.max(1, size * 0.12);
-        ctx.beginPath();
-        ctx.arc(0, size * 0.1, size * 0.58, Math.PI * 0.2, Math.PI * 1.0);
-        ctx.stroke();
     }
 };
