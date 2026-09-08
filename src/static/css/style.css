@@ -671,6 +671,67 @@ body {
     align-self: flex-start;
 }
 
+/* Seven-segment display face, vendored in static/fonts - see the README
+   there for its licence, which is not the repository's own. */
+@font-face {
+    font-family: 'Seven Segment';
+    src: url('../fonts/SevenSegment.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Easter eggs
+   Per-show flourishes. Registered in static/js/easter-eggs.js, which puts the
+   matching class on the show's card. */
+
+/* Monk: the poster sits on the right instead of the left. */
+.watched-show.easter-egg-monk {
+    flex-direction: row-reverse;
+}
+
+.watched-show.easter-egg-monk .watched-show-poster {
+    border-radius: 0 12px 12px 0;
+}
+
+/* 24 and The IT Crowd: the title reads off a calculator display. The font
+   only draws the seven segments, so it needs the room the extra size and
+   letter spacing give it. */
+.watched-show.easter-egg-segment-display .watched-show-info h4 {
+    font-family: 'Seven Segment', 'Courier New', monospace;
+    /* A calculator display has no lower case. */
+    text-transform: uppercase;
+    font-size: 1.35rem;
+    letter-spacing: 0.06em;
+    line-height: 1.35;
+}
+
+/* One element of a Lottie celebration, placed over the page. */
+.easter-egg-lottie {
+    position: fixed;
+    pointer-events: none;
+    /* Same layer canvas-confetti uses, so it sits below modals and toasts. */
+    z-index: 100;
+}
+
+/* The Earth Kingdom green the animation is drawn in is darker than the page,
+   so it is lifted here rather than by editing the vendored artwork. */
+.easter-egg-lottie--earth {
+    filter: brightness(1.8);
+}
+
+/* Full-screen overlay used by custom celebration animations. */
+.easter-egg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Same layer canvas-confetti uses, so it sits below modals and toasts. */
+    z-index: 100;
+}
+
 /* Inline season editing */
 .seasons-display {
     cursor: pointer;
