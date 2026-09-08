@@ -21,6 +21,10 @@ const EasterEggs = {
         // The Dragon Ball franchise throws dragon balls instead of confetti.
         dragonball: {
             celebration: 'dragonballs'
+        },
+        // Avatar bends the four elements, in the order of the opening titles.
+        avatar: {
+            celebration: 'elementBending'
         }
     },
 
@@ -30,7 +34,9 @@ const EasterEggs = {
         12609: 'dragonball',   // Dragon Ball (1986)
         12971: 'dragonball',   // Dragon Ball Z (1989)
         61709: 'dragonball',   // Dragon Ball Z Kai (2009)
-        62715: 'dragonball'    // Dragon Ball Super (2015)
+        62715: 'dragonball',   // Dragon Ball Super (2015)
+        246: 'avatar',         // Avatar: The Last Airbender (2005)
+        82452: 'avatar'        // Avatar: The Last Airbender (2024)
     },
 
     /**
@@ -76,18 +82,24 @@ const EasterEggs = {
     celebrations: {
         dragonballs(options) {
             DragonBallAnimation.fire(options);
+        },
+        elementBending(options) {
+            ElementBendingAnimation.fire(options);
         }
     }
 };
 
 /**
- * Canvas particle animation that throws dragon balls: orange spheres with one
- * to seven red stars inside them.
+ * A full-screen overlay canvas and the animation loop that drives it, shared
+ * by every celebration animation below.
  *
- * Kept independent of canvas-confetti because confetti shapes are drawn in a
- * single flat colour, and a dragon ball needs its stars in a second one.
+ * Particles are plain objects. They move ballistically by default, and carry
+ * their own `draw`, so one loop can push dragon balls and flames around at the
+ * same time. Sizes and speeds are expressed against a desktop-sized window and
+ * scaled by `scale()`, so an animation looks the same on a phone instead of
+ * shooting off the sides.
  */
-const DragonBallAnimation = {
+const ParticleCanvas = {
     canvas: null,
     ctx: null,
     particles: [],
@@ -120,64 +132,31 @@ const DragonBallAnimation = {
         this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     },
 
-    /**
-     * Throw the seven dragon balls: one of each, from one star to seven.
-     *
-     * They are deliberately few, large and slow - the point is that you can
-     * see which ball is which on the way past.
-     *
-     * @param {Object} options
-     * @param {number} options.originX         horizontal origin, 0-1 of viewport
-     * @param {number} options.originY         vertical origin, 0-1 of viewport
-     * @param {number} options.intensityFactor 0-1, scales speed and size
-     */
-    fire(options) {
-        const opts = options || {};
-        const originX = (opts.originX !== undefined ? opts.originX : 0.5) * window.innerWidth;
-        const originY = (opts.originY !== undefined ? opts.originY : 0.5) * window.innerHeight;
-        const intensity = Math.min(Math.max(opts.intensityFactor || 0, 0), 1);
-
-        this.ensureCanvas();
-
-        // Everything is measured against a desktop-sized window, so that on a
-        // phone the balls stay on screen just as long instead of shooting off
-        // the sides.
-        const scale = Math.min(1, window.innerWidth / 900);
-
-        // Spread the seven evenly across an upward fan so none of them hides
-        // behind another, and shuffle which star count goes where.
-        const stars = this.shuffle([1, 2, 3, 4, 5, 6, 7]);
-        const fan = 100 + intensity * 40;
-
-        stars.forEach((starCount, i) => {
-            const spot = (i + 0.5) / stars.length - 0.5;
-            const angle = (-90 + spot * fan + (Math.random() - 0.5) * 6) * Math.PI / 180;
-            const speed = (3.4 + Math.random() * 0.8) * (1 + intensity * 0.35) * scale;
-
-            this.particles.push({
-                x: originX,
-                y: originY,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                radius: 26 * (0.9 + intensity * 0.3) * Math.max(scale, 0.72),
-                rotation: Math.random() * Math.PI * 2,
-                spin: (Math.random() - 0.5) * 0.03,
-                stars: starCount,
-                life: 0,
-                ttl: Math.round(220 + intensity * 40)
-            });
-        });
-
-        this.start();
+    /** How much to shrink a desktop-sized effect for this window. */
+    scale() {
+        return Math.min(1, window.innerWidth / 900);
     },
 
-    // Fisher-Yates, so the balls come out in a different order every time.
-    shuffle(values) {
-        for (let i = values.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [values[i], values[j]] = [values[j], values[i]];
-        }
-        return values;
+    /**
+     * Add particles and make sure the loop is running.
+     *
+     * Each particle needs `x`, `y`, `ttl` and `draw(ctx, particle)`. Optional:
+     * `vx`, `vy`, `gravity`, `drag`, `rotation`, `spin`, and `update(particle)`
+     * to move by something other than gravity.
+     */
+    add(particles) {
+        this.ensureCanvas();
+        particles.forEach(p => {
+            p.vx = p.vx || 0;
+            p.vy = p.vy || 0;
+            p.gravity = p.gravity || 0;
+            p.drag = p.drag === undefined ? 1 : p.drag;
+            p.rotation = p.rotation || 0;
+            p.spin = p.spin || 0;
+            p.life = 0;
+            this.particles.push(p);
+        });
+        this.start();
     },
 
     start() {
@@ -195,29 +174,29 @@ const DragonBallAnimation = {
 
         ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-        // Gentle, so the balls hang in the air long enough to be read. Gravity
-        // is scaled the same way the launch speed is, to keep the arc the same
-        // shape on a small screen.
-        const gravity = 0.06 * Math.min(1, window.innerWidth / 900);
-        const drag = 0.995;
-
         this.particles = this.particles.filter(p => {
             p.life += 1;
-            p.vx *= drag;
-            p.vy = p.vy * drag + gravity;
-            p.x += p.vx;
-            p.y += p.vy;
             p.rotation += p.spin;
 
-            // Fade out over the last third of the ball's life.
+            if (p.update) {
+                p.update(p);
+            } else {
+                p.vx *= p.drag;
+                p.vy = p.vy * p.drag + p.gravity;
+                p.x += p.vx;
+                p.y += p.vy;
+            }
+
             const remaining = 1 - p.life / p.ttl;
-            if (remaining <= 0 || p.y - p.radius > window.innerHeight) return false;
+            if (remaining <= 0 || p.y - 60 > window.innerHeight) return false;
 
             ctx.save();
-            ctx.globalAlpha = Math.min(1, remaining * 3);
+            // Ease in over the first few frames and out over the last third,
+            // so nothing pops into or out of existence.
+            ctx.globalAlpha = Math.min(1, p.life / 5, remaining * 3);
             ctx.translate(p.x, p.y);
             ctx.rotate(p.rotation);
-            this.drawBall(ctx, p.radius, p.stars);
+            p.draw(ctx, p);
             ctx.restore();
 
             return true;
@@ -229,6 +208,64 @@ const DragonBallAnimation = {
             this.running = false;
             ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
         }
+    },
+
+    // Fisher-Yates, for animations that want their pieces in a random order.
+    shuffle(values) {
+        for (let i = values.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [values[i], values[j]] = [values[j], values[i]];
+        }
+        return values;
+    }
+};
+
+/**
+ * Throws the seven dragon balls: orange spheres with one to seven red stars.
+ *
+ * Drawn by hand rather than as canvas-confetti shapes, because a confetti
+ * shape is filled in a single flat colour and a dragon ball needs its stars in
+ * a second one.
+ */
+const DragonBallAnimation = {
+    /**
+     * @param {Object} options
+     * @param {number} options.originX         horizontal origin, 0-1 of viewport
+     * @param {number} options.originY         vertical origin, 0-1 of viewport
+     * @param {number} options.intensityFactor 0-1, scales speed and size
+     */
+    fire(options) {
+        const opts = options || {};
+        const originX = (opts.originX !== undefined ? opts.originX : 0.5) * window.innerWidth;
+        const originY = (opts.originY !== undefined ? opts.originY : 0.5) * window.innerHeight;
+        const intensity = Math.min(Math.max(opts.intensityFactor || 0, 0), 1);
+        const scale = ParticleCanvas.scale();
+
+        // Spread the seven evenly across an upward fan so none of them hides
+        // behind another, and shuffle which star count goes where.
+        const stars = ParticleCanvas.shuffle([1, 2, 3, 4, 5, 6, 7]);
+        const fan = 100 + intensity * 40;
+
+        ParticleCanvas.add(stars.map((starCount, i) => {
+            const spot = (i + 0.5) / stars.length - 0.5;
+            const angle = (-90 + spot * fan + (Math.random() - 0.5) * 6) * Math.PI / 180;
+            const speed = (3.4 + Math.random() * 0.8) * (1 + intensity * 0.35) * scale;
+
+            return {
+                x: originX,
+                y: originY,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                gravity: 0.06 * scale,
+                drag: 0.995,
+                radius: 26 * (0.9 + intensity * 0.3) * Math.max(scale, 0.72),
+                rotation: Math.random() * Math.PI * 2,
+                spin: (Math.random() - 0.5) * 0.03,
+                stars: starCount,
+                ttl: Math.round(220 + intensity * 40),
+                draw: (ctx, p) => this.drawBall(ctx, p.radius, p.stars)
+            };
+        }));
     },
 
     // Draw one dragon ball centred on the current origin.
@@ -296,5 +333,253 @@ const DragonBallAnimation = {
         }
         ctx.closePath();
         ctx.fill();
+    }
+};
+
+/**
+ * Bends the four elements in the order of the opening titles: water, earth,
+ * fire, air. Each element gets its own burst and its own way of moving -
+ * water swirls, earth erupts and tumbles back down, fire rises and flickers,
+ * air spirals outwards and away.
+ */
+const ElementBendingAnimation = {
+    // The bending order, and how long each element waits for its turn (ms).
+    order: ['water', 'earth', 'fire', 'air'],
+    stagger: 620,
+
+    /**
+     * @param {Object} options
+     * @param {number} options.originX         horizontal origin, 0-1 of viewport
+     * @param {number} options.originY         vertical origin, 0-1 of viewport
+     * @param {number} options.intensityFactor 0-1, scales speed and size
+     */
+    fire(options) {
+        const opts = options || {};
+        const origin = {
+            x: (opts.originX !== undefined ? opts.originX : 0.5) * window.innerWidth,
+            y: (opts.originY !== undefined ? opts.originY : 0.5) * window.innerHeight,
+            intensity: Math.min(Math.max(opts.intensityFactor || 0, 0), 1),
+            scale: ParticleCanvas.scale()
+        };
+
+        // The canvas is created up front so the first element does not have to
+        // wait for it, then each element comes in on its own beat.
+        ParticleCanvas.ensureCanvas();
+        this.order.forEach((element, i) => {
+            const build = this.elements[element];
+            setTimeout(() => ParticleCanvas.add(build.call(this, origin)), i * this.stagger);
+        });
+    },
+
+    // One builder per element, each returning that element's particles.
+    elements: {
+        // Water: droplets swirling around the origin on a widening ellipse.
+        water(origin) {
+            const size = 9 * origin.scale;
+            const direction = Math.random() < 0.5 ? 1 : -1;
+
+            return this.spread(14).map((spot, i) => {
+                const particle = {
+                    x: origin.x,
+                    y: origin.y,
+                    angle: spot * Math.PI * 1.6 - Math.PI / 2,
+                    // Each droplet starts a little further out than the last,
+                    // so the stream trails behind its head in a spiral.
+                    distance: (12 + i * 5) * origin.scale,
+                    swirl: direction * (0.055 + Math.random() * 0.02),
+                    speed: (1.5 + Math.random() * 0.9) * origin.scale,
+                    size: size * (0.7 + Math.random() * 0.6),
+                    ttl: 105,
+                    colour: ['#81d4fa', '#4fc3f7', '#29b6f6'][i % 3],
+                    draw: (ctx, p) => this.drawDroplet(ctx, p)
+                };
+
+                particle.update = p => {
+                    p.angle += p.swirl;
+                    p.distance += p.speed;
+                    // A little bob, so the stream ripples rather than sliding.
+                    const bob = Math.sin(p.life * 0.18) * 5 * origin.scale;
+                    p.x = origin.x + Math.cos(p.angle) * p.distance;
+                    p.y = origin.y + Math.sin(p.angle) * p.distance * 0.62 + bob;
+                    p.rotation = p.angle + Math.PI / 2;
+                };
+
+                return particle;
+            });
+        },
+
+        // Earth: chunky rocks thrown up out of the card and tumbling back down.
+        earth(origin) {
+            const size = 13 * origin.scale;
+
+            return this.spread(10).map(spot => {
+                const angle = (-90 + (spot - 0.5) * 96) * Math.PI / 180;
+                const speed = (5.5 + Math.random() * 2.2) * origin.scale;
+
+                return {
+                    x: origin.x + (spot - 0.5) * 40 * origin.scale,
+                    y: origin.y + 10 * origin.scale,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    gravity: 0.24 * origin.scale,
+                    drag: 0.995,
+                    rotation: Math.random() * Math.PI * 2,
+                    spin: (Math.random() - 0.5) * 0.12,
+                    size: size * (0.7 + Math.random() * 0.7),
+                    facets: 5 + Math.floor(Math.random() * 3),
+                    ttl: 120,
+                    draw: (ctx, p) => this.drawRock(ctx, p)
+                };
+            });
+        },
+
+        // Fire: flames rising from a low, wide band, flickering as they go.
+        fire(origin) {
+            const size = 13 * origin.scale;
+
+            return this.spread(13).map(spot => {
+                const particle = {
+                    x: origin.x + (spot - 0.5) * 150 * origin.scale,
+                    y: origin.y + 24 * origin.scale,
+                    rise: (2.4 + Math.random() * 1.4) * origin.scale,
+                    sway: (Math.random() - 0.5) * 1.2 * origin.scale,
+                    phase: Math.random() * Math.PI * 2,
+                    size: size * (0.65 + Math.random() * 0.7),
+                    ttl: 95,
+                    draw: (ctx, p) => this.drawFlame(ctx, p)
+                };
+
+                particle.update = p => {
+                    // Flames pick up speed as they rise and taper as they go out.
+                    p.y -= p.rise * (1 + p.life / 60);
+                    p.x += p.sway + Math.sin(p.life * 0.22 + p.phase) * 0.9 * origin.scale;
+                    p.size *= 0.985;
+                };
+
+                return particle;
+            });
+        },
+
+        // Air: pale crescents spiralling outwards and away.
+        air(origin) {
+            const size = 17 * origin.scale;
+            const direction = Math.random() < 0.5 ? 1 : -1;
+
+            return this.spread(12).map((spot, i) => {
+                const particle = {
+                    x: origin.x,
+                    y: origin.y,
+                    angle: spot * Math.PI * 2,
+                    distance: (18 + i * 7) * origin.scale,
+                    swirl: direction * 0.075,
+                    speed: (2.6 + Math.random() * 1.3) * origin.scale,
+                    size: size * (0.7 + Math.random() * 0.6),
+                    ttl: 110,
+                    draw: (ctx, p) => this.drawGust(ctx, p)
+                };
+
+                particle.update = p => {
+                    p.angle += p.swirl;
+                    p.distance += p.speed;
+                    p.speed *= 1.012;
+                    p.x = origin.x + Math.cos(p.angle) * p.distance;
+                    p.y = origin.y + Math.sin(p.angle) * p.distance * 0.7;
+                    p.rotation = p.angle + Math.PI / 2;
+                };
+
+                return particle;
+            });
+        }
+    },
+
+    /** n evenly spaced values in (0, 1), for laying particles out. */
+    spread(count) {
+        return Array.from({ length: count }, (_, i) => (i + 0.5) / count);
+    },
+
+    // A rounded teardrop, point first, with a highlight.
+    drawDroplet(ctx, p) {
+        const size = p.size;
+
+        ctx.beginPath();
+        ctx.moveTo(0, -size * 1.7);
+        ctx.bezierCurveTo(size, -size * 0.5, size, size * 0.6, 0, size);
+        ctx.bezierCurveTo(-size, size * 0.6, -size, -size * 0.5, 0, -size * 1.7);
+        ctx.fillStyle = p.colour;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.ellipse(-size * 0.3, size * 0.05, size * 0.22, size * 0.34, -0.4, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+        ctx.fill();
+    },
+
+    // A lumpy little boulder with a lighter top face.
+    drawRock(ctx, p) {
+        const size = p.size;
+
+        ctx.beginPath();
+        for (let i = 0; i < p.facets; i++) {
+            const angle = (i / p.facets) * Math.PI * 2;
+            // Deterministic wobble, so a rock keeps its shape as it tumbles.
+            const radius = size * (0.78 + 0.22 * Math.abs(Math.sin(i * 2.3 + p.facets)));
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.closePath();
+        ctx.fillStyle = '#a1887f';
+        ctx.fill();
+        ctx.lineWidth = Math.max(0.5, size * 0.1);
+        ctx.strokeStyle = '#6d4c41';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-size * 0.45, -size * 0.2);
+        ctx.lineTo(0, -size * 0.62);
+        ctx.lineTo(size * 0.4, -size * 0.18);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(215, 204, 200, 0.5)';
+        ctx.fill();
+    },
+
+    // A flame: an outer teardrop pointing up with a brighter core inside it.
+    drawFlame(ctx, p) {
+        const size = p.size;
+
+        const flame = (height, width, colour) => {
+            ctx.beginPath();
+            ctx.moveTo(0, -height);
+            ctx.bezierCurveTo(width, -height * 0.35, width, size * 0.55, 0, size * 0.75);
+            ctx.bezierCurveTo(-width, size * 0.55, -width, -height * 0.35, 0, -height);
+            ctx.fillStyle = colour;
+            ctx.fill();
+        };
+
+        flame(size * 2, size * 0.85, '#ff7043');
+        flame(size * 1.35, size * 0.5, '#ffb300');
+        flame(size * 0.75, size * 0.26, '#fff59d');
+    },
+
+    // A gust: two thin crescents trailing each other.
+    drawGust(ctx, p) {
+        const size = p.size;
+
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(224, 247, 250, 0.9)';
+        ctx.lineWidth = Math.max(1, size * 0.16);
+        ctx.beginPath();
+        ctx.arc(0, 0, size, Math.PI * 0.15, Math.PI * 1.05);
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(178, 235, 242, 0.7)';
+        ctx.lineWidth = Math.max(1, size * 0.12);
+        ctx.beginPath();
+        ctx.arc(0, size * 0.1, size * 0.58, Math.PI * 0.2, Math.PI * 1.0);
+        ctx.stroke();
     }
 };

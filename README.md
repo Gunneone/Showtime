@@ -237,8 +237,10 @@ Individual shows can get a little something extra. Both kinds live in
 * **`celebration`** — an animation that replaces the default confetti burst
   when that show pushes the total watch time up.
 
-Currently: **Monk** shows its poster on the right-hand side of the card, and
-the **Dragon Ball** shows throw dragon balls instead of confetti.
+Currently: **Monk** shows its poster on the right-hand side of the card, the
+**Dragon Ball** shows throw the seven dragon balls instead of confetti, and
+**Avatar: The Last Airbender** bends the four elements in the order of the
+opening titles - water, then earth, then fire, then air.
 
 To add one, define it in `definitions` and map the TMDB show id(s) onto it in
 `showIds` — the rest of the app picks it up automatically:

@@ -55,11 +55,27 @@ def test_registered_shows():
         '12971': 'dragonball',   # Dragon Ball Z
         '61709': 'dragonball',   # Dragon Ball Z Kai
         '62715': 'dragonball',   # Dragon Ball Super
+        '246': 'avatar',         # Avatar: The Last Airbender (2005)
+        '82452': 'avatar',       # Avatar: The Last Airbender (2024)
     }
 
     for show_id, egg in expected.items():
         assert re.search(rf"^\s*{show_id}:\s*'{egg}'", js, re.MULTILINE), \
             f"show {show_id} should map to the '{egg}' easter egg"
+
+
+def test_avatar_bends_the_four_elements_in_order():
+    js = read('src/static/js/easter-eggs.js')
+
+    assert "celebration: 'elementBending'" in js
+
+    # The opening titles' order is the whole point of the easter egg.
+    assert "order: ['water', 'earth', 'fire', 'air']" in js, \
+        "the elements should be bent in the order water, earth, fire, air"
+
+    for element in ('water', 'earth', 'fire', 'air'):
+        assert re.search(rf"^\s*{element}\(origin\) \{{", js, re.MULTILINE), \
+            f"'{element}' needs a builder for its particles"
 
 
 def test_monk_restyles_the_card_and_dragonball_replaces_the_confetti():
