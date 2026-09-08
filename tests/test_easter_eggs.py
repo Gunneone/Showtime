@@ -57,6 +57,8 @@ def test_registered_shows():
         '62715': 'dragonball',   # Dragon Ball Super
         '246': 'avatar',         # Avatar: The Last Airbender (2005)
         '82452': 'avatar',       # Avatar: The Last Airbender (2024)
+        '1973': 'segmentDisplay',  # 24
+        '2490': 'segmentDisplay',  # The IT Crowd
     }
 
     for show_id, egg in expected.items():
@@ -76,6 +78,23 @@ def test_avatar_bends_the_four_elements_in_order():
     for element in ('water', 'earth', 'fire', 'air'):
         assert re.search(rf"^\s*{element}\(origin\) \{{", js, re.MULTILINE), \
             f"'{element}' needs a builder for its particles"
+
+
+def test_segment_display_font_is_vendored_and_wired_up(client):
+    css = read('src/static/css/style.css')
+
+    # The face itself, served from this origin rather than a font CDN.
+    assert "font-family: 'Segment7';" in css
+    assert "url('../fonts/Segment7Standard.otf') format('opentype')" in css
+    assert client.get('/static/fonts/Segment7Standard.otf').status_code == 200
+
+    # The licence has to travel with the font.
+    assert 'SIL OPEN FONT LICENSE' in read('src/static/fonts/OFL.txt')
+
+    # Only the show's name is set in it, and there is a fallback for the
+    # moment before the font arrives.
+    assert '.watched-show.easter-egg-segment-display .watched-show-info h4 {' in css
+    assert "font-family: 'Segment7', 'Courier New', monospace;" in css
 
 
 def test_monk_restyles_the_card_and_dragonball_replaces_the_confetti():

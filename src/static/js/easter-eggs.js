@@ -25,6 +25,11 @@ const EasterEggs = {
         // Avatar bends the four elements, in the order of the opening titles.
         avatar: {
             celebration: 'elementBending'
+        },
+        // Shows whose name belongs on a seven-segment display: 24's ticking
+        // clock, and the IT Crowd's basement-dwelling nerdery.
+        segmentDisplay: {
+            cardClass: 'easter-egg-segment-display'
         }
     },
 
@@ -36,7 +41,9 @@ const EasterEggs = {
         61709: 'dragonball',   // Dragon Ball Z Kai (2009)
         62715: 'dragonball',   // Dragon Ball Super (2015)
         246: 'avatar',         // Avatar: The Last Airbender (2005)
-        82452: 'avatar'        // Avatar: The Last Airbender (2024)
+        82452: 'avatar',       // Avatar: The Last Airbender (2024)
+        1973: 'segmentDisplay',  // 24 (2001)
+        2490: 'segmentDisplay'   // The IT Crowd (2006)
     },
 
     /**

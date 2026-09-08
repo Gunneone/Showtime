@@ -671,6 +671,15 @@ body {
     align-self: flex-start;
 }
 
+/* Seven-segment display face, vendored in static/fonts (SIL OFL 1.1). */
+@font-face {
+    font-family: 'Segment7';
+    src: url('../fonts/Segment7Standard.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* Easter eggs
    Per-show flourishes. Registered in static/js/easter-eggs.js, which puts the
    matching class on the show's card. */
@@ -682,6 +691,16 @@ body {
 
 .watched-show.easter-egg-monk .watched-show-poster {
     border-radius: 0 12px 12px 0;
+}
+
+/* 24 and The IT Crowd: the title reads off a calculator display. The font
+   only draws the seven segments, so it needs the room the extra size and
+   letter spacing give it. */
+.watched-show.easter-egg-segment-display .watched-show-info h4 {
+    font-family: 'Segment7', 'Courier New', monospace;
+    font-size: 1.35rem;
+    letter-spacing: 0.06em;
+    line-height: 1.35;
 }
 
 /* Full-screen overlay used by custom celebration animations. */

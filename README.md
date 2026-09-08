@@ -206,6 +206,7 @@ Showtime/
 │   ├── static/            # Static files (CSS, JS, images)
 │   │   ├── css/
 │   │   ├── js/         # app.js, easter-eggs.js, vendored libraries
+│   │   ├── fonts/      # vendored fonts
 │   │   └── images/
 │   ├── templates/         # HTML templates
 │   │   ├── base.html
@@ -240,7 +241,10 @@ Individual shows can get a little something extra. Both kinds live in
 Currently: **Monk** shows its poster on the right-hand side of the card, the
 **Dragon Ball** shows throw the seven dragon balls instead of confetti, and
 **Avatar: The Last Airbender** bends the four elements in the order of the
-opening titles - water, then earth, then fire, then air.
+opening titles - water, then earth, then fire, then air. **24** and **The IT
+Crowd** have their names printed on a seven-segment calculator display, using
+the [Segment7](https://fontlibrary.org/en/font/segment7) font vendored under
+`src/static/fonts/`.
 
 To add one, define it in `definitions` and map the TMDB show id(s) onto it in
 `showIds` — the rest of the app picks it up automatically:
