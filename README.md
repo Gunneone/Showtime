@@ -22,7 +22,6 @@ Never wonder again how much time you've invested in your favorite series!
 * **Python 3.11+**: Core programming language
 * **Flask**: Lightweight web framework
 * **Requests**: HTTP library for TMDB API integration
-* **Flask-CORS**: Cross-origin resource sharing support
 
 ### Frontend
 
