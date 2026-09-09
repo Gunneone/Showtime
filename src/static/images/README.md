@@ -1,15 +1,12 @@
 # Images
 
-`favicon.ico`, `favicon.svg`, `no-poster.png`, `donut.svg`, `ufo.svg` and
-`screen-crack.svg` are Showtime's own, released under the repository's MIT
-licence. The last three are original flat-style drawings used by on-page
-animations (see `static/js/easter-eggs.js`):
+`favicon.ico`, `favicon.svg`, `no-poster.png`, `donut.svg` and `ufo.svg` are
+Showtime's own, released under the repository's MIT licence. The last two are
+original flat-style drawings used by on-page animations (see
+`static/js/easter-eggs.js`):
 
 * `donut.svg` - a pink sprinkled donut.
 * `ufo.svg` - a flying saucer with a glassy dome and running lights.
-* `screen-crack.svg` - an impact fracture, drawn as radial cracks with a
-  broken concentric web (`src/static/images/gen_crack.py` is the generator;
-  re-running it with the same seed reproduces the file byte for byte).
 
 They are simple geometric shapes, quick to draw well by hand, so no
 third-party asset was needed. Anything more elaborate should be a
