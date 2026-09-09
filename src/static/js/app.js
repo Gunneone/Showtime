@@ -1875,6 +1875,14 @@ const App = {
             this.showToast(`Updated "${show ? show.name : 'show'}"!`);
             this.markCelebrationShow(showId);
             this.loadWatchedShows(true);
+
+            // Bring the running-total card into view, the same as the add-show
+            // paths do. Without this a season edit made further down the page
+            // fires the celebration against a card that is still scrolled off
+            // the top of the viewport, so anything bound to its box (the
+            // X-Files saucer and caption, the Lost counter, ...) lands in the
+            // wrong place or off-screen entirely.
+            this.scrollToTopCard();
         } catch (error) {
             console.error('Error updating show:', error);
             this.showToast('Failed to update show. Please try again.', 'error');

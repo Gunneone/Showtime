@@ -105,6 +105,12 @@ const EasterEggs = {
         // stone.
         gameOfThrones: {
             celebration: 'dragonfire'
+        },
+        // How to Sell Drugs Online (Fast): Moritz's bedroom operation, so the
+        // burst is a shower of round pressed party pills - candy colours, a
+        // score line, and a different symbol stamped into each one.
+        howToSellDrugsOnline: {
+            celebration: 'partyPills'
         }
     },
 
@@ -133,6 +139,7 @@ const EasterEggs = {
         4607: 'lost',            // Lost (2004)
         1399: 'gameOfThrones',   // Game of Thrones (2011)
         94997: 'gameOfThrones',  // House of the Dragon (2022)
+        88236: 'howToSellDrugsOnline',  // How to Sell Drugs Online (Fast) (2019)
         60572: 'pokemon',        // Pokémon (1997)
         13230: 'pokemon',        // Pokémon Chronicles (2002)
         61295: 'pokemon',        // Pokémon Origins (2013)
@@ -278,6 +285,9 @@ const EasterEggs = {
         },
         dragonfire(options) {
             DragonfireAnimation.play(options);
+        },
+        partyPills(options) {
+            PartyPillAnimation.fire(options);
         }
     },
 
@@ -392,6 +402,16 @@ const ParticleCanvas = {
     ctx: null,
     particles: [],
     running: false,
+    // Timestamp of the previous frame, so motion can be scaled by how long
+    // that frame actually took rather than assuming a steady 60fps.
+    lastFrame: 0,
+    // Playback multiplier for the plain ballistic celebrations - the "throw"
+    // effects (dragon balls, Poké Balls, footballs, donuts, umbrellas, blue
+    // sky, party pills). Their whole arc and lifetime run this much faster, so
+    // the burst plays out in ~1/throwSpeed of its natural time (2.22 -> ~45%).
+    // Custom movers (portal, Squid Game, dragonfire) are timed against their
+    // own clocks and are left alone.
+    throwSpeed: 2.22,
 
     // Ensure the overlay canvas exists and matches the viewport.
     ensureCanvas() {
@@ -424,8 +444,11 @@ const ParticleCanvas = {
      * Add particles and make sure the loop is running.
      *
      * Each particle needs `x`, `y`, `ttl` and `draw(ctx, particle)`. Optional:
-     * `vx`, `vy`, `gravity`, `drag`, `rotation`, `spin`, and `update(particle)`
-     * to move by something other than gravity.
+     * `vx`, `vy`, `gravity`, `drag`, `rotation`, `spin`, and
+     * `update(particle, dt)` to move by something other than gravity. `ttl`,
+     * speeds and gravity are all in units of 60fps frames; the loop scales
+     * them by `dt` so the effect runs at the same wall-clock speed whatever
+     * the real frame rate.
      */
     add(particles) {
         this.ensureCanvas();
@@ -445,15 +468,26 @@ const ParticleCanvas = {
     start() {
         if (this.running) return;
         this.running = true;
-        requestAnimationFrame(() => this.step());
+        this.lastFrame = 0;
+        requestAnimationFrame((now) => this.step(now));
     },
 
-    step() {
+    step(now) {
         const ctx = this.ctx;
         if (!ctx) {
             this.running = false;
             return;
         }
+
+        // How many 60fps frames' worth of time this frame covered. Clamped so
+        // a long stall (a background tab, a GC pause) can't fling everything
+        // off-screen in one jump - past that point the effect just slows down,
+        // which beats particles teleporting.
+        const frame = 1000 / 60;
+        const dt = this.lastFrame
+            ? Math.min(Math.max((now - this.lastFrame) / frame, 0.1), 3)
+            : 1;
+        this.lastFrame = now;
 
         ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
@@ -466,16 +500,24 @@ const ParticleCanvas = {
 
         for (let i = 0; i < current.length; i++) {
             const p = current[i];
-            p.life += 1;
-            p.rotation += p.spin;
 
             if (p.update) {
-                p.update(p);
+                // Custom movers keep counting in whole frames - their own
+                // logic (spark cadence, freeze windows) is written that way.
+                p.life += 1;
+                p.rotation += p.spin;
+                p.update(p, dt);
             } else {
-                p.vx *= p.drag;
-                p.vy = p.vy * p.drag + p.gravity;
-                p.x += p.vx;
-                p.y += p.vy;
+                // Ballistic "throw" celebration: fast-forward its whole arc
+                // and lifetime by throwSpeed, trajectory shape unchanged.
+                const sdt = dt * this.throwSpeed;
+                p.life += sdt;
+                p.rotation += p.spin * sdt;
+                const decay = Math.pow(p.drag, sdt);
+                p.vx *= decay;
+                p.vy = p.vy * decay + p.gravity * sdt;
+                p.x += p.vx * sdt;
+                p.y += p.vy * sdt;
             }
 
             const remaining = 1 - p.life / p.ttl;
@@ -494,7 +536,7 @@ const ParticleCanvas = {
         }
 
         if (this.particles.length > 0) {
-            requestAnimationFrame(() => this.step());
+            requestAnimationFrame((next) => this.step(next));
         } else {
             this.running = false;
             ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -704,7 +746,9 @@ const PokeballAnimation = {
                 vy: Math.sin(angle) * speed,
                 gravity: 0.07 * scale,
                 drag: 0.995,
-                radius: (15 + Math.random() * 9) * (0.9 + intensity * 0.3)
+                // Every ball of a kind the same size - only the rarer
+                // variants stand out, and only by their fixed sizeBoost.
+                radius: 20 * (0.9 + intensity * 0.3)
                     * Math.max(scale, 0.72) * variant.sizeBoost,
                 rotation: Math.random() * Math.PI * 2,
                 // A thrown ball tumbles noticeably.
@@ -980,7 +1024,8 @@ const FootballAnimation = {
                 vy: Math.sin(angle) * speed,
                 gravity: 0.07 * scale,
                 drag: 0.995,
-                radius: (16 + Math.random() * 8) * (0.9 + intensity * 0.3) * Math.max(scale, 0.72),
+                // Every ball the same size - a matching set, not a jumble.
+                radius: 20 * (0.9 + intensity * 0.3) * Math.max(scale, 0.72),
                 rotation: Math.random() * Math.PI * 2,
                 // A kicked ball spins noticeably faster than it tumbles.
                 spin: (Math.random() - 0.5) * 0.12,
@@ -1445,7 +1490,7 @@ const PortalAnimation = {
 
 /**
  * Stranger Things: Joyce's Christmas-light alphabet wall. A full A-Z painted
- * across the top of the screen on a drooping wire of bulbs. A few bulbs
+ * across the running-total card on a drooping wire of bulbs. A few bulbs
  * flicker first, then the word is spelt out one glowing bulb at a time, held,
  * pulsed and faded away. Pure DOM - no canvas.
  */
@@ -1454,30 +1499,49 @@ const AlphabetWallAnimation = {
     alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
     colours: ['#ff5a5a', '#ffd23f', '#4dff6a', '#4db8ff', '#ff7ad2', '#ffa64d'],
 
-    play() {
+    play(options) {
+        const opts = options || {};
         const reduce = window.matchMedia
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        const wrap = document.createElement('div');
-        wrap.setAttribute('aria-hidden', 'true');
-        // Above the site header (z-index 1000), which is fixed and tall enough
-        // to hide anything pinned to the top of the viewport.
-        wrap.style.cssText = [
-            'position:fixed', 'left:0', 'right:0', 'top:0', 'z-index:1001',
-            'pointer-events:none', 'padding:26px 3vw 30px', 'opacity:0',
-            'transition:opacity .35s ease', 'font-family:Georgia,"Times New Roman",serif',
-            'background:linear-gradient(180deg,rgba(6,8,14,0.92),rgba(6,8,14,0.55) 68%,transparent)'
-        ].join(';');
+        // Like every celebration, the wall hangs off the running-total card at
+        // the top - never the individual show card, and never just pinned to
+        // the viewport.
+        const b = (opts.bounds && opts.bounds.width) ? opts.bounds : {
+            left: window.innerWidth * 0.5 - 260, top: window.innerHeight * 0.24,
+            width: 520, height: 180
+        };
 
         const letters = this.alphabet.split('');
         const n = letters.length;
+
+        // Everything is sized off one cell's width, so 26 bulbs and their
+        // letters fit across the card however wide it is.
+        const cell = b.width / n;
+        const bulbW = Math.max(6, Math.min(16, cell * 0.62));
+        const fontPx = Math.max(9, Math.min(20, cell * 0.82));
+        const gapPx = Math.max(4, Math.round(fontPx * 0.5));
+        const padY = Math.round(fontPx * 1.3);
+
+        const wrap = document.createElement('div');
+        wrap.setAttribute('aria-hidden', 'true');
+        wrap.style.cssText = [
+            'position:fixed', 'box-sizing:border-box', 'z-index:100',
+            'left:' + Math.round(b.left) + 'px', 'top:' + Math.round(b.top) + 'px',
+            'width:' + Math.round(b.width) + 'px',
+            'pointer-events:none', 'padding:' + padY + 'px 4px ' + Math.round(padY * 1.2) + 'px',
+            'opacity:0', 'transition:opacity .35s ease',
+            'font-family:Georgia,"Times New Roman",serif',
+            'background:linear-gradient(180deg,rgba(6,8,14,0.92),rgba(6,8,14,0.55) 68%,transparent)'
+        ].join(';');
 
         // A wire that sags between every bulb.
         const svgNS = 'http://www.w3.org/2000/svg';
         const svg = document.createElementNS(svgNS, 'svg');
         svg.setAttribute('viewBox', '0 0 1000 46');
         svg.setAttribute('preserveAspectRatio', 'none');
-        svg.style.cssText = 'position:absolute;left:3vw;width:94vw;top:18px;height:46px;';
+        svg.style.cssText = 'position:absolute;left:0;width:100%;top:' +
+            Math.round(padY * 0.5) + 'px;height:' + Math.round(fontPx * 2) + 'px;';
         let d = 'M 0 10';
         for (let i = 0; i < n; i++) {
             const x = ((i + 0.5) / n) * 1000;
@@ -1497,11 +1561,11 @@ const AlphabetWallAnimation = {
         row.style.cssText = 'position:relative;display:flex;justify-content:space-between;align-items:flex-end;';
         const cells = letters.map((ch, i) => {
             const cell = document.createElement('div');
-            cell.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:14px;';
+            cell.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:' + gapPx + 'px;';
 
             const bulb = document.createElement('div');
             bulb.style.cssText = [
-                'width:clamp(10px,1.9vw,18px)', 'height:clamp(13px,2.4vw,23px)',
+                'width:' + bulbW.toFixed(1) + 'px', 'height:' + (bulbW * 1.3).toFixed(1) + 'px',
                 'border-radius:50% 50% 50% 50% / 60% 60% 40% 40%',
                 'background:#2c2c31', 'transition:background .1s ease,box-shadow .1s ease'
             ].join(';');
@@ -1509,7 +1573,7 @@ const AlphabetWallAnimation = {
             const letter = document.createElement('div');
             letter.textContent = ch;
             letter.style.cssText = [
-                'font-size:clamp(12px,2.5vw,22px)', 'font-weight:700',
+                'font-size:' + fontPx.toFixed(1) + 'px', 'font-weight:700',
                 'color:rgba(210,200,190,0.22)', 'letter-spacing:0.02em',
                 'transition:color .12s ease,text-shadow .12s ease'
             ].join(';');
@@ -1890,7 +1954,8 @@ const AbductionAnimation = {
  * Black Mirror: the celebration is the screen switching itself off. The burst
  * is replaced by an old-CRT power-down over the whole viewport - the picture
  * collapses to a bright line, the line to a dot, the dot goes out - then the
- * page comes back. Pure DOM, nothing on the canvas.
+ * page comes back. This one is deliberately full-screen: the whole "screen"
+ * is the black mirror, not just the card. Pure DOM, nothing on the canvas.
  */
 const CrtCollapseAnimation = {
     play() {
@@ -2391,5 +2456,208 @@ const DragonfireAnimation = {
         // complete event never lands.
         animation.addEventListener('complete', clean);
         setTimeout(clean, 3200);
+    }
+};
+
+/**
+ * How to Sell Drugs Online (Fast): Moritz runs his shop out of his bedroom,
+ * so the burst is a shower of round pressed party pills - domed candy-coloured
+ * tablets with a bevelled edge, thrown up from the card and left to tumble
+ * down. Most are stamped with a little debossed symbol (a smiley, a heart, a
+ * star, a bolt); the rest are just scored down the middle.
+ *
+ * Hand-drawn on the shared particle canvas: each pill is a radial-gradient
+ * disc with a highlight ring and a stamp pressed into its face, which a
+ * single vendored image could not give per-pill colour and symbol.
+ */
+const PartyPillAnimation = {
+    // Candy palette: a face colour, a lighter shade for the lit top of the
+    // dome, and a darker shade for the rim.
+    palette: [
+        { face: '#ff8fc7', light: '#ffd6ec', dark: '#c74e91' },  // bubblegum
+        { face: '#8fd9ff', light: '#d6f1ff', dark: '#3f89b8' },  // sky
+        { face: '#b69bff', light: '#e4d9ff', dark: '#6f52c2' },  // lavender
+        { face: '#9be7a6', light: '#d8f6dd', dark: '#4c9b5c' },  // mint
+        { face: '#ffd36b', light: '#fff0c6', dark: '#c79626' },  // banana
+        { face: '#ff9d6b', light: '#ffe0cd', dark: '#c76438' },  // tangerine
+        { face: '#f3f0ea', light: '#ffffff', dark: '#b3ab9c' }   // aspirin white
+    ],
+
+    // What gets pressed into the face. The smiley - the show's own mark -
+    // comes up more often than the rest; 'score' is a plain scored pill.
+    stamps: ['smiley', 'smiley', 'smiley', 'heart', 'star', 'bolt', 'score', 'score'],
+
+    /**
+     * @param {Object} options
+     * @param {number} options.originX         horizontal origin, 0-1 of viewport
+     * @param {number} options.originY         vertical origin, 0-1 of viewport
+     * @param {number} options.intensityFactor 0-1, scales speed, size and count
+     */
+    fire(options) {
+        const opts = options || {};
+        const intensity = Math.min(Math.max(opts.intensityFactor || 0, 0), 1);
+        // A handful, like the dragon balls - not a screenful.
+        const count = Math.round(8 + intensity * 4.8);
+
+        const before = ParticleCanvas.particles.length;
+        EasterEggUtils.fountain(options, count, (i, env) => {
+            const entry = this.palette[Math.floor(Math.random() * this.palette.length)];
+            const stamp = this.stamps[Math.floor(Math.random() * this.stamps.length)];
+            return {
+                // A hard, flat throw: strong gravity and a short life, so the
+                // whole arc plays out twice as fast as a dragon-ball toss and
+                // tops out at ~60% of the height.
+                gravity: 0.105 * env.scale,
+                ttl: Math.round((220 + intensity * 40) * 0.6),
+                spin: (Math.random() - 0.5) * 0.12,
+                // Every pill the same size - a tray of identical tablets.
+                radius: 19 * Math.max(env.scale, 0.7),
+                entry: entry,
+                stamp: stamp,
+                draw: (ctx, p) => this.drawPill(ctx, p.radius, p.entry, p.stamp)
+            };
+        });
+
+        // Retune the throw the fountain just gave each pill. The extra upward
+        // speed (x1.15) against the far stronger gravity above halves the time
+        // to the apex and cuts its height to ~60%; the extra sideways speed
+        // roughly keeps up with the shorter airtime, pulled back a little so
+        // the fan sits higher and less flat.
+        const pills = ParticleCanvas.particles;
+        for (let k = before; k < pills.length; k++) {
+            pills[k].vx *= 1.45;
+            pills[k].vy *= 1.15;
+        }
+    },
+
+    // One pill, centred on the origin. Kept cheap - a gradient fill and two
+    // strokes, no canvas shadows - so a full burst holds 60fps like the
+    // dragon balls do.
+    drawPill(ctx, r, entry, stamp) {
+        ctx.save();
+
+        // Domed body, lit from the top left.
+        const g = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r);
+        g.addColorStop(0, entry.light);
+        g.addColorStop(0.55, entry.face);
+        g.addColorStop(1, entry.dark);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fillStyle = g;
+        ctx.fill();
+
+        // Bevelled edge: a bright inner ring, a darker outer line.
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = Math.max(1, r * 0.09);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.98, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.16)';
+        ctx.lineWidth = Math.max(0.5, r * 0.05);
+        ctx.stroke();
+
+        if (stamp === 'score') {
+            this.drawScore(ctx, r);
+        } else {
+            this.drawStamp(ctx, stamp, r * 0.6);
+        }
+
+        ctx.restore();
+    },
+
+    // An engraved groove across the pill: a dark cut with a light lower lip.
+    drawScore(ctx, r) {
+        const half = r * 0.65;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-half, r * 0.07);
+        ctx.lineTo(half, r * 0.07);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.lineWidth = Math.max(1, r * 0.09);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-half, 0);
+        ctx.lineTo(half, 0);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.24)';
+        ctx.lineWidth = Math.max(1, r * 0.09);
+        ctx.stroke();
+    },
+
+    /**
+     * Press a symbol into the face: the shape filled once in a pale tint
+     * nudged downwards, then again dark on top, so it reads as cut into the
+     * pill rather than printed on it.
+     */
+    drawStamp(ctx, symbol, s) {
+        ctx.save();
+        ctx.lineJoin = 'round';
+
+        ctx.translate(0, s * 0.13);
+        this.symbolPath(ctx, symbol, s);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.fill();
+
+        ctx.translate(0, -s * 0.13);
+        this.symbolPath(ctx, symbol, s);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+        ctx.fill();
+
+        ctx.restore();
+    },
+
+    // Build the path(s) for one symbol, sized to roughly +/- s. No fill here -
+    // drawStamp fills it twice for the debossed look.
+    symbolPath(ctx, symbol, s) {
+        ctx.beginPath();
+
+        if (symbol === 'smiley') {
+            // Two eyes and a grin - the show's own smiley mark.
+            [-1, 1].forEach(side => {
+                ctx.moveTo(side * 0.34 * s + 0.13 * s, -0.2 * s);
+                ctx.arc(side * 0.34 * s, -0.2 * s, 0.13 * s, 0, Math.PI * 2);
+            });
+            const cy = -0.02 * s;
+            const outer = 0.6 * s;
+            const inner = 0.44 * s;
+            ctx.moveTo(Math.cos(0.16 * Math.PI) * outer, cy + Math.sin(0.16 * Math.PI) * outer);
+            ctx.arc(0, cy, outer, 0.16 * Math.PI, 0.84 * Math.PI);
+            ctx.arc(0, cy, inner, 0.84 * Math.PI, 0.16 * Math.PI, true);
+            ctx.closePath();
+            return;
+        }
+
+        if (symbol === 'heart') {
+            ctx.moveTo(0, 0.58 * s);
+            ctx.bezierCurveTo(-0.95 * s, -0.12 * s, -0.5 * s, -0.72 * s, 0, -0.3 * s);
+            ctx.bezierCurveTo(0.5 * s, -0.72 * s, 0.95 * s, -0.12 * s, 0, 0.58 * s);
+            ctx.closePath();
+            return;
+        }
+
+        if (symbol === 'star') {
+            for (let i = 0; i < 10; i++) {
+                const rad = i % 2 === 0 ? 0.62 * s : 0.26 * s;
+                const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+                const x = Math.cos(a) * rad;
+                const y = Math.sin(a) * rad;
+                i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+            }
+            ctx.closePath();
+            return;
+        }
+
+        // bolt: a zigzag lightning strike.
+        const pts = [
+            [0.2, -0.62], [-0.36, 0.1], [-0.02, 0.1],
+            [-0.18, 0.62], [0.4, -0.14], [0.06, -0.14]
+        ];
+        pts.forEach(([x, y], i) => (
+            i ? ctx.lineTo(x * s, y * s) : ctx.moveTo(x * s, y * s)
+        ));
+        ctx.closePath();
     }
 };
