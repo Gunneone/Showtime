@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, make_response
+from datetime import datetime, timezone
 import json
 import logging
 from ..services.tmdb_service import TMDBService
@@ -285,6 +286,8 @@ def add_watched():
                 'episode_run_time': episode_runtime,
                 'calculated_runtime_minutes': calculated_runtime,
                 'season_details': season_details_array,
+                # When the show was added to the watched list (for "When Added" sort)
+                'date_added': datetime.now(timezone.utc).isoformat(),
                 # Store only genre names as compact array to save space
                 'genres': [genre['name'] for genre in show_details.get('genres', [])],
                 # Store only network names as compact array to save space

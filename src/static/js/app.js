@@ -46,10 +46,10 @@ const DataStorage = {
     // Get sort preference
     getSortPreference() {
         try {
-            return localStorage.getItem(this.SORT_PREFERENCE_KEY) || 'alphabet-asc';
+            return localStorage.getItem(this.SORT_PREFERENCE_KEY) || 'watchtime-desc';
         } catch (error) {
             console.error('Error reading sort preference:', error);
-            return 'alphabet-asc';
+            return 'watchtime-desc';
         }
     },
 
@@ -1420,12 +1420,50 @@ const App = {
                     return timeB - timeA; // Descending order
                 });
                 break;
+            case 'releasedate-asc':
+                shows.sort((a, b) => {
+                    // Always compare against season 1's release date
+                    const dateA = this.getShowReleaseDate(a);
+                    const dateB = this.getShowReleaseDate(b);
+                    if (!dateA && !dateB) return 0;
+                    if (!dateA) return 1;  // undated shows sink to the bottom
+                    if (!dateB) return -1;
+                    return dateA.localeCompare(dateB); // ISO dates sort lexically
+                });
+                break;
+            case 'added-desc': {
+                // localStorage keeps shows in insertion order; use it as the
+                // fallback for shows added before date_added was recorded.
+                const insertionOrder = DataStorage.getWatchedShows().map(s => s.id);
+                shows.sort((a, b) => {
+                    const tA = a.date_added ? Date.parse(a.date_added) : NaN;
+                    const tB = b.date_added ? Date.parse(b.date_added) : NaN;
+                    const hasA = !Number.isNaN(tA);
+                    const hasB = !Number.isNaN(tB);
+                    if (hasA && hasB) return tB - tA;      // most recent first
+                    if (hasA) return -1;                   // timestamped => newer
+                    if (hasB) return 1;
+                    return insertionOrder.indexOf(b.id) - insertionOrder.indexOf(a.id);
+                });
+                break;
+            }
             default:
                 break;
         }
-        
+
         // Update the state with sorted shows
         this.state.watchedShows = shows;
+    },
+
+    // Resolve a show's release date, always anchored to season 1
+    getShowReleaseDate(show) {
+        if (show.first_air_date) return show.first_air_date;
+        if (Array.isArray(show.season_details) && show.season_details.length) {
+            const season1 = show.season_details.find(s => s.season_number === 1)
+                || show.season_details[0];
+            if (season1 && season1.air_date) return season1.air_date;
+        }
+        return '';
     },
 
     // Calculate show time in minutes for sorting
@@ -1974,7 +2012,7 @@ const App = {
             
             // Reset sort select to default
             if (this.elements.sortSelect) {
-                this.elements.sortSelect.value = 'alphabet-asc';
+                this.elements.sortSelect.value = 'watchtime-desc';
             }
             
             this.showToast('All data has been removed successfully', 'success');
