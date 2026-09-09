@@ -35,9 +35,14 @@ acceptable stand-in for a good one that already exists online.
 ## Easter eggs
 
 Per-show easter eggs live in `src/static/js/easter-eggs.js` (styles in
-`style.css`, tests in `tests/test_easter_eggs.py`). A definition can set a
-`cardClass`, a `decorator` (reaches into the built card element), and/or a
-`celebration` (replaces the confetti burst; runs on the shared
-`ParticleCanvas` or as plain DOM). They are meant to be found, so they are
-never documented anywhere a user reads — the top-level `README.md` least of
-all.
+`style.css`). A definition can set a `cardClass`, a `decorator` (reaches into
+the built card element), and/or a `celebration` (replaces the confetti burst;
+runs on the shared `ParticleCanvas` or as plain DOM). They are meant to be
+found, so they are never documented anywhere a user reads — the top-level
+`README.md` least of all.
+
+**Do not write automated tests for easter eggs.** No `tests/test_easter_eggs.py`,
+no assertions on their wiring, CSS classes or animation code. String-matching
+tests over this file are churn, not safety — they break on every refactor and
+prove nothing about whether the effect looks right. Verify an easter egg by
+running the app and watching it; leave it at that.

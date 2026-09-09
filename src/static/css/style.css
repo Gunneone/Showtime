@@ -876,6 +876,146 @@ body {
     z-index: 100;
 }
 
+/* Black Mirror: the title-card crack laid over the poster. easter-eggs.js
+   drops the vendored SVG in; blended so it reads as the glass itself. */
+.watched-show.easter-egg-black-mirror .watched-show-poster {
+    position: relative;
+}
+
+.watched-show.easter-egg-black-mirror .bm-crack {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    opacity: 0.75;
+    /* Screen blend lets the bright fracture lines sit on top of the poster
+       while the dark under-shadow drops away. */
+    mix-blend-mode: screen;
+}
+
+/* Black Mirror celebration: the whole viewport does an old-CRT power-down -
+   picture to a line, line to a dot, dot out, then back. Sits above even the
+   fixed header (z-index 1000). */
+.crt-collapse {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    pointer-events: none;
+    background: #000;
+    opacity: 0;
+    transition: opacity 0.26s ease;
+}
+
+.crt-collapse-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 4px;
+    transform: translateY(-50%) scaleX(1);
+    background: #f4f8ff;
+    box-shadow: 0 0 22px 6px rgba(230, 240, 255, 0.9);
+    transition: transform 0.16s ease-in, opacity 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .crt-collapse-bar {
+        display: none;
+    }
+}
+
+/* Lost: the Swan station's octagon sits faint behind the card, and the watch
+   time reads off its split-flap counter. */
+.watched-show.easter-egg-swan .watched-show-content {
+    position: relative;
+}
+
+.watched-show.easter-egg-swan .watched-show-content::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -24px;
+    width: 150px;
+    height: 150px;
+    transform: translateY(-50%);
+    background: url('../images/bagua.svg') center / contain no-repeat;
+    opacity: 0.14;
+    pointer-events: none;
+}
+
+.watched-show.easter-egg-swan .watched-show-time {
+    display: inline-block;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.16em;
+    color: #e8e4d8;
+    background: #111;
+    padding: 3px 10px;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px #000, inset 0 1px 0 #333, inset 0 -12px 14px rgba(0, 0, 0, 0.55);
+}
+
+/* Lost celebration: the split-flap counter over the running-total card. */
+.hatch-timer {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 90vw;
+}
+
+.hatch-cell {
+    display: inline-block;
+    min-width: 0.72em;
+    padding: 6px 7px 8px;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(20px, 4vw, 34px);
+    font-weight: 700;
+    text-align: center;
+    color: #f0ece0;
+    background: linear-gradient(180deg, #1c1c1c 0 50%, #111 50%);
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px #000, 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.hatch-cell::after {
+    content: "";
+}
+
+.hatch-cell.flip {
+    animation: easterEggHatchFlip 0.13s ease;
+}
+
+.hatch-cell.alarm {
+    color: #ff5a5a;
+    background: linear-gradient(180deg, #3a0d0d 0 50%, #2a0808 50%);
+    text-shadow: 0 0 12px rgba(255, 70, 70, 0.6);
+}
+
+.hatch-caption {
+    flex-basis: 100%;
+    margin-top: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 0.32em;
+    text-align: center;
+    color: #ff6a6a;
+    text-shadow: 0 0 12px rgba(255, 70, 70, 0.5);
+}
+
+@keyframes easterEggHatchFlip {
+    0% { transform: scaleY(1); }
+    45% { transform: scaleY(0.06); filter: brightness(1.9); }
+    100% { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hatch-cell.flip {
+        animation: none;
+    }
+}
+
 /* Inline season editing */
 .seasons-display {
     cursor: pointer;

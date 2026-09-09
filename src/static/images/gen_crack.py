@@ -74,22 +74,25 @@ def build():
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" '
         f'width="{w}" height="{h}">',
         '  <title>cracked screen</title>',
-        '  <g fill="none" stroke="#0a0a0c" stroke-linecap="round" '
-        'stroke-linejoin="round" opacity="0.9">',
+        # Dark under-shadow, offset, so the crack reads on a pale poster too.
+        '  <g fill="none" stroke="#050509" stroke-linecap="round" '
+        'stroke-linejoin="round" opacity="0.55" transform="translate(1.5 1.5)">',
     ]
     for d in rings + forks:
-        out.append(f'    <path d="{d}" stroke-width="1.6" />')
+        out.append(f'    <path d="{d}" stroke-width="2.2" />')
     for d in radials:
-        out.append(f'    <path d="{d}" stroke-width="3" />')
+        out.append(f'    <path d="{d}" stroke-width="3.6" />')
     out.append('  </g>')
-    out.append('  <g fill="none" stroke="#eef2f8" stroke-linecap="round" '
-               'stroke-linejoin="round" opacity="0.55" transform="translate(1 1)">')
+    # Bright core - the fracture catching the light.
+    out.append('  <g fill="none" stroke="#eef3ff" stroke-linecap="round" '
+               'stroke-linejoin="round" opacity="0.92">')
+    for d in rings + forks:
+        out.append(f'    <path d="{d}" stroke-width="1.1" />')
     for d in radials:
-        out.append(f'    <path d="{d}" stroke-width="1" />')
-    for d in rings:
-        out.append(f'    <path d="{d}" stroke-width="0.6" />')
+        out.append(f'    <path d="{d}" stroke-width="2" />')
     out.append('  </g>')
-    out.append('  <g fill="rgba(10,10,12,0.16)" stroke="#0a0a0c" stroke-width="1.2">')
+    out.append('  <g fill="rgba(255,255,255,0.14)" stroke="#eef3ff" '
+               'stroke-width="1" stroke-opacity="0.8">')
     for poly in shards:
         out.append(f'    <polygon points="{poly}" />')
     out.append('  </g>')
