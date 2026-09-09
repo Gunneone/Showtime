@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <title>flying saucer</title>
+  <defs>
+    <radialGradient id="ufo-dome" cx="42%" cy="34%" r="70%">
+      <stop offset="0" stop-color="#e7fff4"/>
+      <stop offset="0.45" stop-color="#8fe6c4"/>
+      <stop offset="1" stop-color="#2f9f79"/>
+    </radialGradient>
+    <linearGradient id="ufo-hull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9e2e8"/>
+      <stop offset="0.5" stop-color="#9fb0ba"/>
+      <stop offset="1" stop-color="#5f7078"/>
+    </linearGradient>
+    <radialGradient id="ufo-beam" cx="50%" cy="0%" r="90%">
+      <stop offset="0" stop-color="#9dffcf" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#9dffcf" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- tractor-beam glow under the craft -->
+  <ellipse cx="100" cy="150" rx="70" ry="34" fill="url(#ufo-beam)"/>
+
+  <!-- hull -->
+  <ellipse cx="100" cy="112" rx="92" ry="27" fill="url(#ufo-hull)" stroke="#43535b" stroke-width="2"/>
+  <ellipse cx="100" cy="106" rx="92" ry="21" fill="#b9c6ce"/>
+  <ellipse cx="100" cy="104" rx="78" ry="15" fill="#8b9aaa" opacity="0.5"/>
+
+  <!-- dome -->
+  <path d="M46 104 a54 46 0 0 1 108 0 z" fill="url(#ufo-dome)" stroke="#2f9f79" stroke-width="2"/>
+  <path d="M62 92 a34 26 0 0 1 40 -18" fill="none" stroke="#f2fffa" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- running lights -->
+  <circle cx="100" cy="120" r="6" fill="#ffd23f"/>
+  <circle cx="62" cy="114" r="5" fill="#ff5a5a"/>
+  <circle cx="138" cy="114" r="5" fill="#4db8ff"/>
+  <circle cx="40" cy="108" r="4" fill="#ffd23f"/>
+  <circle cx="160" cy="108" r="4" fill="#ffd23f"/>
+</svg>

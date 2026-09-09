@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <mask id="donut-hole">
+      <rect width="200" height="200" fill="#fff"/>
+      <ellipse cx="100" cy="103" rx="30" ry="27" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#donut-hole)">
+    <!-- dough -->
+    <circle cx="100" cy="100" r="90" fill="#D98E4F"/>
+    <circle cx="100" cy="96" r="86" fill="#EBAA68"/>
+    <!-- pink glaze with a dripped edge -->
+    <path d="M100 24
+             c17 0 23 11 38 13 c15 2 27 -7 36 9 c8 15 -5 23 3 38
+             c7 15 20 17 13 34 c-6 16 -20 13 -27 27 c-7 14 3 27 -16 33
+             c-16 6 -25 -7 -41 -7 c-16 0 -25 13 -41 7 c-17 -6 -11 -20 -24 -31
+             c-12 -10 -27 -6 -29 -24 c-2 -16 11 -22 11 -38 c0 -16 -13 -24 -5 -39
+             c8 -16 22 -8 33 -19 c11 -11 9 -25 27 -28 c7 -1 15 -1 22 -1 z"
+          fill="#F7A7C9" stroke="#E88AB0" stroke-width="2"/>
+    <!-- glaze highlight -->
+    <path d="M58 58 c12 -16 33 -25 49 -22 c-22 5 -39 19 -45 34 c-4 -4 -6 -8 -4 -12z" fill="#FCC6DA"/>
+    <!-- sprinkles -->
+    <g stroke-linecap="round">
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#7B5CD6" transform="translate(100 44) rotate(18)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#3EA96B" transform="translate(130 54) rotate(-38)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#F4C542" transform="translate(151 80) rotate(58)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#3B9BE0" transform="translate(157 112) rotate(102)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#E8624A" transform="translate(148 141) rotate(140)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#FFFFFF" transform="translate(126 158) rotate(24)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#F26DA8" transform="translate(100 164) rotate(84)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#7B5CD6" transform="translate(72 157) rotate(-22)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#F4C542" transform="translate(50 140) rotate(46)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#3EA96B" transform="translate(41 110) rotate(8)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#E8624A" transform="translate(50 79) rotate(-52)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#3B9BE0" transform="translate(72 53) rotate(28)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#FFFFFF" transform="translate(100 64) rotate(-14)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#F26DA8" transform="translate(140 100) rotate(72)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#7B5CD6" transform="translate(96 136) rotate(118)"/>
+      <rect x="-7" y="-2.6" width="14" height="5.2" rx="2.6" fill="#F4C542" transform="translate(60 100) rotate(-40)"/>
+    </g>
+  </g>
+</svg>

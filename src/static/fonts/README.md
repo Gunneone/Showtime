@@ -18,5 +18,5 @@ font is *not* covered by the MIT licence in the repository root and is not
 free to redistribute for commercial use. Anyone running Showtime commercially
 should buy that licence or swap the font out.
 
-Used by the easter egg that prints a show's name on a calculator display
+Used by an on-page rendering of a show's name on a calculator display
 (see `static/js/easter-eggs.js`).

@@ -1553,6 +1553,12 @@ const App = {
             </div>
         `;
 
+        // Some easter eggs reach into the finished card (e.g. to restyle the
+        // title). Runs once; a no-op for shows without a decorator.
+        if (typeof EasterEggs !== 'undefined' && EasterEggs.decorateCard) {
+            EasterEggs.decorateCard(show.id, div);
+        }
+
         return div;
     },
 
