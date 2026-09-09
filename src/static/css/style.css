@@ -926,25 +926,7 @@ body {
     }
 }
 
-/* Lost: the Swan station's octagon sits faint behind the card, and the watch
-   time reads off its split-flap counter. */
-.watched-show.easter-egg-swan .watched-show-content {
-    position: relative;
-}
-
-.watched-show.easter-egg-swan .watched-show-content::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: -24px;
-    width: 150px;
-    height: 150px;
-    transform: translateY(-50%);
-    background: url('../images/bagua.svg') center / contain no-repeat;
-    opacity: 0.14;
-    pointer-events: none;
-}
-
+/* Lost: the watch time reads off the Swan station's split-flap counter. */
 .watched-show.easter-egg-swan .watched-show-time {
     display: inline-block;
     font-family: 'Courier New', monospace;

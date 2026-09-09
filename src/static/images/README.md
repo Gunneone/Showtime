@@ -1,13 +1,12 @@
 # Images
 
-`favicon.ico`, `favicon.svg`, `no-poster.png`, `donut.svg`, `ufo.svg`,
-`bagua.svg` and `screen-crack.svg` are Showtime's own, released under the
-repository's MIT licence. The last four are original flat-style drawings used
-by on-page animations (see `static/js/easter-eggs.js`):
+`favicon.ico`, `favicon.svg`, `no-poster.png`, `donut.svg`, `ufo.svg` and
+`screen-crack.svg` are Showtime's own, released under the repository's MIT
+licence. The last three are original flat-style drawings used by on-page
+animations (see `static/js/easter-eggs.js`):
 
 * `donut.svg` - a pink sprinkled donut.
 * `ufo.svg` - a flying saucer with a glassy dome and running lights.
-* `bagua.svg` - an octagon ringed by the eight I Ching trigrams.
 * `screen-crack.svg` - an impact fracture, drawn as radial cracks with a
   broken concentric web (`src/static/images/gen_crack.py` is the generator;
   re-running it with the same seed reproduces the file byte for byte).
@@ -15,6 +14,24 @@ by on-page animations (see `static/js/easter-eggs.js`):
 They are simple geometric shapes, quick to draw well by hand, so no
 third-party asset was needed. Anything more elaborate should be a
 suitably-licensed asset from the internet, vendored here - not hand-drawn.
+
+## pokeball.png, pokeball-super.png, pokeball-hyper.png, pokeball-master.png
+
+Four flat ball icons (Poké / Great / Ultra / Master), used by an on-page
+animation (see `static/js/easter-eggs.js`).
+
+* Source: cropped from a "Pokeball Icons" sprite sheet supplied by the
+  repository owner (originally from DeviantArt; no artist or licence was
+  recorded with it).
+* Modified: each ball cut out, padded to a square canvas, and its coloured
+  regions re-mapped to Showtime's palette (`#e7402e` red, `#357fc4` blue,
+  `#34343c` + `#f4c21c` charcoal/gold, `#7a4bb0` + `#d94ba6` purple/pink).
+  The black outline, white base, band and button are unchanged.
+
+> **Licence unverified.** The originating artwork has no known licence. If a
+> clear provenance or a permissive licence cannot be established, replace
+> these with a public-domain / CC0 set or an in-house drawing, per the asset
+> policy in the top-level `CLAUDE.md`.
 
 ## soccerball.svg
 
