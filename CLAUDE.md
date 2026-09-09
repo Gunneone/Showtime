@@ -46,3 +46,9 @@ no assertions on their wiring, CSS classes or animation code. String-matching
 tests over this file are churn, not safety — they break on every refactor and
 prove nothing about whether the effect looks right. Verify an easter egg by
 running the app and watching it; leave it at that.
+
+## Pull requests
+
+Keep PR descriptions minimal — four sentences at most. Nobody really reads
+them; the diff and the commit messages carry the detail. Don't spend effort
+formatting a long PR body.
