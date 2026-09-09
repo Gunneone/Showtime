@@ -8,10 +8,14 @@ services:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-your-default-secret-key-change-in-production}
       - TMDB_API_KEY=${TMDB_API_KEY}
-      # Optimized Gunicorn configuration (using sync workers to avoid gevent SSL issues)
-      - GUNICORN_WORKERS=2
-      - GUNICORN_WORKER_CLASS=sync
-      - GUNICORN_TIMEOUT=60
+      # Gunicorn: threaded workers for this IO-bound TMDB proxy. gthread keeps
+      # a slow upstream from blocking a whole worker without gevent's SSL
+      # monkey-patching. Sized for a 4 vCore / 4 GB host.
+      - GUNICORN_WORKERS=4
+      - GUNICORN_WORKER_CLASS=gthread
+      - GUNICORN_THREADS=8
+      - GUNICORN_TIMEOUT=30
+      - GUNICORN_GRACEFUL_TIMEOUT=30
       - GUNICORN_MAX_REQUESTS=500
       - GUNICORN_MAX_REQUESTS_JITTER=50
       # Aggregate usage metrics. Lives on the named volume below so the counts

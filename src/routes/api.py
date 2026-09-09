@@ -12,6 +12,62 @@ logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api', __name__)
 
+# Upper bound on how many seasons a single show may contribute. The longest
+# real TV runs sit well under this; the cap exists so a request body cannot
+# drive calculate_precise_show_runtime() into a multi-million iteration loop
+# with one uncached TMDB call per iteration.
+MAX_SEASONS = 100
+
+# Upper bound on the watched-shows list a single request body may carry. The
+# list is the browser's localStorage, so it is entirely client-supplied.
+MAX_WATCHED_SHOWS = 1000
+
+
+def _coerce_int(value, *, minimum=None, maximum=None):
+    """Coerce a JSON value to a whole number, clamped to [minimum, maximum].
+
+    Returns None when the value is not a whole number so the caller can reject
+    the request rather than guess. Booleans are rejected (``True`` is not a
+    season count).
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        result = value
+    elif isinstance(value, float) and value.is_integer():
+        result = int(value)
+    elif isinstance(value, str):
+        try:
+            result = int(value.strip())
+        except (TypeError, ValueError):
+            return None
+    else:
+        return None
+    if minimum is not None:
+        result = max(minimum, result)
+    if maximum is not None:
+        result = min(maximum, result)
+    return result
+
+
+def _watched_list(data, key='watched_shows'):
+    """Pull a bounded watched-shows list out of a request body.
+
+    Returns ``(list, None)`` on success, or ``(None, response)`` where
+    ``response`` is a ready-to-return error tuple. The length cap keeps one
+    request from fanning out into thousands of TMDB calls or a giant
+    allocation.
+    """
+    shows = data.get(key, [])
+    if not isinstance(shows, list):
+        return None, (jsonify({'error': f'{key} must be a list'}), 400)
+    if len(shows) > MAX_WATCHED_SHOWS:
+        return None, (
+            jsonify({'error': f'{key} is limited to {MAX_WATCHED_SHOWS} entries'}),
+            413,
+        )
+    return shows, None
+
 def get_tmdb_service():
     """Get TMDB service instance."""
     from flask import current_app
@@ -32,6 +88,9 @@ def get_rec_service():
 
 def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched, show_details):
     """Calculate precise runtime and collect per-season details (runtime + air date)."""
+    # Defensive clamp: the route handlers validate this, but this is the loop
+    # that would otherwise run unbounded on a hostile value.
+    seasons_watched = max(0, min(int(seasons_watched), MAX_SEASONS))
     total_runtime = 0
     season_details_array = []
     default_episode_runtime = show_details.get('episode_run_time', 45)
@@ -146,10 +205,9 @@ def recommendations():
     """
     try:
         data = request.get_json(silent=True) or {}
-        watched_shows = data.get('watched_shows', [])
-
-        if not isinstance(watched_shows, list):
-            return jsonify({'error': 'watched_shows must be a list'}), 400
+        watched_shows, error = _watched_list(data)
+        if error:
+            return error
 
         get_metrics_service().record_event('recommendations_requested')
 
@@ -178,7 +236,9 @@ def get_watched():
         # Try to get data from request body (localStorage data sent by frontend)
         if request.is_json and request.get_json():
             data = request.get_json()
-            watched_shows = data.get('watched_shows', [])
+            watched_shows, error = _watched_list(data)
+            if error:
+                return error
         else:
             # Fallback to cookies for backward compatibility / migration
             watched_cookie = request.cookies.get('watched_shows', '[]')
@@ -210,42 +270,53 @@ def add_watched():
         data = request.get_json()
         if not data or 'id' not in data:
             return jsonify({'error': 'Show ID is required'}), 400
-        
+
+        show_id = _coerce_int(data.get('id'), minimum=1)
+        if show_id is None:
+            return jsonify({'error': 'A numeric show ID is required'}), 400
+
         # Get current watched shows from request body (localStorage) or fallback to cookies
         watched_shows = []
-        
+
         if 'current_watched_shows' in data:
             # Frontend sent current localStorage data
-            watched_shows = data['current_watched_shows']
+            watched_shows, error = _watched_list(data, 'current_watched_shows')
+            if error:
+                return error
         else:
             # Fallback to cookies for migration
             watched_cookie = request.cookies.get('watched_shows', '[]')
             watched_shows = json.loads(watched_cookie)
-        
+
         # Get show details from TMDB
         tmdb_service = get_tmdb_service()
-        show_details = tmdb_service.get_show_details(data['id'])
+        show_details = tmdb_service.get_show_details(show_id)
         if not show_details:
             return jsonify({'error': 'Show not found'}), 404
-        
+
         # Check if show already exists
-        existing_show = next((show for show in watched_shows if show['id'] == data['id']), None)
-        
+        existing_show = next((show for show in watched_shows if show['id'] == show_id), None)
+
         if existing_show:
             metrics = get_metrics_service()
             metrics.record_event('shows_updated')
             metrics.record_engagement(request)
             # Update existing show - recalculate runtime for new seasons count
-            seasons_watched = data.get('seasons_watched', existing_show['seasons_watched'])
+            seasons_watched = _coerce_int(
+                data.get('seasons_watched', existing_show['seasons_watched']),
+                minimum=0, maximum=MAX_SEASONS,
+            )
+            if seasons_watched is None:
+                return jsonify({'error': 'seasons_watched must be a whole number'}), 400
             existing_show['seasons_watched'] = seasons_watched
             # Recalculate precise runtime and season details for the updated seasons count
             calculated_runtime, season_details_array = calculate_precise_show_runtime(
-                tmdb_service, data['id'], seasons_watched, show_details
+                tmdb_service, show_id, seasons_watched, show_details
             )
             existing_show['calculated_runtime_minutes'] = calculated_runtime
             existing_show['season_details'] = season_details_array
             # Update released seasons count (in case it changed since the show was added)
-            existing_show['released_seasons'] = tmdb_service.get_released_seasons_count(data['id'], show_details.get('number_of_seasons', 1))
+            existing_show['released_seasons'] = tmdb_service.get_released_seasons_count(show_id, show_details.get('number_of_seasons', 1))
             # Update TMDB data (popularity, backdrop_path) in case it's missing or changed
             existing_show['backdrop_path'] = show_details.get('backdrop_path')
             existing_show['popularity'] = show_details.get('popularity')
@@ -256,8 +327,12 @@ def add_watched():
             metrics.record_engagement(request)
 
             # Add new show with precise runtime calculation
-            seasons_watched = data.get('seasons_watched', 1)
-            
+            seasons_watched = _coerce_int(
+                data.get('seasons_watched', 1), minimum=0, maximum=MAX_SEASONS
+            )
+            if seasons_watched is None:
+                return jsonify({'error': 'seasons_watched must be a whole number'}), 400
+
             # Get default episode runtime
             episode_runtime = 45  # default
             if show_details.get('episode_run_time'):
@@ -269,9 +344,9 @@ def add_watched():
             
             # Calculate precise runtime and season details for the seasons being watched
             calculated_runtime, season_details_array = calculate_precise_show_runtime(
-                tmdb_service, data['id'], seasons_watched, show_details
+                tmdb_service, show_id, seasons_watched, show_details
             )
-            
+
             new_show = {
                 'id': show_details['id'],
                 'name': show_details['name'],
@@ -281,7 +356,7 @@ def add_watched():
                 'popularity': show_details.get('popularity'),
                 'seasons_watched': seasons_watched,
                 'total_seasons': show_details.get('number_of_seasons', 1),
-                'released_seasons': tmdb_service.get_released_seasons_count(data['id'], show_details.get('number_of_seasons', 1)),
+                'released_seasons': tmdb_service.get_released_seasons_count(show_id, show_details.get('number_of_seasons', 1)),
                 'total_episodes': show_details.get('number_of_episodes', 0),
                 'episode_run_time': episode_runtime,
                 'calculated_runtime_minutes': calculated_runtime,
@@ -329,20 +404,26 @@ def update_watched(show_id):
         
         if 'current_watched_shows' in data:
             # Frontend sent current localStorage data
-            watched_shows = data['current_watched_shows']
+            watched_shows, error = _watched_list(data, 'current_watched_shows')
+            if error:
+                return error
         else:
             # Fallback to cookies for migration
             watched_cookie = request.cookies.get('watched_shows', '[]')
             watched_shows = json.loads(watched_cookie)
-        
+
         # Find and update the show
         show_to_update = next((show for show in watched_shows if show['id'] == show_id), None)
         if not show_to_update:
             return jsonify({'error': 'Show not found in watched list'}), 404
-        
+
         # Update the show data
         if 'seasons_watched' in data:
-            new_seasons_watched = data['seasons_watched']
+            new_seasons_watched = _coerce_int(
+                data['seasons_watched'], minimum=0, maximum=MAX_SEASONS
+            )
+            if new_seasons_watched is None:
+                return jsonify({'error': 'seasons_watched must be a whole number'}), 400
             show_to_update['seasons_watched'] = new_seasons_watched
             
             # Recalculate precise runtime and season details for the new seasons count
@@ -382,18 +463,20 @@ def remove_watched(show_id):
     """Remove watched content."""
     try:
         data = request.get_json() or {}
-        
+
         # Get current watched shows from request body (localStorage) or fallback to cookies
         watched_shows = []
-        
+
         if 'current_watched_shows' in data:
             # Frontend sent current localStorage data
-            watched_shows = data['current_watched_shows']
+            watched_shows, error = _watched_list(data, 'current_watched_shows')
+            if error:
+                return error
         else:
             # Fallback to cookies for migration
             watched_cookie = request.cookies.get('watched_shows', '[]')
             watched_shows = json.loads(watched_cookie)
-        
+
         metrics = get_metrics_service()
         metrics.record_event('shows_removed')
         metrics.record_engagement(request)
@@ -455,8 +538,10 @@ def calculate_watched():
         data = request.get_json()
         if not data:
             return jsonify({'error': 'Request data is required'}), 400
-        
-        watched_shows = data.get('watched_shows', [])
+
+        watched_shows, error = _watched_list(data)
+        if error:
+            return error
 
         get_metrics_service().record_library_size(request, len(watched_shows))
 
@@ -480,8 +565,10 @@ def calculate_stats():
         data = request.get_json()
         if not data:
             return jsonify({'error': 'Request data is required'}), 400
-        
-        watched_shows = data.get('watched_shows', [])
+
+        watched_shows, error = _watched_list(data)
+        if error:
+            return error
 
         get_metrics_service().record_library_size(request, len(watched_shows))
 
@@ -501,10 +588,12 @@ def refresh_all_seasons():
         if not data:
             return jsonify({'error': 'Request data is required'}), 400
         
-        watched_shows = data.get('watched_shows', [])
+        watched_shows, error = _watched_list(data)
+        if error:
+            return error
         if not watched_shows:
             return jsonify({'error': 'No shows to refresh'}), 400
-        
+
         tmdb_service = get_tmdb_service()
         updated_shows = []
         
@@ -547,7 +636,9 @@ def refresh_show_seasons(show_id):
         if not data:
             return jsonify({'error': 'Request data is required'}), 400
         
-        watched_shows = data.get('watched_shows', [])
+        watched_shows, error = _watched_list(data)
+        if error:
+            return error
         show_to_update = next((show for show in watched_shows if show['id'] == show_id), None)
         
         if not show_to_update:

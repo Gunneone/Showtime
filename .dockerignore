@@ -6,30 +6,35 @@ __pycache__/
 # Virtual environments
 venv/
 env/
+.venv/
 .env
+.env.*
 
-# Testing
+# Local state — never bake a dev cache/metrics DB or volume dir into the image
+*.db
+data/
+logs/
+*.log
+
+# Testing / tooling
+tests/
 .pytest_cache/
 .coverage
 htmlcov/
 
-# IDE
+# Repo / editor / assistant metadata
+.git/
+.gitignore
+.github/
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Git
-.git/
-.gitignore
-
-# Logs
-logs/
-*.log
 
 # Node modules (if any)
 node_modules/

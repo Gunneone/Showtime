@@ -3,10 +3,25 @@ import logging
 import requests
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date
+from requests.adapters import HTTPAdapter
 from ..config import Config
 from .persistent_cache_service import get_persistent_cache
 
 logger = logging.getLogger(__name__)
+
+# (connect, read) timeout applied to every outbound TMDB call. Without it a
+# slow or hung TMDB response pins a worker thread until Gunicorn's kill
+# timeout, and a couple of those take the whole site down.
+TMDB_TIMEOUT = (3.05, 15)
+
+# One pooled session shared by every TMDBService instance and every thread in
+# the season-data fan-out, so sockets are reused instead of reopened per call.
+# Built at import, before Gunicorn forks its workers, while the pool is empty.
+_session = requests.Session()
+_session.mount(
+    'https://',
+    HTTPAdapter(pool_connections=10, pool_maxsize=50, max_retries=0),
+)
 
 class TMDBService:
     """Service for interacting with The Movie Database (TMDB) API."""
@@ -42,7 +57,9 @@ class TMDBService:
         params['api_key'] = self.api_key
         
         try:
-            response = requests.get(f"{self.base_url}/{endpoint}", params=params)
+            response = _session.get(
+                f"{self.base_url}/{endpoint}", params=params, timeout=TMDB_TIMEOUT
+            )
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:

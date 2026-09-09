@@ -1,8 +1,9 @@
 from flask import Flask, request
-from flask_cors import CORS
 from src.config import Config
+from datetime import timedelta
 import logging
 import atexit
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -18,19 +19,26 @@ def create_app():
                 static_folder='src/static')
     app.config.from_object(Config)
 
+    # Admin session cookie hardening. Secure is production-only so the test
+    # client and plain-http local dev keep working; the browser always reaches
+    # production over HTTPS (nginx / Cloudflare terminate TLS).
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+        SESSION_COOKIE_SECURE=(Config.FLASK_ENV == 'production'),
+        PERMANENT_SESSION_LIFETIME=timedelta(days=7),
+    )
+
     # Refuse to start with a forgeable admin session cookie.
     Config.validate_admin_config()
-    
+
     # Configure logging for production
     if Config.FLASK_ENV == 'production' and not app.config.get('TESTING', False):
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s %(levelname)s %(name)s %(message)s'
         )
-    
-    # Enable CORS
-    CORS(app)
-    
+
     # Register blueprints
     from src.routes.main import main_bp
     from src.routes.api import api_bp
@@ -66,4 +74,9 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    # Never default the Werkzeug debugger on. Opt in with FLASK_DEBUG=1 for
+    # local development; bind to all interfaces only when explicitly asked.
+    debug = os.environ.get('FLASK_DEBUG', '').lower() in ('1', 'true', 'yes')
+    host = os.environ.get('FLASK_RUN_HOST', '127.0.0.1')
+    port = int(os.environ.get('FLASK_RUN_PORT', '5001'))
+    app.run(debug=debug, host=host, port=port)

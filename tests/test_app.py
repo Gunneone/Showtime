@@ -127,6 +127,36 @@ def test_api_recommendations_without_a_body(client):
     assert json.loads(response.data)['mode'] == 'popular'
 
 
+def test_api_watched_rejects_non_numeric_id(client):
+    """A show id that is not a whole number is refused, not fed into the TMDB path."""
+    response = client.post('/api/watched', json={'id': '1/season/2', 'seasons_watched': 1})
+    assert response.status_code == 400
+    assert 'error' in json.loads(response.data)
+
+
+def test_api_watched_rejects_non_numeric_seasons(client):
+    """seasons_watched must be a whole number."""
+    response = client.post('/api/watched', json={'id': 1, 'seasons_watched': 'lots'})
+    assert response.status_code == 400
+    assert 'error' in json.loads(response.data)
+
+
+def test_api_watched_clamps_absurd_season_count(client):
+    """A hostile seasons_watched is clamped instead of driving an unbounded loop."""
+    response = client.post('/api/watched', json={'id': 1, 'seasons_watched': 10 ** 9})
+    assert response.status_code == 200
+    show = json.loads(response.data)['updated_watched_shows'][0]
+    assert show['seasons_watched'] <= 100
+
+
+def test_api_calculate_rejects_oversized_library(client):
+    """The watched-shows list carried in a request body is length-capped."""
+    huge = [{'id': i, 'seasons_watched': 1} for i in range(1001)]
+    response = client.post('/api/stats/calculate', json={'watched_shows': huge})
+    assert response.status_code == 413
+    assert 'error' in json.loads(response.data)
+
+
 def test_api_recommendations_rejects_a_malformed_library(client):
     """watched_shows has to be a list."""
     response = client.post('/api/recommendations', json={'watched_shows': 'Breaking Bad'})
