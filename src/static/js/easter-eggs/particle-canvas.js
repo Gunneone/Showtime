@@ -16,6 +16,8 @@ const ParticleCanvas = {
     ctx: null,
     particles: [],
     running: false,
+    // Viewport size the canvas bitmap was last built for, see resizeCanvas
+    sizedFor: null,
     // Timestamp of the previous frame, so motion can be scaled by how long
     // that frame actually took rather than assuming a steady 60fps.
     lastFrame: 0,
@@ -37,6 +39,10 @@ const ParticleCanvas = {
             this.canvas = canvas;
             this.ctx = canvas.getContext('2d');
             window.addEventListener('resize', () => this.resizeCanvas());
+            // The keyboard sliding away does not always fire a window resize
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', () => this.resizeCanvas());
+            }
         }
         this.resizeCanvas();
         return this.canvas;
@@ -44,9 +50,17 @@ const ParticleCanvas = {
 
     resizeCanvas() {
         if (!this.canvas) return;
+        // The canvas is fixed at 100% x 100%, so its coordinate space is the
+        // layout viewport - not the visual one, which the keyboard shrinks.
         const ratio = window.devicePixelRatio || 1;
         const width = window.innerWidth;
         const height = window.innerHeight;
+        // Assigning canvas.width wipes the bitmap and resets the transform, and
+        // iOS fires visualViewport resizes all through the keyboard animation.
+        // Nothing to do unless the size really changed, or a burst in flight
+        // would strobe.
+        if (this.sizedFor === `${width}x${height}@${ratio}`) return;
+        this.sizedFor = `${width}x${height}@${ratio}`;
         this.canvas.width = Math.round(width * ratio);
         this.canvas.height = Math.round(height * ratio);
         this.canvas.style.width = width + 'px';

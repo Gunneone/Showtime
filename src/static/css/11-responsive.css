@@ -129,4 +129,20 @@
     .watched-show-poster {
         width: 78px; /* 35% reduction from 120px */
     }
+
+    /* Toasts move to the bottom of the screen: the top of a phone screen is
+       where the running-total card and its celebration are, and a top-right
+       toast paints straight over the burst. */
+    .toast-container {
+        top: auto;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        left: 12px;
+        right: 12px;
+    }
+
+    .toast {
+        max-width: 100%;
+        /* Sliding in from the right reads wrong for a full-width bottom bar */
+        animation-name: slideUp;
+    }
 }

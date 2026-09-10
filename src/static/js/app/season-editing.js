@@ -254,7 +254,7 @@ Object.assign(App, {
                 DataStorage.setWatchedShows(data.updated_watched_shows);
             }
 
-            this.showToast(`Updated "${show ? show.name : 'show'}"!`);
+            this.showCelebrationToast(`Updated "${show ? show.name : 'show'}"!`);
             this.markCelebrationShow(showId);
             this.loadWatchedShows(true);
 
