@@ -1,0 +1,94 @@
+# Manual production deploy. Runs the test suite, then performs the same steps
+# that were done by hand: git pull on the server, rebuild the compose stack.
+#
+# Required repository secrets:
+#   DEPLOY_USER        SSH user on the host
+#   DEPLOY_SSH_KEY     private half of a key whose public half is in that
+#                      user's ~/.ssh/authorized_keys
+#   DEPLOY_KNOWN_HOSTS output of `ssh-keyscan server.gunneone.de`
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  DEPLOY_HOST: server.gunneone.de
+  DEPLOY_PATH: /srv/Showtime
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # The suite sets its own Config.TMDB_API_KEY; these only keep import-time
+      # configuration from tripping over a missing environment.
+      - name: Run pytest
+        env:
+          TMDB_API_KEY: test-api-key
+          SECRET_KEY: test-secret-key
+        run: pytest -q
+
+  deploy:
+    name: Deploy to production
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Pull and rebuild
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            DEPLOY_PATH="$DEPLOY_PATH" bash -euo pipefail -s <<'REMOTE'
+          cd "$DEPLOY_PATH"
+          git pull --ff-only
+          docker compose up --build -d
+          docker image prune -f
+          REMOTE
+
+      - name: Wait for the container to report healthy
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" bash -euo pipefail -s <<'REMOTE'
+          status=missing
+          for _ in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' showtime-app 2>/dev/null || echo missing)
+            case "$status" in
+              healthy)   echo "showtime-app is healthy"; exit 0 ;;
+              unhealthy) echo "showtime-app is unhealthy"; docker logs --tail 50 showtime-app; exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "Timed out waiting for showtime-app (last status: $status)"
+          docker logs --tail 50 showtime-app
+          exit 1
+          REMOTE
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
