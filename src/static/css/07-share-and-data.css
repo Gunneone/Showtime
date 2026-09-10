@@ -1,0 +1,115 @@
+/* Share button */
+.share-btn {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    background: var(--blue-dark);
+    border: 1px solid var(--blue-dark);
+    border-radius: 8px;
+    color: white;
+    padding: 0.5rem 1rem;
+    height: auto;
+    width: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.share-btn:hover {
+    background: var(--blue-darker);
+    border-color: var(--blue-darker);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--blue-dark-alpha-30);
+}
+
+.share-btn:active {
+    transform: translateY(0);
+}
+
+.share-btn i {
+    font-size: 0.9rem;
+}
+
+.share-btn span {
+    margin: 0;
+}
+
+/* Data management section */
+.remove-all-section {
+    margin-top: 2rem;
+    padding: 1rem 0;
+}
+
+.remove-all-container {
+    text-align: center;
+}
+
+.data-management-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.export-btn, .import-btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    background: var(--blue-dark);
+    border: 1px solid var(--blue-dark);
+}
+
+.export-btn:hover, .import-btn:hover {
+    background: var(--blue-darker) !important;
+    border-color: var(--blue-darker);
+    transform: translateY(-1px);
+}
+
+.refresh-seasons-btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    background: #38a169;
+    border: 1px solid #38a169;
+    color: white;
+}
+
+.refresh-seasons-btn:hover {
+    background: #2f855a !important;
+    border-color: #2f855a;
+    transform: translateY(-1px);
+    color: white;
+}
+
+.remove-all-btn {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+
+.remove-all-btn:hover {
+    background: #c53030 !important;
+    transform: translateY(-1px);
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #a0aec0;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: #4a5568;
+}
+
+.empty-state h4 {
+    margin-bottom: 1rem;
+    color: #cbd5e0;
+}

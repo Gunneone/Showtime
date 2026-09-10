@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Showtime - Track Your TV Time{% endblock %}</title>
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- CSS - split into ordered partials; the cascade depends on this order -->
+    {% for sheet in [
+        '01-base', '02-watch-time', '03-search', '04-watched-shows',
+        '05-easter-eggs', '06-season-editing', '07-share-and-data',
+        '08-feedback', '09-stats', '10-utilities-footer', '11-responsive',
+        '12-charts', '13-content-admin'
+    ] %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/' ~ sheet ~ '.css') }}">
+    {% endfor %}
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -55,9 +62,25 @@
         </div>
     </footer>
 
-    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/easter-eggs.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <!-- JavaScript - load order matters: storage + easter-egg + App core
+         before the modules that extend them -->
+    {% for script in [
+        'easter-eggs/core', 'easter-eggs/particle-canvas',
+        'easter-eggs/animations/dragon-ball', 'easter-eggs/animations/pokeball',
+        'easter-eggs/animations/avatar-elements', 'easter-eggs/animations/football',
+        'easter-eggs/animations/bluesky', 'easter-eggs/animations/donut',
+        'easter-eggs/animations/umbrella', 'easter-eggs/animations/red-light-green-light',
+        'easter-eggs/animations/portal', 'easter-eggs/animations/alphabet-wall',
+        'easter-eggs/animations/deduction', 'easter-eggs/animations/abduction',
+        'easter-eggs/animations/crt-collapse', 'easter-eggs/animations/hatch-timer',
+        'easter-eggs/animations/dragonfire', 'easter-eggs/animations/party-pill',
+        'storage',
+        'app/core', 'app/search', 'app/search-results', 'app/watched',
+        'app/watched-list', 'app/season-editing', 'app/ui', 'app/data-io',
+        'stats/core', 'stats/charts', 'stats/breakdowns'
+    ] %}
+    <script src="{{ url_for('static', filename='js/' ~ script ~ '.js') }}"></script>
+    {% endfor %}
     {% block scripts %}{% endblock %}
 </body>
 </html>
