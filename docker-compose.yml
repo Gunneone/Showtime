@@ -1,9 +1,12 @@
 services:
-  showtime:
+  app:
     build: .
     container_name: showtime-app
     ports:
-      - "5001:5001"
+      # Published on the loopback only -- nginx terminates TLS on the host and
+      # proxies to this port. Binding 0.0.0.0 would expose the container
+      # directly, straight past nginx.
+      - "127.0.0.1:8082:5001"
     environment:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-your-default-secret-key-change-in-production}

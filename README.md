@@ -147,7 +147,7 @@ docker compose logs -f
 docker compose down
 ```
 
-The application will be available at `http://localhost:5001`
+The application will be available at `http://localhost:8082` (the compose file publishes to the loopback only, for use behind a reverse proxy).
 
 #### 4. Alternative: Run with Docker directly
 
