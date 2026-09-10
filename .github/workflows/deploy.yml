@@ -1,7 +1,7 @@
 # Manual production deploy. Runs the test suite, then performs the same steps
 # that were done by hand: git pull on the server, rebuild the compose stack.
 #
-# Required repository secrets:
+# Required secrets, on the `server.gunneone.de` environment:
 #   DEPLOY_USER        SSH user on the host
 #   DEPLOY_SSH_KEY     private half of a key whose public half is in that
 #                      user's ~/.ssh/authorized_keys
@@ -45,6 +45,9 @@ jobs:
     name: Deploy to production
     needs: test
     runs-on: ubuntu-latest
+    # The deploy secrets are scoped to this environment; without naming it here
+    # they arrive empty and ssh is handed "@server.gunneone.de".
+    environment: server.gunneone.de
     steps:
       - name: Configure SSH
         env:
