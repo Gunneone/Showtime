@@ -1,0 +1,331 @@
+/* Easter eggs
+   Per-show flourishes. Registered in static/js/easter-eggs.js, which puts the
+   matching class on the show's card. */
+
+/* Monk: the poster sits on the right instead of the left. */
+.watched-show.easter-egg-monk {
+    flex-direction: row-reverse;
+}
+
+.watched-show.easter-egg-monk .watched-show-poster {
+    border-radius: 0 12px 12px 0;
+}
+
+/* 24 and The IT Crowd: the title reads off a calculator display. The font
+   only draws the seven segments, so it needs the room the extra size and
+   letter spacing give it. */
+.watched-show.easter-egg-segment-display .watched-show-info h4 {
+    font-family: 'Seven Segment', 'Courier New', monospace;
+    /* A calculator display has no lower case. */
+    text-transform: uppercase;
+    font-size: 1.35rem;
+    letter-spacing: 0.06em;
+    line-height: 1.35;
+}
+
+/* Breaking Bad: the title card boxes the letters that are chemical-element
+   symbols. easter-eggs.js rebuilds the title so "Br" and "Ba" sit in these
+   dark-green periodic-table tiles, white on green like the show's logo. */
+.watched-show.easter-egg-breaking-bad .bb-element {
+    display: inline-block;
+    padding: 0.12em 0.28em 0.18em;
+    margin: 0 0.02em;
+    border-radius: 0.28em;
+    background: #1f4d1a;
+    color: #ffffff;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+/* The Office: Jim sank Dwight's stapler in jello. The poster keeps its normal
+   slot but is inset inside it, so a rim of translucent amber jello shows all
+   the way around, and the photo sits at a slight angle. The block wobbles
+   once when the pointer lands on the jello itself. */
+.watched-show.easter-egg-office .watched-show-poster {
+    position: relative;
+    padding: 14px;
+    overflow: hidden;
+    transform-origin: center center;
+    background:
+        linear-gradient(158deg, rgba(255, 196, 74, 0.36), rgba(150, 210, 90, 0.28) 55%, rgba(255, 168, 40, 0.4));
+    box-shadow:
+        inset 0 0 0 2px rgba(255, 220, 130, 0.4),
+        inset 0 12px 20px rgba(255, 255, 255, 0.32),
+        inset 0 -18px 28px rgba(120, 80, 0, 0.32);
+}
+
+.watched-show.easter-egg-office .watched-show-poster img {
+    border-radius: 6px;
+    transform: rotate(-5deg);
+    box-shadow: 0 3px 12px rgba(70, 45, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.15);
+    /* Seen through jello: a touch warmer, never hidden. */
+    filter: sepia(0.3) saturate(1.12) brightness(1.02);
+}
+
+/* The glossy highlight across the top of the block. */
+.watched-show.easter-egg-office .watched-show-poster::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(118deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 42%);
+    pointer-events: none;
+}
+
+/* Poke the jello: a damped wobble that fires once when the pointer enters the
+   jello block (not the whole card). */
+.watched-show.easter-egg-office .watched-show-poster:hover {
+    animation: easterEggJello 0.9s both;
+}
+
+@keyframes easterEggJello {
+    0%, 100% { transform: rotate(0deg) skewX(0deg) scale(1, 1); }
+    11% { transform: rotate(-1deg) skewX(-12deg) skewY(-10deg) scale(1.03, 0.97); }
+    22% { transform: rotate(0.6deg) skewX(9deg) skewY(8deg) scale(0.98, 1.03); }
+    33% { transform: skewX(-6deg) skewY(-5deg); }
+    44% { transform: skewX(3.5deg) skewY(3deg); }
+    55% { transform: skewX(-2deg) skewY(-1.6deg); }
+    66% { transform: skewX(1deg) skewY(0.8deg); }
+    77% { transform: skewX(-0.4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .watched-show.easter-egg-office .watched-show-poster:hover {
+        animation: none;
+    }
+}
+
+/* Stranger Things: the right-hand side of the card - everything but the
+   poster - slips into the Upside Down. A hard divider line cuts across the
+   middle; below it the card darkens, spores drift up, and the watch time
+   hangs upside down. */
+.watched-show.easter-egg-upside-down .watched-show-content {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(120% 70% at 70% 135%, rgba(120, 20, 34, 0.45), transparent 60%),
+        linear-gradient(180deg,
+            transparent 0 calc(50% - 1px),
+            rgba(210, 60, 60, 0.65) calc(50% - 1px) calc(50% + 1px),
+            rgba(14, 18, 28, 0.62) calc(50% + 1px),
+            rgba(6, 8, 14, 0.92));
+}
+
+/* A faint red glow bleeding off the divider line. */
+.watched-show.easter-egg-upside-down .watched-show-content::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(50% - 8px);
+    height: 16px;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(220, 70, 70, 0.28) 50%, transparent);
+}
+
+.watched-show.easter-egg-upside-down .watched-show-info h4,
+.watched-show.easter-egg-upside-down .watched-show-seasons {
+    color: #cbd2dc;
+    text-shadow: 0 0 10px rgba(90, 120, 160, 0.35);
+}
+
+.watched-show.easter-egg-upside-down .watched-show-time {
+    display: inline-block;
+    transform: rotate(180deg);
+    color: #d05a5a;
+    text-shadow: 0 0 12px rgba(190, 60, 60, 0.5);
+}
+
+/* Spores drifting up through the murk, only in the Upside Down half. */
+.watched-show.easter-egg-upside-down .watched-show-content::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 50%;
+    pointer-events: none;
+    background-image:
+        radial-gradient(2px 2px at 20% 80%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(2px 2px at 65% 60%, rgba(210, 225, 255, 0.45), transparent),
+        radial-gradient(1.5px 1.5px at 40% 40%, rgba(255, 255, 255, 0.4), transparent),
+        radial-gradient(1.5px 1.5px at 85% 75%, rgba(200, 220, 255, 0.4), transparent),
+        radial-gradient(2px 2px at 10% 30%, rgba(255, 255, 255, 0.35), transparent);
+    background-size: 100% 100%;
+    animation: easterEggUpsideDownDrift 7s linear infinite;
+}
+
+@keyframes easterEggUpsideDownDrift {
+    from { transform: translateY(0); opacity: 0.55; }
+    50% { opacity: 0.85; }
+    to { transform: translateY(-26px); opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .watched-show.easter-egg-upside-down .watched-show-content::before {
+        animation: none;
+    }
+}
+
+/* One element of a Lottie celebration, placed over the page. */
+.easter-egg-lottie {
+    position: fixed;
+    pointer-events: none;
+    /* Same layer canvas-confetti uses, so it sits below modals and toasts. */
+    z-index: 100;
+}
+
+/* The Earth Kingdom green the animation is drawn in is darker than the page,
+   so it is lifted here rather than by editing the vendored artwork. */
+.easter-egg-lottie--earth {
+    filter: brightness(1.8);
+}
+
+/* Full-screen overlay used by custom celebration animations. */
+.easter-egg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Same layer canvas-confetti uses, so it sits below modals and toasts. */
+    z-index: 100;
+}
+
+/* Black Mirror celebration: the whole viewport does an old-CRT power-down -
+   picture to a line, line to a dot, dot out, then back. Sits above even the
+   fixed header (z-index 1000). */
+.crt-collapse {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    pointer-events: none;
+    background: #000;
+    opacity: 0;
+    transition: opacity 0.26s ease;
+}
+
+.crt-collapse-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 4px;
+    transform: translateY(-50%) scaleX(1);
+    background: #f4f8ff;
+    box-shadow: 0 0 22px 6px rgba(230, 240, 255, 0.9);
+    transition: transform 0.16s ease-in, opacity 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .crt-collapse-bar {
+        display: none;
+    }
+}
+
+/* Lost: the watch time reads off the Swan station's split-flap counter. */
+.watched-show.easter-egg-swan .watched-show-time {
+    display: inline-block;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.16em;
+    color: #e8e4d8;
+    background: #111;
+    padding: 3px 10px;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px #000, inset 0 1px 0 #333, inset 0 -12px 14px rgba(0, 0, 0, 0.55);
+}
+
+/* Lost celebration: the split-flap counter over the running-total card. */
+.hatch-timer {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 90vw;
+}
+
+.hatch-cell {
+    display: inline-block;
+    min-width: 0.72em;
+    padding: 6px 7px 8px;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(20px, 4vw, 34px);
+    font-weight: 700;
+    text-align: center;
+    color: #f0ece0;
+    background: linear-gradient(180deg, #1c1c1c 0 50%, #111 50%);
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px #000, 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.hatch-cell::after {
+    content: "";
+}
+
+.hatch-cell.flip {
+    animation: easterEggHatchFlip 0.13s ease;
+}
+
+.hatch-cell.alarm {
+    color: #ff5a5a;
+    background: linear-gradient(180deg, #3a0d0d 0 50%, #2a0808 50%);
+    text-shadow: 0 0 12px rgba(255, 70, 70, 0.6);
+}
+
+.hatch-caption {
+    flex-basis: 100%;
+    margin-top: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 0.32em;
+    text-align: center;
+    color: #ff6a6a;
+    text-shadow: 0 0 12px rgba(255, 70, 70, 0.5);
+}
+
+@keyframes easterEggHatchFlip {
+    0% { transform: scaleY(1); }
+    45% { transform: scaleY(0.06); filter: brightness(1.9); }
+    100% { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hatch-cell.flip {
+        animation: none;
+    }
+}
+
+/* Game of Thrones / House of the Dragon: the confetti goes up as normal, then
+   a plume of dragonfire (a vendored Lottie, see static/animations/README.md)
+   sweeps in from the left, laid on its side. easter-eggs.js sizes and places
+   it; the quarter turn and the glow blend live here. */
+.easter-egg-dragonfire {
+    position: fixed;
+    pointer-events: none;
+    /* Same layer canvas-confetti uses, so it sits below modals and toasts. */
+    z-index: 100;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: 50% 50%;
+    opacity: 0;
+    transition: opacity 0.28s ease;
+    /* The flame art is opaque orange on nothing; screen blend keeps the bright
+       tongues glowing on the dark page and lets the soft edges fall away
+       instead of sitting there as a hard cut-out. Saturate pulls the washed
+       inner frames back toward fire colour. */
+    mix-blend-mode: screen;
+    filter: saturate(1.45);
+    will-change: opacity, filter;
+}
+
+.easter-egg-dragonfire.is-lit {
+    /* Held back from full strength so the white-hot core reads as glow rather
+       than a blown-out slab. */
+    opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .easter-egg-dragonfire {
+        display: none;
+    }
+}

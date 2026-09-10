@@ -4,14 +4,22 @@ This test ensures that the confetti animation logic is triggered correctly
 when a user adds their very first show.
 """
 
+import glob
+
+
+def _app_js():
+    """The App front-end source, concatenated across its split modules."""
+    parts = sorted(glob.glob('src/static/js/app/*.js'))
+    return '\n'.join(open(path).read() for path in parts)
+
+
 def test_confetti_animation_fix():
     """
     Test that the JavaScript code correctly handles the confetti animation
     for the first show addition by checking the key logic changes.
     """
     # Read the JavaScript file
-    with open('src/static/js/app.js', 'r') as f:
-        js_content = f.read()
+    js_content = _app_js()
     
     # Verify that updateTotalTimeDisplay has the isUserTriggered parameter
     assert 'updateTotalTimeDisplay(formattedTime, newTimeMinutes = null, isUserTriggered = false)' in js_content, \
@@ -49,8 +57,7 @@ def test_confetti_trigger_conditions():
     """
     Test that the confetti animation logic has the correct trigger conditions.
     """
-    with open('src/static/js/app.js', 'r') as f:
-        js_content = f.read()
+    js_content = _app_js()
     
     # Verify that triggerCelebrationEffect is called for increases
     assert 'this.triggerCelebrationEffect(element, timeDifference, intensityFactor)' in js_content, \

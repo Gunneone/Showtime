@@ -1,0 +1,177 @@
+/* Charts Section Styles */
+.charts-section {
+    margin-bottom: 3rem;
+}
+
+.charts-section h3 {
+    margin-bottom: 2rem;
+    color: #a0aec0;
+    text-align: center;
+    font-size: 1.8rem;
+}
+
+.chart-container {
+    margin-bottom: 1.5rem;
+    margin-left: 40px;
+    margin-right: 40px;
+}
+
+.chart-container.horizontal-charts {
+    display: flex;
+    gap: 2rem;
+    align-items: stretch;
+}
+
+.chart-half {
+    flex: 1;
+}
+
+.chart-half h4 {
+    color: #a0aec0;
+    margin-bottom: 1.5rem;
+    text-align: left;
+    font-size: 1.2rem;
+}
+
+.chart-container h4 {
+    color: #a0aec0;
+    margin-bottom: 1.5rem;
+    text-align: left;
+    font-size: 1.2rem;
+}
+
+.plotly-chart {
+    min-height: 200px;
+    width: 100%;
+    border-radius: 10px;
+    background: transparent;
+}
+
+/* Awards Grid */
+.awards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.award-card {
+    background: rgba(42, 48, 62, 0.9);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--blue-primary-alpha-30);
+}
+
+.award-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--blue-primary);
+}
+
+.award-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--blue-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.award-value {
+    font-size: 1rem;
+    color: #e2e8f0;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Time Conversions Grid */
+.time-conversions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.conversion-card {
+    background: rgba(42, 48, 62, 0.9);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--blue-primary-alpha-30);
+}
+
+
+.conversion-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--blue-primary);
+}
+
+.conversion-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #e2e8f0;
+}
+
+.times-text {
+    color: #e2e8f0;
+}
+
+.conversion-description {
+    color: #cbd5e0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+    font-style: italic;
+}
+
+.conversion-activity {
+    color: #e2e8f0;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    line-height: 1.3;
+}
+
+/* Dark theme for Plotly charts */
+.js-plotly-plot .plotly .modebar {
+    background: rgba(45, 55, 72, 0.9) !important;
+}
+
+.js-plotly-plot .plotly .modebar-btn {
+    color: #e2e8f0 !important;
+}
+
+/* Responsive adjustments for charts */
+@media (max-width: 768px) {
+    .chart-container {
+        margin-bottom: 1.5rem;
+    }
+    
+    .chart-container.horizontal-charts {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .plotly-chart {
+        min-height: 300px;
+    }
+    
+    .time-conversions-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .conversion-card {
+        padding: 1rem;
+    }
+    
+    .conversion-icon {
+        font-size: 2rem;
+    }
+    
+    .conversion-value {
+        font-size: 1.4rem;
+    }
+}

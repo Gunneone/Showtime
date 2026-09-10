@@ -1,0 +1,132 @@
+/* Responsive design - 3-phase header behavior */
+
+/* Phase 2: Limited width - Hide title text, keep icon only to stay one-row */
+@media (max-width: 380px) {
+    .logo-text {
+        display: none;
+    }
+}
+
+/* Phase 3: Super limited space - Allow wrap to second row only when absolutely necessary */
+@media (max-width: 300px) {
+    .header-content {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .logo a {
+        font-size: 1.5rem;
+    }
+    
+    .nav {
+        gap: 1.5rem;
+    }
+    
+    .nav-link {
+        font-size: 0.9rem;
+    }
+}
+
+/* Legacy mobile breakpoint - keep existing styles for other mobile optimizations */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    /* Mobile card optimizations - reduce height by 35% while maintaining centering */
+    .watch-time-card {
+        padding: 0.975rem; /* 35% reduction from 1.5rem */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: auto;
+    }
+    
+    /* Ensure the time display is properly centered in available space */
+    .watch-time-display {
+        margin: auto; /* Center the display vertically in the remaining space */
+        flex: 1; /* Take up available space */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Fix 2: Remove "Time well spent" text on mobile */
+    .watch-time-subtitle {
+        display: none;
+    }
+    
+    /* Fix 2: Share button margin reduction and positioning */
+    .share-btn {
+        padding: 0.4rem 0.8rem; /* Reduced padding */
+        right: 0.75rem; /* Reduced right margin */
+        bottom: 0.75rem; /* Reduced bottom margin */
+        font-size: 0.85rem; /* Slightly smaller font */
+    }
+    
+    /* Fix 3: Reduce show card height by 35% on mobile */
+    .watched-show-content {
+        min-height: 117px; /* 35% reduction from 180px */
+        padding: 1rem 0.75rem; /* Reduced padding */
+    }
+    
+    /* Fix 4: Halve the distance between show cards */
+    .watched-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem; /* Halved from 1.5rem */
+    }
+    
+    /* Search results flow inline on mobile, but stay capped so a full page of
+       results cannot push the rest of the page out of reach */
+    .search-results {
+        max-height: 70vh;
+        overflow-y: auto;
+        position: relative; /* Change from absolute to relative */
+        margin-top: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    /* Fix 5: Make bottom buttons same size and better alignment */
+    .data-management-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        justify-content: center;
+        align-items: center;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    .export-btn, .import-btn, .refresh-seasons-btn, .remove-all-btn {
+        font-size: 0.8rem;
+        padding: 0.6rem 0.4rem;
+        text-align: center;
+        white-space: nowrap;
+        min-height: 44px; /* Consistent button height */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem; /* Add spacing between icon and text on mobile */
+    }
+    
+    .search-form {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    /* Make time text BIGGER on mobile since there's more space available */
+    .time-value {
+        font-size: 3rem; /* Increased from desktop size of 2.5rem */
+    }
+    
+    /* CRITICAL FIX: Reduce poster width by ~35% on mobile */
+    .watched-show-poster {
+        width: 78px; /* 35% reduction from 120px */
+    }
+}

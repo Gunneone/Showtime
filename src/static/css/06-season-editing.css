@@ -1,0 +1,84 @@
+/* Inline season editing */
+.seasons-display {
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    display: inline-block;
+    /* Rendered as a <button>: strip the UA chrome, inherit card typography */
+    background: none;
+    border: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+}
+
+.seasons-display:hover {
+    background: var(--blue-primary-alpha-10);
+}
+
+.seasons-edit {
+    display: none;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Same strip as .season-selector-bars; only the placement differs. The rounded
+   ends live on the first/last .season-bar (see above), so the strip reads as a
+   pill whether the bars sit on one row or wrap onto several. */
+.edit-season-bars {
+    align-self: flex-start;
+}
+
+
+.seasons-edit input {
+    width: 60px;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #4a5568;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    background: rgba(45, 55, 72, 0.9);
+    color: #e2e8f0;
+}
+
+.seasons-total {
+    color: #a0aec0;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.seasons-edit input:focus {
+    outline: none;
+    border-color: var(--blue-primary);
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-primary {
+    background: var(--blue-primary);
+    color: white;
+}
+
+.btn-secondary {
+    background: #4a5568;
+    color: #e2e8f0;
+}
+
+.btn-danger {
+    background: #e53e3e;
+    color: white;
+}
+
+.btn:hover {
+}
