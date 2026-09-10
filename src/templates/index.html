@@ -10,9 +10,9 @@
         <div class="watch-time-display" id="totalWatchTime">
             <span class="time-value">Loading...</span>
         </div>
-        <p class="watch-time-subtitle">Time well spent! <i class="fas fa-film"></i></p>
+        <p class="watch-time-subtitle">Time well spent! <i class="fas fa-film" aria-hidden="true"></i></p>
         <button type="button" class="share-btn" id="shareBtn" title="Share your watch time">
-            <i class="fas fa-share-alt"></i>
+            <i class="fas fa-share-alt" aria-hidden="true"></i>
             <span>Share Result</span>
         </button>
     </div>
@@ -22,16 +22,24 @@
 <section class="search-section">
     <div class="search-container">
         <div class="search-form">
-            <input 
-                type="text" 
-                id="searchInput" 
-                placeholder="Search for a TV show..." 
+            <label for="searchInput" class="sr-only">Search for a TV show</label>
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Search for a TV show..."
                 class="search-input"
+                role="combobox"
+                aria-expanded="false"
+                aria-controls="searchResults"
+                aria-autocomplete="list"
+                aria-haspopup="listbox"
+                autocomplete="off"
             >
         </div>
-        
-        <!-- Search Results -->
-        <div id="searchResults" class="search-results hidden"></div>
+
+        <!-- Search Results. role="listbox" is applied by JS only while option
+             elements are present (see App.setListboxActive). -->
+        <div id="searchResults" class="search-results hidden" aria-label="Search results"></div>
     </div>
 </section>
 
@@ -56,7 +64,7 @@
         
         <!-- Empty State -->
         <div id="emptyState" class="empty-state hidden">
-            <div class="empty-icon"><i class="fas fa-tv"></i></div>
+            <div class="empty-icon"><i class="fas fa-tv" aria-hidden="true"></i></div>
             <h4>No shows tracked yet!</h4>
             <p>Start by searching for a TV show above and adding it to your watched list.</p>
         </div>
@@ -69,17 +77,17 @@
         <div class="remove-all-container">
             <div class="data-management-buttons">
                 <button type="button" class="btn btn-primary export-btn" id="exportBtn">
-                    <i class="fas fa-download"></i> Export Data
+                    <i class="fas fa-download" aria-hidden="true"></i> Export Data
                 </button>
                 <button type="button" class="btn btn-primary import-btn" id="importBtn">
-                    <i class="fas fa-upload"></i> Import Data
+                    <i class="fas fa-upload" aria-hidden="true"></i> Import Data
                 </button>
-                <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                <input type="file" id="importFileInput" accept=".json" style="display: none;" aria-label="Choose a JSON file to import">
                 <button type="button" class="btn btn-info refresh-seasons-btn" id="refreshSeasonsBtn">
-                    <i class="fas fa-sync-alt"></i> Refresh Seasons
+                    <i class="fas fa-sync-alt" aria-hidden="true"></i> Refresh Seasons
                 </button>
                 <button type="button" class="btn btn-danger remove-all-btn" id="removeAllBtn">
-                    <i class="fas fa-trash"></i> Remove All Data
+                    <i class="fas fa-trash" aria-hidden="true"></i> Remove All Data
                 </button>
             </div>
         </div>
@@ -87,42 +95,13 @@
 </section>
 
 <!-- Loading Spinner -->
-<div id="loadingSpinner" class="loading-spinner hidden">
-    <div class="spinner"></div>
+<div id="loadingSpinner" class="loading-spinner hidden" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
     <p>Loading...</p>
 </div>
 
-<!-- Add Show Modal -->
-<div id="addShowModal" class="modal hidden">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h4 id="modalShowTitle">Add Show</h4>
-            <button type="button" class="modal-close" id="modalClose">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="show-info" id="modalShowInfo">
-                <!-- Show info will be populated here -->
-            </div>
-            <div class="form-group">
-                <label for="seasonsWatched">Seasons Watched:</label>
-                <input 
-                    type="number" 
-                    id="seasonsWatched" 
-                    min="1" 
-                    value="1" 
-                    class="form-input"
-                >
-                <small class="form-help">Enter the number of complete seasons you've watched</small>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" id="modalCancel">Cancel</button>
-            <button type="button" class="btn btn-primary" id="modalAdd">Add to Watched</button>
-        </div>
-    </div>
-</div>
-
-<!-- Toast Notifications -->
+<!-- Toast Notifications. Each toast carries its own role (status / alert) so
+     screen readers announce it as it is inserted; see App.showToast. -->
 <div id="toastContainer" class="toast-container"></div>
 {% endblock %}
 
