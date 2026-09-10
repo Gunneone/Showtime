@@ -46,10 +46,17 @@
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     border-left: 4px solid var(--blue-primary);
     animation: slideIn 0.3s ease-out;
+    /* A long show title must not grow the toast across the whole screen */
+    max-width: min(360px, calc(100vw - 40px));
+    overflow-wrap: anywhere;
 }
 
 .toast.error {
     border-left-color: #e53e3e;
+}
+
+.toast.warning {
+    border-left-color: #d69e2e;
 }
 
 @keyframes slideIn {
@@ -59,6 +66,18 @@
     }
     to {
         transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Bottom-anchored variant, see 11-responsive.css */
+@keyframes slideUp {
+    from {
+        transform: translateY(120%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
         opacity: 1;
     }
 }

@@ -70,14 +70,30 @@ Object.assign(App, {
         toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
         toast.setAttribute('aria-atomic', 'true');
 
-        this.elements.toastContainer.appendChild(toast);
+        // A stack of toasts is a wall across a phone screen. Keep the two most
+        // recent; older ones have had their moment.
+        const container = this.elements.toastContainer;
+        while (container.children.length >= 2) {
+            container.removeChild(container.firstElementChild);
+        }
+        container.appendChild(toast);
 
-        // Auto-remove after 5 seconds
+        // Shorter on mobile, where the toast has far more of the screen to
+        // cover and something worth watching is usually happening behind it.
+        const life = this.isMobile() ? 2800 : 5000;
         setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
+            if (toast.isConnected) {
+                toast.remove();
             }
-        }, 5000);
+        }, life);
+    },
+
+    // A toast for something that also sets off a celebration. On mobile the
+    // celebration, the counting total and the show appearing in the list are
+    // the confirmation - a toast on top of them is just in the way.
+    showCelebrationToast(message) {
+        if (this.isMobile()) return;
+        this.showToast(message);
     },
 
     // Save sort preference to localStorage
@@ -254,5 +270,65 @@ Object.assign(App, {
             );
             this.topCardScrollAbort = null;
         }
+    },
+
+    /**
+     * The slice of the fixed-position viewport the user can actually see. With
+     * the on-screen keyboard up that is roughly the top half of the screen,
+     * but `innerHeight` still reports the whole layout viewport. Returned in
+     * layout-viewport pixels, the coordinate space of a `position: fixed`
+     * element - which is what the celebration canvas is.
+     */
+    visibleViewportBand() {
+        const vv = window.visualViewport;
+        const top = vv ? vv.offsetTop : 0;
+        const height = vv ? vv.height : window.innerHeight;
+        return { top: top, bottom: top + height, height: height };
+    },
+
+    /**
+     * Resolve once the page has stopped moving underneath us - the keyboard has
+     * finished sliding, `scrollToTopCard` has finished re-asserting and the
+     * search results have finished collapsing. Anything that reads a
+     * `getBoundingClientRect()` and then paints at fixed viewport coordinates
+     * has to wait for this or it paints against a layout that no longer exists.
+     *
+     * Resolves after `quiet` ms without a resize or scroll, and in any case
+     * after `maxWait`.
+     */
+    whenLayoutSettled(maxWait = 700, quiet = 120) {
+        return new Promise(resolve => {
+            const vv = window.visualViewport;
+            const targets = vv ? [vv, window] : [window];
+            const events = ['resize', 'scroll'];
+            let quietTimer = null;
+            let capTimer = null;
+            let done = false;
+
+            const settle = () => {
+                if (done) return;
+                done = true;
+                clearTimeout(quietTimer);
+                clearTimeout(capTimer);
+                targets.forEach(target =>
+                    events.forEach(evt => target.removeEventListener(evt, restart))
+                );
+                resolve();
+            };
+
+            const restart = () => {
+                clearTimeout(quietTimer);
+                quietTimer = setTimeout(settle, quiet);
+            };
+
+            targets.forEach(target =>
+                events.forEach(evt =>
+                    target.addEventListener(evt, restart, { passive: true })
+                )
+            );
+
+            capTimer = setTimeout(settle, maxWait);
+            restart();
+        });
     },
 });

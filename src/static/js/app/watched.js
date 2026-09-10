@@ -1,6 +1,12 @@
 // Showtime - adding shows, running-total animation, celebration trigger
 // Extends the App object defined in app/core.js.
 
+// canvas-confetti draws on a canvas it creates itself, and only honours this
+// when it creates it - so every burst has to agree on the value. Kept in step
+// with .easter-egg-canvas in css/05-easter-eggs.css: above the fixed header and
+// the search dropdown (1000), below the spinner (2000) and toasts (3000).
+const CELEBRATION_Z_INDEX = 1500;
+
 Object.assign(App, {
     // Add show with specific number of seasons (for season selector bars)
     async addShowWithSeasons(showId, seasonsWatched, showName) {
@@ -40,7 +46,7 @@ Object.assign(App, {
                 DataStorage.setWatchedShows(data.updated_watched_shows);
             }
 
-            this.showToast(`Added "${showName}" with ${seasonsWatched} season${seasonsWatched !== 1 ? 's' : ''} to your watched list!`);
+            this.showCelebrationToast(`Added "${showName}" with ${seasonsWatched} season${seasonsWatched !== 1 ? 's' : ''} to your watched list!`);
             this.markCelebrationShow(show.id);
             this.loadWatchedShows(true);
             this.hideSearchResults();
@@ -240,22 +246,52 @@ Object.assign(App, {
     },
 
     // Trigger celebration particle effect using canvas-confetti
-    triggerCelebrationEffect(element, timeDifference, intensityFactor) {
-        const container = element.closest('.watch-time-card');
-        if (!container) return;
-
+    //
+    // Deliberately not awaited by its callers: the total keeps counting while
+    // the page finishes settling underneath, and the burst joins in once it
+    // can be aimed at where the card has actually come to rest.
+    async triggerCelebrationEffect(element, timeDifference, intensityFactor) {
         // The show that triggered this increase only gets one celebration.
+        // Claimed before the first await, so a second add landing in the
+        // meantime cannot have its show stolen by this celebration.
         const celebrationShowId = this.state.celebrationShowId;
         this.state.celebrationShowId = null;
 
-        // Get container bounds to determine the origin position
+        // scrollToTopCard is still smooth-scrolling and re-asserting, the
+        // search results are collapsing and the keyboard may be sliding away.
+        // Particles are placed at absolute viewport pixels on a fixed canvas,
+        // so firing now would leave the burst behind wherever the card was.
+        await this.whenLayoutSettled();
+
+        this.fireCelebration(element, celebrationShowId, timeDifference, intensityFactor);
+    },
+
+    fireCelebration(element, celebrationShowId, timeDifference, intensityFactor) {
+        const container = element.closest('.watch-time-card');
+        if (!container) return;
+
+        // Read the card only now that the page has stopped moving
         const containerRect = container.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-        
+
+        // Aim at the middle of the card, but keep the origin inside the part of
+        // the viewport the user can actually see - the keyboard may be covering
+        // the bottom half, and the card is off-screen entirely if the user
+        // aborted the scroll with a swipe. Better a burst slightly off the card
+        // than a burst nobody sees.
+        const band = this.visibleViewportBand();
+        const inset = band.height * 0.12;
+        const centerY = containerRect.top + containerRect.height / 2;
+        const clampedY = Math.min(
+            Math.max(centerY, band.top + inset),
+            band.bottom - band.height * 0.1
+        );
+
         // Calculate center position of the card relative to viewport
-        const originX = (containerRect.left + containerRect.width / 2) / viewportWidth;
-        const originY = (containerRect.top + containerRect.height / 2) / viewportHeight;
+        const originX = Math.min(Math.max(
+            (containerRect.left + containerRect.width / 2) / viewportWidth, 0.05), 0.95);
+        const originY = clampedY / viewportHeight;
 
         // Scale particle count based on intensity (15 to 60 particles for better visual impact)
         const minParticles = 15;
@@ -310,6 +346,7 @@ Object.assign(App, {
                         y: originY 
                     },
                     colors: colors,
+                    zIndex: CELEBRATION_Z_INDEX,
                     shapes: ['square', 'circle'], // Mix of shapes
                     scalar: 0.8 + (intensityFactor * 0.4), // 0.8-1.2 size scaling
                     drift: (Math.random() - 0.5) * 2, // Random horizontal drift
@@ -342,6 +379,7 @@ Object.assign(App, {
                             y: originY 
                         },
                         colors: colors,
+                        zIndex: CELEBRATION_Z_INDEX,
                         shapes: ['square', 'circle'],
                         scalar: 0.7 + (intensityFactor * 0.3), // Slightly smaller for secondary bursts
                         drift: (Math.random() - 0.5) * 1.5,
@@ -368,6 +406,7 @@ Object.assign(App, {
                         y: originY 
                     },
                     colors: colors,
+                    zIndex: CELEBRATION_Z_INDEX,
                     shapes: ['circle'],
                     scalar: 0.6 + (intensityFactor * 0.3),
                     gravity: 0.4,
