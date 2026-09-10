@@ -217,3 +217,12 @@ marimo/_lsp/
 __marimo__/
 .env
 .pytest_cache/
+
+# macOS
+.DS_Store
+
+# JetBrains IDEs (PyCharm, IntelliJ, ...)
+.idea/
+
+# Claude Code
+.claude/
