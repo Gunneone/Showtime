@@ -1,6 +1,3 @@
-// Showtime easter eggs - Celebration: Dragonfire
-
-
 /**
  * Game of Thrones / House of the Dragon.
  *

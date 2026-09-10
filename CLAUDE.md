@@ -60,8 +60,7 @@ acceptable stand-in for a good one that already exists online.
 
 Per-show easter eggs live in `src/static/js/easter-eggs/` — `core.js` holds the
 registry and per-show dispatch, `particle-canvas.js` the shared canvas, and
-`animations-1.js` … `animations-6.js` one celebration object each (grouped by
-line budget; the header comment in each says which). Styles are in
+`animations/<name>.js` one celebration object each. Styles are in
 `src/static/css/05-easter-eggs.css`. A definition can set a `cardClass`, a
 `decorator` (reaches into the built card element), and/or a `celebration`
 (replaces the confetti burst; runs on the shared `ParticleCanvas` or as plain

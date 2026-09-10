@@ -1,6 +1,3 @@
-// Showtime easter eggs - Celebration: Party Pill
-
-
 /**
  * How to Sell Drugs Online (Fast): Moritz runs his shop out of his bedroom,
  * so the burst is a shower of round pressed party pills - domed candy-coloured
