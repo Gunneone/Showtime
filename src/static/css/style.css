@@ -390,8 +390,15 @@ body {
     border-radius: 12px 12px 8px 8px;
 }
 
-.search-result:hover {
+.search-result:hover,
+.search-result.active {
     background: var(--blue-primary-alpha-20);
+}
+
+.search-result:focus-visible,
+.search-result.active {
+    outline: 2px solid var(--blue-primary);
+    outline-offset: -2px;
 }
 
 .search-result-content {
@@ -427,10 +434,13 @@ body {
     min-width: 0;
 }
 
-.search-result-info h4 {
+.search-result-info h4,
+.search-result-info .search-result-title {
     color: #e2e8f0;
     margin-bottom: 0.4rem;
+    margin-top: 0;
     font-size: 0.9rem;
+    font-weight: 700;
 }
 
 .search-result-date {
@@ -447,6 +457,18 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(74, 85, 104, 0.1);
     border-radius: 0 0 12px 12px;
+    cursor: pointer;
+}
+
+.search-load-more.active,
+.search-load-more:focus-visible {
+    outline: 2px solid var(--blue-primary);
+    outline-offset: -2px;
+}
+
+.search-load-more.active .load-more-btn,
+.search-load-more:hover .load-more-btn {
+    background: var(--blue-dark);
 }
 
 .load-more-btn {
@@ -491,19 +513,21 @@ body {
 .season-selector-bars {
     display: flex;
     flex-wrap: wrap;
-    gap: 2px;
+    gap: 0;
     position: relative;
     z-index: 10;
-    border-radius: 4px;
     max-width: 100%;
 }
 
+/* One shared look for both the search-result strip and the watched-card
+   season editor: a connected segmented bar, only the two outer ends rounded. */
 .season-bar {
-    background: var(--blue-primary-alpha-30);
-    border: 1px solid rgba(99, 179, 237, 0.5);
+    background: var(--blue-primary-alpha-20);
+    border: none;
+    border-right: 1px solid rgba(99, 179, 237, 0.4);
     color: var(--blue-primary);
     padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+    border-radius: 0;
     cursor: pointer;
     font-size: 0.75rem;
     font-weight: 600;
@@ -512,11 +536,31 @@ body {
     text-align: center;
 }
 
+.season-bar:first-child {
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+
+.season-bar:last-child {
+    border-right: none;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
 .season-bar:hover,
-.season-bar.highlighted {
+.season-bar.highlighted,
+.season-bar.hover-highlighted {
     background: var(--blue-primary-alpha-60);
     color: white;
     box-shadow: 0 2px 8px var(--blue-primary-alpha-30);
+}
+
+/* Inset ring: an outset one would overlap the neighbouring bars in the strip */
+.season-selector-bars .season-bar:focus-visible {
+    outline: 2px solid var(--blue-primary);
+    outline-offset: -2px;
+    position: relative;
+    z-index: 1;
 }
 
 /* Watched shows section */
@@ -603,6 +647,7 @@ body {
     right: 0.5rem;
     width: 20px;
     height: 20px;
+    padding: 0;
     border-radius: 50%;
     background: transparent;
     color: rgba(226, 232, 240, 0.6);
@@ -1020,6 +1065,12 @@ body {
     border-radius: 6px;
     transition: background-color 0.2s;
     display: inline-block;
+    /* Rendered as a <button>: strip the UA chrome, inherit card typography */
+    background: none;
+    border: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
 }
 
 .seasons-display:hover {
@@ -1032,41 +1083,12 @@ body {
     gap: 0.75rem;
 }
 
+/* Same strip as .season-selector-bars; only the placement differs. The rounded
+   ends live on the first/last .season-bar (see above), so the strip reads as a
+   pill whether the bars sit on one row or wrap onto several. */
 .edit-season-bars {
-    display: flex;
-    gap: 0;
-    flex-wrap: wrap;
-    border-radius: 4px;
-    overflow: hidden;
+    align-self: flex-start;
 }
-
-.edit-season-bar {
-    background: var(--blue-primary-alpha-20);
-    border: none;
-    border-right: 1px solid rgba(99, 179, 237, 0.4);
-    color: var(--blue-primary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 0;
-    cursor: pointer;
-    font-size: 0.75rem;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    min-width: 24px;
-    text-align: center;
-}
-
-.edit-season-bar:last-child {
-    border-right: none;
-}
-
-.edit-season-bar:hover,
-.edit-season-bar.highlighted,
-.edit-season-bar.hover-highlighted {
-    background: var(--blue-primary-alpha-60);
-    color: white;
-    box-shadow: 0 2px 8px var(--blue-primary-alpha-30);
-}
-
 
 
 .seasons-edit input {
@@ -1237,127 +1259,6 @@ body {
     color: #cbd5e0;
 }
 
-/* Modal */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: #2d3748;
-    border-radius: 15px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-    color: #e2e8f0;
-}
-
-.modal-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid #4a5568;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #a0aec0;
-}
-
-.modal-close:hover {
-    color: #e2e8f0;
-}
-
-.modal-body {
-    padding: 1.5rem;
-}
-
-.modal-footer {
-    padding: 1.5rem;
-    border-top: 1px solid #4a5568;
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-}
-
-.show-info {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.show-poster {
-    width: 80px;
-    height: 120px;
-    background: #4a5568;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.show-poster img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.show-details h5 {
-    color: #e2e8f0;
-    margin-bottom: 0.5rem;
-}
-
-.show-details p {
-    color: #cbd5e0;
-    font-size: 0.9rem;
-    line-height: 1.4;
-}
-
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #e2e8f0;
-    font-weight: 500;
-}
-
-.form-input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #4a5568;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: border-color 0.3s;
-    background: rgba(45, 55, 72, 0.9);
-    color: #e2e8f0;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: var(--blue-primary);
-}
-
-.form-help {
-    display: block;
-    margin-top: 0.25rem;
-    color: #a0aec0;
-    font-size: 0.8rem;
-}
-
 /* Loading spinner */
 .loading-spinner {
     position: fixed;
@@ -1487,7 +1388,7 @@ body {
 .genre-stats h3,
 .yearly-stats h3 {
     margin-bottom: 1.5rem;
-    color: #4a5568;
+    color: #a0aec0;
 }
 
 .completion-grid {
@@ -1566,6 +1467,30 @@ body {
 /* Utility classes */
 .hidden {
     display: none;
+}
+
+/* Visually hide content while keeping it available to screen readers */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Visible keyboard focus for interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible,
+.search-result:focus-visible {
+    outline: 2px solid var(--blue-primary);
+    outline-offset: 2px;
 }
 
 .text-center {
@@ -1727,10 +1652,6 @@ body {
         font-size: 3rem; /* Increased from desktop size of 2.5rem */
     }
     
-    .modal-content {
-        width: 95%;
-    }
-    
     /* CRITICAL FIX: Reduce poster width by ~35% on mobile */
     .watched-show-poster {
         width: 78px; /* 35% reduction from 120px */
@@ -1744,7 +1665,7 @@ body {
 
 .charts-section h3 {
     margin-bottom: 2rem;
-    color: #4a5568;
+    color: #a0aec0;
     text-align: center;
     font-size: 1.8rem;
 }
@@ -1766,14 +1687,14 @@ body {
 }
 
 .chart-half h4 {
-    color: #4a5568;
+    color: #a0aec0;
     margin-bottom: 1.5rem;
     text-align: left;
     font-size: 1.2rem;
 }
 
 .chart-container h4 {
-    color: #4a5568;
+    color: #a0aec0;
     margin-bottom: 1.5rem;
     text-align: left;
     font-size: 1.2rem;

@@ -159,7 +159,6 @@ const App = {
         totalTime: 0,
         previousTotalTime: 0,
         isLoading: false,
-        selectedShow: null,
         searchRequestId: 0,
         pendingSearchController: null,
         displayedSearchResults: 0,
@@ -190,7 +189,6 @@ const App = {
         emptyState: null,
         totalWatchTime: null,
         loadingSpinner: null,
-        addShowModal: null,
         toastContainer: null,
         sortControls: null,
         sortSelect: null,
@@ -223,7 +221,6 @@ const App = {
         this.elements.emptyState = document.getElementById('emptyState');
         this.elements.totalWatchTime = document.getElementById('totalWatchTime');
         this.elements.loadingSpinner = document.getElementById('loadingSpinner');
-        this.elements.addShowModal = document.getElementById('addShowModal');
         this.elements.toastContainer = document.getElementById('toastContainer');
         this.elements.sortControls = document.getElementById('sortControls');
         this.elements.sortSelect = document.getElementById('sortSelect');
@@ -295,11 +292,24 @@ const App = {
         // Close search results when clicking outside
         document.addEventListener('click', (e) => {
             // Don't close if clicking inside search results or search input
-            if (!this.elements.searchInput.contains(e.target) && 
+            if (!this.elements.searchInput.contains(e.target) &&
                 !this.elements.searchResults.contains(e.target)) {
                 this.hideSearchResults();
             }
         });
+
+        // Close the dropdown once keyboard focus leaves the combobox entirely
+        const searchContainer = this.elements.searchInput.closest('.search-container')
+            || this.elements.searchResults.parentElement;
+        if (searchContainer) {
+            searchContainer.addEventListener('focusout', () => {
+                setTimeout(() => {
+                    if (!searchContainer.contains(document.activeElement)) {
+                        this.hideSearchResults();
+                    }
+                }, 0);
+            });
+        }
 
         // Close season editing when clicking outside
         document.addEventListener('click', (e) => {
@@ -316,8 +326,67 @@ const App = {
             });
         });
 
-        // Modal events
-        this.bindModalEvents();
+        // Arrow-key navigation for the inline season editor on watched cards
+        if (this.elements.watchedShows) {
+            this.elements.watchedShows.addEventListener('keydown', (e) => {
+                const bar = e.target.closest('.edit-season-bar');
+                if (bar) this.handleEditSeasonBarsKeydown(e, bar);
+            });
+        }
+    },
+
+    // Roving arrow-key navigation within one card's season editor. One Tab
+    // stop lands on the current count; Left/Right (or Up/Down) walk the bars
+    // with a live preview highlight, Enter/Space commit, Esc cancels.
+    handleEditSeasonBarsKeydown(e, bar) {
+        const container = bar.closest('.edit-season-bars');
+        if (!container) return;
+        const bars = Array.from(container.querySelectorAll('.edit-season-bar'));
+        const idx = bars.indexOf(bar);
+        const showId = parseInt(bar.dataset.showId, 10);
+
+        const moveTo = (target) => {
+            const clamped = Math.max(0, Math.min(bars.length - 1, target));
+            bars.forEach((b, i) => {
+                b.setAttribute('tabindex', i === clamped ? '0' : '-1');
+                b.classList.toggle('highlighted', i <= clamped);
+                b.setAttribute('aria-pressed', i <= clamped ? 'true' : 'false');
+            });
+            container.setAttribute('data-selected-seasons', clamped + 1);
+            bars[clamped].focus();
+        };
+
+        switch (e.key) {
+            case 'ArrowRight':
+            case 'ArrowDown':
+                e.preventDefault();
+                moveTo(idx + 1);
+                break;
+            case 'ArrowLeft':
+            case 'ArrowUp':
+                e.preventDefault();
+                moveTo(idx - 1);
+                break;
+            case 'Home':
+                e.preventDefault();
+                moveTo(0);
+                break;
+            case 'End':
+                e.preventDefault();
+                moveTo(bars.length - 1);
+                break;
+            case 'Enter':
+            case ' ':
+                e.preventDefault();
+                this.selectEditSeasons(showId, idx + 1);
+                break;
+            case 'Escape':
+                e.preventDefault();
+                this.cancelEditSeasons(showId);
+                break;
+            default:
+                break;
+        }
     },
 
     // Minimum query length before a search is worth running
@@ -352,8 +421,11 @@ const App = {
             }
         });
 
-        // Manual search with Enter key
+        // Keyboard handling for the combobox: Enter runs a manual search,
+        // the arrow keys walk the results dropdown (see handleComboboxKeydown).
         this.elements.searchInput.addEventListener('keydown', (e) => {
+            if (this.handleComboboxKeydown(e)) return;
+
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const query = this.elements.searchInput.value.trim();
@@ -371,33 +443,172 @@ const App = {
             if (!bar || !this.elements.searchResults.contains(bar)) return;
 
             e.stopPropagation();
-            const showId = parseInt(bar.dataset.showId, 10);
-            const seasons = parseInt(bar.dataset.season, 10);
-            const show = this.findResultShow(showId);
-            if (show) {
-                this.addShowWithSeasons(showId, seasons, show.name);
-            }
+            this.activateSeasonBar(bar);
+        });
+
+        // Keyboard activation for options / season bars once focus has moved
+        // into the dropdown.
+        this.elements.searchResults.addEventListener('keydown', (e) => {
+            this.handleResultsKeydown(e);
         });
     },
 
-    // Bind modal event listeners
-    bindModalEvents() {
-        // Add show modal
-        const modalClose = document.getElementById('modalClose');
-        const modalCancel = document.getElementById('modalCancel');
-        const modalAdd = document.getElementById('modalAdd');
+    // --- Search dropdown keyboard navigation (WAI-ARIA listbox pattern) ---
+    //
+    // The text field is a combobox that owns #searchResults (role="listbox").
+    // Each ".search-result" and the "load more" row are options with a roving
+    // tabindex. Up/Down move between options; on a result option Left/Right
+    // change how many seasons Enter will add.
 
-        if (modalClose) modalClose.addEventListener('click', () => this.hideAddModal());
-        if (modalCancel) modalCancel.addEventListener('click', () => this.hideAddModal());
-        if (modalAdd) modalAdd.addEventListener('click', () => this.addShowToWatched());
+    // Options in visual order
+    resultNavItems() {
+        return Array.from(this.elements.searchResults.querySelectorAll('[role="option"]'));
+    },
 
-        // Close modal when clicking outside
-        if (this.elements.addShowModal) {
-            this.elements.addShowModal.addEventListener('click', (e) => {
-                if (e.target === this.elements.addShowModal) {
-                    this.hideAddModal();
+    // Move keyboard focus to an option and mark it the active descendant
+    focusResultItem(item) {
+        if (!item) return;
+        this.resultNavItems().forEach(el => {
+            el.setAttribute('tabindex', el === item ? '0' : '-1');
+            el.classList.toggle('active', el === item);
+            el.setAttribute('aria-selected', el === item ? 'true' : 'false');
+        });
+        this.elements.searchInput.setAttribute('aria-activedescendant', item.id || '');
+        // Show the current season selection on the (decorative) bars so it is
+        // obvious the count starts at "all" and the arrows move from there.
+        if (item.classList.contains('search-result')) {
+            this.paintResultSeasonBars(item);
+        }
+        item.focus();
+        item.scrollIntoView({ block: 'nearest' });
+    },
+
+    // Reset roving tabindex after the dropdown is (re)rendered
+    resetResultRoving() {
+        const items = this.resultNavItems();
+        items.forEach((el, i) => {
+            el.setAttribute('tabindex', i === 0 ? '0' : '-1');
+            el.classList.remove('active');
+            el.setAttribute('aria-selected', 'false');
+        });
+        this.elements.searchInput.removeAttribute('aria-activedescendant');
+    },
+
+    // Arrow keys while focus is still in the text field. Returns true when
+    // the key was consumed.
+    handleComboboxKeydown(e) {
+        const open = !this.elements.searchResults.classList.contains('hidden');
+
+        if (e.key === 'ArrowDown' && open) {
+            e.preventDefault();
+            const items = this.resultNavItems();
+            if (items.length) this.focusResultItem(items[0]);
+            return true;
+        }
+
+        if (e.key === 'Escape' && open) {
+            e.preventDefault();
+            this.hideSearchResults();
+            return true;
+        }
+
+        return false;
+    },
+
+    // Keys once focus has moved onto an option inside the dropdown
+    handleResultsKeydown(e) {
+        const items = this.resultNavItems();
+        if (!items.length) return;
+
+        const current = e.target.closest('[role="option"]');
+        if (!current) return;
+        const index = items.indexOf(current);
+        const isResult = current.classList.contains('search-result');
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                this.focusResultItem(items[Math.min(index + 1, items.length - 1)]);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                if (index <= 0) {
+                    this.resetResultRoving();
+                    this.elements.searchInput.focus();
+                } else {
+                    this.focusResultItem(items[index - 1]);
                 }
-            });
+                break;
+            case 'ArrowRight':
+                if (!isResult) break;
+                e.preventDefault();
+                this.adjustResultSeasons(current, 1);
+                break;
+            case 'ArrowLeft':
+                if (!isResult) break;
+                e.preventDefault();
+                this.adjustResultSeasons(current, -1);
+                break;
+            case 'Home':
+                e.preventDefault();
+                this.focusResultItem(items[0]);
+                break;
+            case 'End':
+                e.preventDefault();
+                this.focusResultItem(items[items.length - 1]);
+                break;
+            case 'Enter':
+            case ' ':
+                e.preventDefault();
+                if (isResult) {
+                    this.addFocusedResult(current);
+                } else {
+                    current.click();
+                }
+                break;
+            case 'Escape':
+                e.preventDefault();
+                this.hideSearchResults();
+                this.elements.searchInput.focus();
+                break;
+            default:
+                break;
+        }
+    },
+
+    // Cycle a result option's season selection (wraps at both ends so every
+    // key press gives feedback) and re-announce it
+    adjustResultSeasons(option, delta) {
+        const total = parseInt(option.dataset.totalSeasons, 10) || 1;
+        const current = parseInt(option.dataset.selectedSeasons, 10) || total;
+        let next = current + delta;
+        if (next > total) next = 1;
+        if (next < 1) next = total;
+        if (next === current) return;
+        option.dataset.selectedSeasons = next;
+        this.updateResultOptionLabel(option);
+        this.paintResultSeasonBars(option);
+        this.elements.searchInput.setAttribute('aria-activedescendant', option.id || '');
+    },
+
+    // Add the show a focused result option represents, honouring its season pick
+    addFocusedResult(option) {
+        const showId = parseInt(option.id.replace('search-result-', ''), 10);
+        const seasons = parseInt(option.dataset.selectedSeasons, 10)
+            || parseInt(option.dataset.totalSeasons, 10) || 1;
+        const show = this.findResultShow(showId);
+        if (show) {
+            this.addShowWithSeasons(showId, seasons, show.name);
+        }
+    },
+
+    // Add a show for the season count a given season bar represents (mouse)
+    activateSeasonBar(bar) {
+        const showId = parseInt(bar.dataset.showId, 10);
+        const seasons = parseInt(bar.dataset.season, 10);
+        const show = this.findResultShow(showId);
+        if (show) {
+            this.addShowWithSeasons(showId, seasons, show.name);
         }
     },
 
@@ -467,10 +678,27 @@ const App = {
         }
     },
 
+    // Reflect the dropdown's open/closed state on the combobox for assistive tech
+    setResultsExpanded(expanded) {
+        this.elements.searchInput.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    },
+
+    // A listbox must contain options, so only carry the role while results
+    // (not a loading/error/empty message) are on screen.
+    setListboxActive(active) {
+        if (active) {
+            this.elements.searchResults.setAttribute('role', 'listbox');
+        } else {
+            this.elements.searchResults.setAttribute('role', 'presentation');
+        }
+    },
+
     // Show loading state in search results
     showSearchLoading(message = 'Searching...') {
-        this.elements.searchResults.innerHTML = `<div class="search-loading"><i class="fas fa-spinner fa-spin"></i> ${this.escapeHtml(message)}</div>`;
+        this.elements.searchResults.innerHTML = `<div class="search-loading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> ${this.escapeHtml(message)}</div>`;
         this.elements.searchResults.classList.remove('hidden');
+        this.setResultsExpanded(true);
+        this.setListboxActive(false);
     },
 
     // Replace the dropdown contents with an error, so a failure never looks
@@ -478,11 +706,13 @@ const App = {
     showSearchError(message) {
         this.elements.searchResults.innerHTML = `
             <div class="search-no-results">
-                <i class="fas fa-triangle-exclamation"></i>
+                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
                 <p>${this.escapeHtml(message)}</p>
             </div>
         `;
         this.elements.searchResults.classList.remove('hidden');
+        this.setResultsExpanded(true);
+        this.setListboxActive(false);
         this.state.displayedSearchResults = 0;
         this.state.displayedShowIds = new Set();
     },
@@ -491,6 +721,9 @@ const App = {
     hideSearchResults() {
         this.elements.searchResults.classList.add('hidden');
         this.elements.searchResults.innerHTML = '';
+        this.setResultsExpanded(false);
+        this.setListboxActive(false);
+        this.elements.searchInput.removeAttribute('aria-activedescendant');
         this.state.displayedSearchResults = 0;
         this.state.displayedShowIds = new Set();
     },
@@ -572,10 +805,13 @@ const App = {
 
         this.elements.searchResults.innerHTML = '';
         this.elements.searchResults.classList.remove('hidden');
+        this.setResultsExpanded(true);
+        this.setListboxActive(true);
         this.state.displayedShowIds = new Set();
 
         const header = document.createElement('div');
         header.className = 'search-results-header';
+        header.setAttribute('role', 'presentation');
         header.textContent = mode === 'personalized'
             ? "The algorithm thinks, you might've watched these..."
             : 'The most popular shows of all time';
@@ -586,6 +822,7 @@ const App = {
         const initialCount = this.isMobile() ? this.state.maxSearchResults : results.length;
         this.state.recommendations.shown = 0;
         this.appendRecommendations(initialCount);
+        this.resetResultRoving();
     },
 
     // Append the next batch of suggestions, adding a "show more" control if any
@@ -608,16 +845,23 @@ const App = {
         if (endIndex < results.length) {
             const moreDiv = document.createElement('div');
             moreDiv.className = 'search-load-more';
-
-            const moreBtn = document.createElement('button');
-            moreBtn.className = 'load-more-btn';
-            moreBtn.innerHTML = '<i class="fas fa-plus"></i> load more';
-            moreBtn.addEventListener('click', (e) => {
+            moreDiv.setAttribute('role', 'option');
+            moreDiv.setAttribute('tabindex', '-1');
+            moreDiv.setAttribute('aria-label', 'Load more suggestions');
+            moreDiv.innerHTML = '<span class="load-more-btn"><i class="fas fa-plus" aria-hidden="true"></i> load more</span>';
+            moreDiv.addEventListener('click', (e) => {
                 e.stopPropagation();
+                const fromKeyboard = e.detail === 0;
+                const firstNewIndex = this.resultNavItems().length - 1; // replaces the load-more row
                 this.appendRecommendations(this.state.maxSearchResults);
+                if (fromKeyboard) {
+                    const options = this.resultNavItems();
+                    this.focusResultItem(options[firstNewIndex] || options[0]);
+                } else {
+                    this.resetResultRoving();
+                }
             });
 
-            moreDiv.appendChild(moreBtn);
             this.elements.searchResults.appendChild(moreDiv);
         }
     },
@@ -639,16 +883,20 @@ const App = {
         }
 
         this.elements.searchResults.classList.remove('hidden');
+        this.setResultsExpanded(true);
 
         if (!allResults || allResults.length === 0) {
             this.elements.searchResults.innerHTML = `
                 <div class="search-no-results">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-search" aria-hidden="true"></i>
                     <p>No shows found. Try a different search term.</p>
                 </div>
             `;
+            this.setListboxActive(false);
             return;
         }
+
+        this.setListboxActive(true);
 
         // Determine how many results to show
         const startIndex = this.state.displayedSearchResults;
@@ -674,12 +922,20 @@ const App = {
         if (hasMoreLocally || hasMorePages) {
             this.addLoadMoreButton(allResults, isInstantSearch);
         }
+
+        if (isInitialLoad) {
+            this.resetResultRoving();
+        }
     },
 
     // Create search result element
     createSearchResultElement(show, isInstantSearch = false) {
         const div = document.createElement('div');
         div.className = 'search-result';
+        div.id = `search-result-${show.id}`;
+        div.setAttribute('role', 'option');
+        div.setAttribute('aria-selected', 'false');
+        div.setAttribute('tabindex', '-1');
 
         // Handle poster image
         let posterUrl = '/static/images/no-poster.png';
@@ -694,6 +950,12 @@ const App = {
         const seasonBars = this.createSeasonSelectorBars(releasedSeasons, show);
         const safeName = this.escapeHtml(show.name);
 
+        // Keyboard users adjust this with Left/Right; it starts at "all".
+        div.dataset.totalSeasons = releasedSeasons;
+        div.dataset.selectedSeasons = releasedSeasons;
+        div.dataset.showName = show.name;
+        this.updateResultOptionLabel(div);
+
         div.innerHTML = `
             <div class="search-result-content">
                 <div class="search-result-poster">
@@ -702,10 +964,10 @@ const App = {
                          loading="lazy">
                 </div>
                 <div class="search-result-info">
-                    <h4>${safeName}<span class="search-result-date">${year}</span></h4>
+                    <p class="search-result-title">${safeName}<span class="search-result-date">${year}</span></p>
                     <div class="search-result-seasons">
-                        <span class="season-selector-label">Seasons:</span>
-                        <div class="season-selector-bars" data-show-id="${show.id}">
+                        <span class="season-selector-label" aria-hidden="true">Seasons:</span>
+                        <div class="season-selector-bars" data-show-id="${show.id}" aria-hidden="true">
                             ${seasonBars}
                         </div>
                     </div>
@@ -718,15 +980,34 @@ const App = {
             this.setupSeasonBarHoverEffects(seasonBarsContainer);
         }
 
-        // Add click handler for entire search result to add all seasons when clicking outside season buttons
+        // Mouse: clicking the body of the result adds every released season;
+        // clicking a specific bar is handled by the delegated listener.
         div.addEventListener('click', (e) => {
-            // Don't trigger if clicking on season buttons
             if (!e.target.closest('.season-selector-bars')) {
                 this.addShowWithSeasons(show.id, releasedSeasons, show.name);
             }
         });
 
         return div;
+    },
+
+    // Keep a result option's accessible name in step with its season selection
+    updateResultOptionLabel(option) {
+        const total = parseInt(option.dataset.totalSeasons, 10) || 1;
+        const selected = parseInt(option.dataset.selectedSeasons, 10) || total;
+        const name = option.dataset.showName || '';
+        const seasons = `${selected} season${selected !== 1 ? 's' : ''}`;
+        const hint = total > 1 ? ' Use left and right arrow keys to change how many.' : '';
+        option.setAttribute('aria-label',
+            `${name}. Press Enter to add with ${seasons} watched.${hint}`);
+    },
+
+    // Reflect a result option's season selection on its (decorative) bars
+    paintResultSeasonBars(option) {
+        const selected = parseInt(option.dataset.selectedSeasons, 10) || 0;
+        option.querySelectorAll('.season-bar').forEach((bar, idx) => {
+            bar.classList.toggle('highlighted', idx < selected);
+        });
     },
 
     // Add load more button to search results
@@ -739,11 +1020,15 @@ const App = {
         
         const loadMoreDiv = document.createElement('div');
         loadMoreDiv.className = 'search-load-more';
+        loadMoreDiv.setAttribute('role', 'option');
+        loadMoreDiv.setAttribute('tabindex', '-1');
+        loadMoreDiv.setAttribute('aria-label', 'Load more results');
         loadMoreDiv.innerHTML = `
-            <button class="load-more-btn" onclick="App.loadMoreSearchResults(event)">
-                <i class="fas fa-plus"></i> load more
-            </button>
+            <span class="load-more-btn">
+                <i class="fas fa-plus" aria-hidden="true"></i> load more
+            </span>
         `;
+        loadMoreDiv.addEventListener('click', (e) => this.loadMoreSearchResults(e));
         this.elements.searchResults.appendChild(loadMoreDiv);
     },
 
@@ -786,14 +1071,27 @@ const App = {
             }
         }
 
+        // Remember where the keyboard user was so focus survives the re-render
+        const cameFromKeyboard = event && event.detail === 0;
+        const firstNewIndex = this.state.displayedSearchResults;
+
         // Display next batch of results (without clearing existing ones)
         this.displaySearchResults(this.state.currentSearch.results, false, false);
+
+        if (cameFromKeyboard) {
+            const options = this.resultNavItems();
+            this.focusResultItem(options[firstNewIndex] || options[options.length - 1]);
+        }
     },
 
     // Create season selector bars
     // Clicks are handled by a delegated listener on the results container, so
     // no show data has to survive a trip through an inline attribute.
     createSeasonSelectorBars(totalSeasons, show) {
+        // Mouse affordance only. Keyboard/screen-reader users pick a season
+        // count with the arrow keys on the focused result (see
+        // handleResultsKeydown), so the whole strip is hidden from the a11y
+        // tree to keep the surrounding listbox option free of nested widgets.
         let barsHtml = '';
         for (let i = 1; i <= totalSeasons; i++) {
             barsHtml += `
@@ -810,11 +1108,18 @@ const App = {
     // Create season selector bars for editing existing shows
     createEditSeasonSelectorBars(totalSeasons, show, currentSeasons) {
         let barsHtml = '';
+        const safeName = this.escapeHtml(show.name);
+        // Only one bar sits in the tab order; the arrow keys reach the rest.
+        const rovingSeason = Math.min(Math.max(currentSeasons || 1, 1), totalSeasons);
         for (let i = 1; i <= totalSeasons; i++) {
             const isSelected = i <= currentSeasons;
             barsHtml += `
-                <div class="season-bar edit-season-bar ${isSelected ? 'highlighted' : ''}" 
-                     data-season="${i}" 
+                <div class="season-bar edit-season-bar ${isSelected ? 'highlighted' : ''}"
+                     role="button"
+                     tabindex="${i === rovingSeason ? '0' : '-1'}"
+                     aria-pressed="${isSelected ? 'true' : 'false'}"
+                     aria-label="Set ${safeName} to ${i} season${i !== 1 ? 's' : ''} watched"
+                     data-season="${i}"
                      data-show-id="${show.id}"
                      onclick="App.selectEditSeasons(${show.id}, ${i})">
                     ${i}
@@ -846,74 +1151,6 @@ const App = {
         });
     },
 
-    // Show add show modal
-    async showAddModal(show) {
-        this.state.selectedShow = show;
-
-        // Season counts come back with search results, so only look them up
-        // when this show arrived from somewhere that lacks them.
-        if (show.number_of_released_seasons === null || show.number_of_released_seasons === undefined) {
-            try {
-                const response = await fetch(`/api/show/${show.id}/seasons`);
-                if (response.ok) {
-                    const seasonData = await response.json();
-                    show = { ...show, ...seasonData };
-                }
-            } catch (error) {
-                console.error('Error loading show details:', error);
-            }
-        }
-
-        this.populateAddModal(show);
-        this.elements.addShowModal.classList.remove('hidden');
-    },
-
-    // Add show directly (for instant search) with default 1 season
-    async addShowDirectly(show) {
-        this.state.selectedShow = show;
-        this.showLoading();
-
-        try {
-            const response = await fetch('/api/watched', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id: show.id,
-                    seasons_watched: 1  // Default to 1 season
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to add show');
-            }
-
-            this.showToast(`Added "${show.name}" to your watched list!`);
-            this.markCelebrationShow(show.id);
-            this.loadWatchedShows(true);
-            this.hideSearchResults();
-            this.elements.searchInput.value = '';
-            
-            // Only focus search input on desktop, not mobile.
-            // preventScroll keeps the browser from yanking the viewport back
-            // down to the search bar.
-            if (!this.isMobile()) {
-                this.elements.searchInput.focus({ preventScroll: true });
-            }
-
-            // Scroll to the total/celebration card after adding a show
-            this.scrollToTopCard();
-        } catch (error) {
-            console.error('Error adding show:', error);
-            this.showToast('Failed to add show. Please try again.', 'error');
-        } finally {
-            this.hideLoading();
-        }
-    },
-
     // Add show with specific number of seasons (for season selector bars)
     async addShowWithSeasons(showId, seasonsWatched, showName) {
         // Find the show among whatever the dropdown is currently offering
@@ -923,7 +1160,6 @@ const App = {
             return;
         }
 
-        this.state.selectedShow = show;
         this.showLoading();
 
         try {
@@ -955,111 +1191,6 @@ const App = {
 
             this.showToast(`Added "${showName}" with ${seasonsWatched} season${seasonsWatched !== 1 ? 's' : ''} to your watched list!`);
             this.markCelebrationShow(show.id);
-            this.loadWatchedShows(true);
-            this.hideSearchResults();
-            this.elements.searchInput.value = '';
-            
-            // Only focus search input on desktop, not mobile.
-            // preventScroll keeps the browser from yanking the viewport back
-            // down to the search bar.
-            if (!this.isMobile()) {
-                this.elements.searchInput.focus({ preventScroll: true });
-            }
-
-            // Scroll to the total/celebration card after adding a show
-            this.scrollToTopCard();
-        } catch (error) {
-            console.error('Error adding show:', error);
-            this.showToast('Failed to add show. Please try again.', 'error');
-        } finally {
-            this.hideLoading();
-        }
-    },
-
-    // Populate add show modal
-    populateAddModal(show) {
-        const modalTitle = document.getElementById('modalShowTitle');
-        const modalInfo = document.getElementById('modalShowInfo');
-        const seasonsInput = document.getElementById('seasonsWatched');
-
-        modalTitle.textContent = `Add "${show.name}"`;
-
-        // Better poster URL handling
-        let posterUrl = '/static/images/no-poster.png';
-        if (show.poster_path && show.poster_path !== 'null' && show.poster_path !== null) {
-            posterUrl = show.poster_path;
-        }
-
-        const year = show.first_air_date ? new Date(show.first_air_date).getFullYear() : 'Unknown';
-        const overview = show.overview || 'No description available.';
-        const safeName = this.escapeHtml(show.name);
-
-        modalInfo.innerHTML = `
-            <div class="show-poster">
-                <img src="${this.escapeHtml(posterUrl)}" alt="${safeName}"
-                     onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
-                     loading="lazy">
-            </div>
-            <div class="show-details">
-                <h5>${safeName}</h5>
-                <p><strong>First aired:</strong> ${year}</p>
-                <p>${this.escapeHtml(overview)}</p>
-            </div>
-        `;
-
-        seasonsInput.value = 1;
-        seasonsInput.focus();
-    },
-
-    // Hide add show modal
-    hideAddModal() {
-        this.elements.addShowModal.classList.add('hidden');
-        this.state.selectedShow = null;
-    },
-
-    // Add show to watched list
-    async addShowToWatched() {
-        if (!this.state.selectedShow) return;
-
-        const seasonsWatched = parseInt(document.getElementById('seasonsWatched').value);
-        if (isNaN(seasonsWatched) || seasonsWatched < 1) {
-            this.showToast('Please enter a valid number of seasons', 'error');
-            return;
-        }
-
-        this.showLoading();
-
-        try {
-            // Get current watched shows from localStorage
-            const currentWatchedShows = DataStorage.getWatchedShows();
-
-            const response = await fetch('/api/watched', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id: this.state.selectedShow.id,
-                    seasons_watched: seasonsWatched,
-                    current_watched_shows: currentWatchedShows
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to add show');
-            }
-
-            // Update localStorage with the new data
-            if (data.updated_watched_shows) {
-                DataStorage.setWatchedShows(data.updated_watched_shows);
-            }
-
-            this.showToast(`Added "${this.state.selectedShow.name}" to your watched list!`);
-            const addedShowId = this.state.selectedShow.id;
-            this.hideAddModal();
-            this.markCelebrationShow(addedShowId);
             this.loadWatchedShows(true);
             this.hideSearchResults();
             this.elements.searchInput.value = '';
@@ -1563,31 +1694,34 @@ const App = {
         // Create edit season selector bars
         const editSeasonBars = this.createEditSeasonSelectorBars(releasedSeasons, show, show.seasons_watched);
 
+        const safeName = this.escapeHtml(show.name);
+        const seasonsSummary = `${show.seasons_watched} of ${releasedSeasons} season${releasedSeasons !== 1 ? 's' : ''} watched`;
+
         div.innerHTML = `
-            <div class="watched-show-remove" onclick="App.removeShow(${show.id})" title="Remove show">
-                <i class="fas fa-times"></i>
-            </div>
+            <button type="button" class="watched-show-remove" onclick="App.removeShow(${show.id})" aria-label="Remove ${safeName} from your watched list">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
             <div class="watched-show-poster">
-                <img src="${this.escapeHtml(posterUrl)}" alt="${this.escapeHtml(show.name)}"
+                <img src="${this.escapeHtml(posterUrl)}" alt="${safeName}"
                      onerror="this.src='/static/images/no-poster.png'; this.onerror=null;"
                      loading="lazy">
             </div>
             <div class="watched-show-content">
                 <div class="watched-show-info">
-                    <h4>${this.escapeHtml(show.name)}</h4>
+                    <h4>${safeName}</h4>
                     <div class="watched-show-seasons">
-                        <div class="seasons-display" onclick="App.editSeasons(${show.id})">
-                            <i class="fas fa-eye"></i> ${show.seasons_watched} of ${releasedSeasons} season${releasedSeasons !== 1 ? 's' : ''} watched 
-                            <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
-                        </div>
+                        <button type="button" class="seasons-display" onclick="App.editSeasons(${show.id})" aria-label="Edit seasons watched for ${safeName}. Currently ${seasonsSummary}.">
+                            <i class="fas fa-eye" aria-hidden="true"></i> ${seasonsSummary}
+                            <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;" aria-hidden="true"></i>
+                        </button>
                         <div class="seasons-edit" id="seasonsEdit-${show.id}" data-selected-seasons="${show.seasons_watched}">
-                            <div class="season-selector-bars edit-season-bars">
+                            <div class="season-selector-bars edit-season-bars" role="group" aria-label="Seasons watched for ${safeName}">
                                 ${editSeasonBars}
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="watched-show-time"><i class="fas fa-clock"></i> ${watchTime}</div>
+                <div class="watched-show-time"><i class="fas fa-clock" aria-hidden="true"></i> ${watchTime}</div>
             </div>
         `;
 
@@ -1638,7 +1772,7 @@ const App = {
         // Immediately show edit interface with current data (seamless experience)
         displayElement.style.display = 'none';
         editElement.style.display = 'flex';
-        
+
         // Initialize the selected seasons to current value
         const show = this.state.watchedShows.find(s => s.id === showId);
         if (show) {
@@ -1648,6 +1782,12 @@ const App = {
             // Setup hover effects for edit season bars
             this.setupEditSeasonHoverEffects(showId);
         }
+
+        // Move keyboard focus onto the bar for the current count; the arrow
+        // keys take it from there.
+        const activeBar = editElement.querySelector('.edit-season-bar[tabindex="0"]')
+            || editElement.querySelector('.edit-season-bar');
+        if (activeBar) activeBar.focus();
         
         // In the background, check for new seasons without any user-visible loading
         this.backgroundRefreshShowSeasons(showId);
@@ -1725,10 +1865,13 @@ const App = {
             const seasonsDisplay = showElement.querySelector('.seasons-display');
             if (seasonsDisplay) {
                 const releasedSeasons = updatedShow.released_seasons || updatedShow.total_seasons || 1;
+                const summary = `${updatedShow.seasons_watched} of ${releasedSeasons} season${releasedSeasons !== 1 ? 's' : ''} watched`;
                 seasonsDisplay.innerHTML = `
-                    <i class="fas fa-eye"></i> ${updatedShow.seasons_watched} of ${releasedSeasons} season${releasedSeasons !== 1 ? 's' : ''} watched 
-                    <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;"></i>
+                    <i class="fas fa-eye" aria-hidden="true"></i> ${summary}
+                    <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;" aria-hidden="true"></i>
                 `;
+                const name = seasonsDisplay.closest('.watched-show')?.querySelector('h4')?.textContent || '';
+                seasonsDisplay.setAttribute('aria-label', `Edit seasons watched for ${name}. Currently ${summary}.`);
             }
         }
     },
@@ -1746,6 +1889,7 @@ const App = {
         
         displayElement.style.display = 'block';
         editElement.style.display = 'none';
+        if (typeof displayElement.focus === 'function') displayElement.focus();
     },
 
     // Update season bars visual state without triggering save
@@ -1754,16 +1898,16 @@ const App = {
         const container = document.getElementById(`seasonsEdit-${showId}`);
         const bars = container.querySelectorAll('.edit-season-bar');
         
+        const roving = Math.min(Math.max(selectedSeasons || 1, 1), bars.length);
         bars.forEach((bar, index) => {
             const seasonNumber = index + 1;
-            if (seasonNumber <= selectedSeasons) {
-                bar.classList.add('highlighted');
-            } else {
-                bar.classList.remove('highlighted');
-            }
+            const on = seasonNumber <= selectedSeasons;
+            bar.classList.toggle('highlighted', on);
+            bar.setAttribute('aria-pressed', on ? 'true' : 'false');
+            bar.setAttribute('tabindex', seasonNumber === roving ? '0' : '-1');
         });
 
-        // Store the selected value 
+        // Store the selected value
         container.setAttribute('data-selected-seasons', selectedSeasons);
     },
 
@@ -1876,6 +2020,15 @@ const App = {
             this.markCelebrationShow(showId);
             this.loadWatchedShows(true);
 
+            // loadWatchedShows rebuilds the cards, so send focus back to the
+            // seasons control the keyboard user was just on.
+            setTimeout(() => {
+                const restored = document.querySelector(
+                    `#watchedShows [data-show-id="${showId}"] .seasons-display`
+                );
+                if (restored) restored.focus();
+            }, 0);
+
             // Bring the running-total card into view, the same as the add-show
             // paths do. Without this a season edit made further down the page
             // fires the celebration against a card that is still scrolled off
@@ -1955,6 +2108,10 @@ const App = {
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
         toast.textContent = message;
+        // Errors interrupt the screen reader; everything else waits its turn.
+        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+        toast.setAttribute('aria-atomic', 'true');
 
         this.elements.toastContainer.appendChild(toast);
 
@@ -2617,7 +2774,7 @@ const StatsApp = {
         sections.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
-                element.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+                element.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Loading...</div>';
             }
         });
     },
@@ -3212,7 +3369,7 @@ const StatsApp = {
             
             card.innerHTML = `
                 <div class="award-icon">
-                    <i class="${award.icon}"></i>
+                    <i class="${award.icon}" aria-hidden="true"></i>
                 </div>
                 <div class="award-content">
                     <h5 class="award-title">${award.title}</h5>
@@ -3243,7 +3400,7 @@ const StatsApp = {
             card.className = 'conversion-card';
             card.innerHTML = `
                 <div class="conversion-icon">
-                    <i class="${conversion.icon}"></i>
+                    <i class="${conversion.icon}" aria-hidden="true"></i>
                 </div>
                 <div class="conversion-activity">${conversion.description}</div>
                 <div class="conversion-value">${conversion.value} <span class="times-text">${conversion.times_text}</span></div>
