@@ -168,9 +168,16 @@ const App = {
                 const showCard = editElement.closest('.watched-show');
                 const showId = editElement.id.replace('seasonsEdit-', '');
                 
-                // If click is outside the show card, close the editing
+                // If click is outside the show card, close the editing.
+                // Pick mode only commits on Done, so clicking away has to save
+                // rather than silently drop what the user just toggled.
                 if (showCard && !showCard.contains(e.target)) {
-                    this.cancelEditSeasons(parseInt(showId));
+                    const id = parseInt(showId);
+                    if (this.isEditPicking(id)) {
+                        this.saveSeasons(id);
+                    } else {
+                        this.cancelEditSeasons(id);
+                    }
                 }
             });
         });
@@ -194,14 +201,23 @@ const App = {
         const idx = bars.indexOf(bar);
         const showId = parseInt(bar.dataset.showId, 10);
 
+        // In pick mode the bars are independent toggles, so walking the strip
+        // only moves focus; in the default mode it previews the new count.
+        const picking = this.isEditPicking(showId);
+
         const moveTo = (target) => {
             const clamped = Math.max(0, Math.min(bars.length - 1, target));
+            if (picking) {
+                bars.forEach((b, i) => b.setAttribute('tabindex', i === clamped ? '0' : '-1'));
+                bars[clamped].focus();
+                return;
+            }
             bars.forEach((b, i) => {
                 b.setAttribute('tabindex', i === clamped ? '0' : '-1');
                 b.classList.toggle('highlighted', i <= clamped);
                 b.setAttribute('aria-pressed', i <= clamped ? 'true' : 'false');
             });
-            container.setAttribute('data-selected-seasons', clamped + 1);
+            container.closest('.seasons-edit').setAttribute('data-selected-seasons', clamped + 1);
             bars[clamped].focus();
         };
 
@@ -227,7 +243,7 @@ const App = {
             case 'Enter':
             case ' ':
                 e.preventDefault();
-                this.selectEditSeasons(showId, idx + 1);
+                this.activateEditSeasonBar(showId, idx + 1);
                 break;
             case 'Escape':
                 e.preventDefault();

@@ -46,14 +46,10 @@ Object.assign(App, {
             }
         });
 
-        // Season bars are rendered from untrusted TMDB titles, so they carry
-        // data attributes instead of inline handlers; resolve clicks here.
+        // Season bars and the pick controls resolve through one delegated
+        // listener (see handleSeasonControlClick in app/search-results.js).
         this.elements.searchResults.addEventListener('click', (e) => {
-            const bar = e.target.closest('.season-bar');
-            if (!bar || !this.elements.searchResults.contains(bar)) return;
-
-            e.stopPropagation();
-            this.activateSeasonBar(bar);
+            this.handleSeasonControlClick(e);
         });
 
         // Keyboard activation for options / season bars once focus has moved
@@ -203,6 +199,10 @@ Object.assign(App, {
 
     // Add the show a focused result option represents, honouring its season pick
     addFocusedResult(option) {
+        if (option.dataset.pickMode === 'true') {
+            this.addPickedResult(option);
+            return;
+        }
         const showId = parseInt(option.id.replace('search-result-', ''), 10);
         const seasons = parseInt(option.dataset.selectedSeasons, 10)
             || parseInt(option.dataset.totalSeasons, 10) || 1;
@@ -212,10 +212,19 @@ Object.assign(App, {
         }
     },
 
-    // Add a show for the season count a given season bar represents (mouse)
+    // Add a show for the season count a given season bar represents (mouse).
+    // While picking, the same bar toggles one season instead and waits for
+    // the Add button, since half a selection is not worth saving.
     activateSeasonBar(bar) {
         const showId = parseInt(bar.dataset.showId, 10);
         const seasons = parseInt(bar.dataset.season, 10);
+        const option = bar.closest('.search-result');
+
+        if (option && option.dataset.pickMode === 'true') {
+            this.toggleResultSeason(option, seasons);
+            return;
+        }
+
         const show = this.findResultShow(showId);
         if (show) {
             this.addShowWithSeasons(showId, seasons, show.name);

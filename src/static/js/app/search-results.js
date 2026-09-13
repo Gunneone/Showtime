@@ -83,7 +83,25 @@ Object.assign(App, {
         div.dataset.totalSeasons = releasedSeasons;
         div.dataset.selectedSeasons = releasedSeasons;
         div.dataset.showName = show.name;
+        div.dataset.pickMode = 'false';
+        div.dataset.watchedSeasons = '';
         this.updateResultOptionLabel(div);
+
+        // Picking single seasons while adding is a desktop affordance: the
+        // dropdown row on a phone is already tight, and the same control is
+        // always available in the card's editor afterwards.
+        const pickControls = (releasedSeasons > 1 && !this.isMobile()) ? `
+                        <div class="season-pick-controls">
+                            <button type="button" class="season-pick-toggle" aria-pressed="false"
+                                    title="Pick individual seasons"
+                                    aria-label="Pick individual seasons of ${safeName}"
+                                    data-show-id="${show.id}">
+                                <i class="fas fa-list-check" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="season-pick-add" hidden
+                                    data-show-id="${show.id}">Add</button>
+                        </div>
+        ` : '';
 
         div.innerHTML = `
             <div class="search-result-content">
@@ -96,8 +114,11 @@ Object.assign(App, {
                     <p class="search-result-title">${safeName}<span class="search-result-date">${year}</span></p>
                     <div class="search-result-seasons">
                         <span class="season-selector-label" aria-hidden="true">Seasons:</span>
-                        <div class="season-selector-bars" data-show-id="${show.id}" aria-hidden="true">
-                            ${seasonBars}
+                        <div class="season-row">
+                            <div class="season-selector-bars" data-show-id="${show.id}" aria-hidden="true">
+                                ${seasonBars}
+                            </div>
+                            ${pickControls}
                         </div>
                     </div>
                 </div>
@@ -110,11 +131,16 @@ Object.assign(App, {
         }
 
         // Mouse: clicking the body of the result adds every released season;
-        // clicking a specific bar is handled by the delegated listener.
+        // clicking a specific bar or a pick control is handled by the
+        // delegated listeners. While picking, the body click would contradict
+        // the selection on screen, so it stops adding anything.
         div.addEventListener('click', (e) => {
-            if (!e.target.closest('.season-selector-bars')) {
-                this.addShowWithSeasons(show.id, releasedSeasons, show.name);
+            if (e.target.closest('.season-selector-bars')
+                || e.target.closest('.season-pick-controls')) {
+                return;
             }
+            if (div.dataset.pickMode === 'true') return;
+            this.addShowWithSeasons(show.id, releasedSeasons, show.name);
         });
 
         return div;
@@ -123,8 +149,17 @@ Object.assign(App, {
     // Keep a result option's accessible name in step with its season selection
     updateResultOptionLabel(option) {
         const total = parseInt(option.dataset.totalSeasons, 10) || 1;
-        const selected = parseInt(option.dataset.selectedSeasons, 10) || total;
         const name = option.dataset.showName || '';
+
+        if (option.dataset.pickMode === 'true') {
+            const picked = this.readSeasonList(option, 'data-watched-seasons');
+            const listed = picked.length ? picked.join(', ') : 'none';
+            option.setAttribute('aria-label',
+                `${name}. Picking individual seasons; currently ${listed}.`);
+            return;
+        }
+
+        const selected = parseInt(option.dataset.selectedSeasons, 10) || total;
         const seasons = `${selected} season${selected !== 1 ? 's' : ''}`;
         const hint = total > 1 ? ' Use left and right arrow keys to change how many.' : '';
         option.setAttribute('aria-label',
@@ -133,10 +168,95 @@ Object.assign(App, {
 
     // Reflect a result option's season selection on its (decorative) bars
     paintResultSeasonBars(option) {
+        const picking = option.dataset.pickMode === 'true';
+        const picked = picking ? this.readSeasonList(option, 'data-watched-seasons') : [];
         const selected = parseInt(option.dataset.selectedSeasons, 10) || 0;
+
         option.querySelectorAll('.season-bar').forEach((bar, idx) => {
-            bar.classList.toggle('highlighted', idx < selected);
+            const on = picking ? picked.includes(idx + 1) : idx < selected;
+            bar.classList.toggle('highlighted', on);
         });
+
+        const add = option.querySelector('.season-pick-add');
+        if (add) {
+            add.hidden = !picking;
+            add.disabled = picking && picked.length === 0;
+            add.textContent = picked.length
+                ? `Add ${picked.length} season${picked.length !== 1 ? 's' : ''}`
+                : 'Add';
+        }
+    },
+
+    // Flip one search result between a season count and a season set
+    toggleResultPickMode(option) {
+        const picking = option.dataset.pickMode !== 'true';
+        option.dataset.pickMode = picking ? 'true' : 'false';
+        // Starts empty: the point of picking is a handful of seasons out of a
+        // long run, so deselecting all of them first would be the clunky part.
+        if (picking) option.dataset.watchedSeasons = '';
+
+        const bars = option.querySelector('.season-selector-bars');
+        if (bars) bars.classList.toggle('pick-mode', picking);
+        const toggle = option.querySelector('.season-pick-toggle');
+        if (toggle) toggle.setAttribute('aria-pressed', picking ? 'true' : 'false');
+
+        this.paintResultSeasonBars(option);
+        this.updateResultOptionLabel(option);
+    },
+
+    // Resolve a click in the results dropdown onto a season bar or one of the
+    // pick controls. They are rendered from untrusted TMDB titles, so they
+    // carry data attributes instead of inline handlers.
+    handleSeasonControlClick(e) {
+        const within = el => el && this.elements.searchResults.contains(el);
+
+        const toggle = e.target.closest('.season-pick-toggle');
+        if (within(toggle)) {
+            e.stopPropagation();
+            const option = toggle.closest('.search-result');
+            if (option) this.toggleResultPickMode(option);
+            return;
+        }
+
+        const add = e.target.closest('.season-pick-add');
+        if (within(add)) {
+            e.stopPropagation();
+            this.addPickedResult(add.closest('.search-result'));
+            return;
+        }
+
+        const bar = e.target.closest('.season-bar');
+        if (!within(bar)) return;
+
+        e.stopPropagation();
+        this.activateSeasonBar(bar);
+    },
+
+    // Add a show with exactly the seasons picked on its result card
+    addPickedResult(option) {
+        if (!option) return;
+        const showId = parseInt(option.id.replace('search-result-', ''), 10);
+        const seasons = this.readSeasonList(option, 'data-watched-seasons');
+        if (!seasons.length) return;
+
+        const show = this.findResultShow(showId);
+        if (!show) return;
+
+        // A selection that came out contiguous is just a season count, and is
+        // stored as one so it is indistinguishable from an ordinary add.
+        const explicit = this.isSeasonPrefix(seasons) ? null : seasons;
+        this.addShowWithSeasons(showId, seasons.length, show.name, explicit);
+    },
+
+    // Pick mode: flip one season on a search result
+    toggleResultSeason(option, season) {
+        const seasons = this.toggleSeason(
+            this.readSeasonList(option, 'data-watched-seasons'), season
+        );
+        option.dataset.watchedSeasons = seasons.join(',');
+        option.dataset.selectedSeasons = seasons.length;
+        this.paintResultSeasonBars(option);
+        this.updateResultOptionLabel(option);
     },
 
     // Add load more button to search results
@@ -234,23 +354,33 @@ Object.assign(App, {
         return barsHtml;
     },
 
-    // Create season selector bars for editing existing shows
+    // Create season selector bars for editing existing shows.
+    // What a bar does depends on the strip's mode, so the click goes through
+    // App.activateEditSeasonBar rather than straight to a season count.
     createEditSeasonSelectorBars(totalSeasons, show, currentSeasons) {
         let barsHtml = '';
         const safeName = this.escapeHtml(show.name);
+        const picked = this.resolveWatchedSeasons(show);
+        const picking = this.hasSeasonGaps(show);
         // Only one bar sits in the tab order; the arrow keys reach the rest.
-        const rovingSeason = Math.min(Math.max(currentSeasons || 1, 1), totalSeasons);
+        const rovingSeason = picking
+            ? (picked[0] || 1)
+            : Math.min(Math.max(currentSeasons || 1, 1), totalSeasons);
         for (let i = 1; i <= totalSeasons; i++) {
-            const isSelected = i <= currentSeasons;
+            const isSelected = picking ? picked.includes(i) : i <= currentSeasons;
+            const label = picking
+                ? `${isSelected ? 'Unmark' : 'Mark'} season ${i} of ${safeName} as watched`
+                : `Set ${safeName} to ${i} season${i !== 1 ? 's' : ''} watched`;
             barsHtml += `
                 <div class="season-bar edit-season-bar ${isSelected ? 'highlighted' : ''}"
                      role="button"
                      tabindex="${i === rovingSeason ? '0' : '-1'}"
                      aria-pressed="${isSelected ? 'true' : 'false'}"
-                     aria-label="Set ${safeName} to ${i} season${i !== 1 ? 's' : ''} watched"
+                     aria-label="${label}"
                      data-season="${i}"
                      data-show-id="${show.id}"
-                     onclick="App.selectEditSeasons(${show.id}, ${i})">
+                     data-show-name="${safeName}"
+                     onclick="App.activateEditSeasonBar(${show.id}, ${i})">
                     ${i}
                 </div>
             `;
@@ -261,21 +391,37 @@ Object.assign(App, {
     // Setup hover effects for season bars
     setupSeasonBarHoverEffects(container) {
         const bars = container.querySelectorAll('.season-bar');
-        
+        const option = container.closest('.search-result');
+        const picking = () => option && option.dataset.pickMode === 'true';
+
         bars.forEach((bar, index) => {
             bar.addEventListener('mouseenter', () => {
+                // The preview has to mean what the click will do: a whole
+                // prefix by default, one season while picking. While picking,
+                // the seasons already chosen stay lit underneath it.
+                if (picking()) {
+                    bars.forEach(b => b.classList.remove('hover-highlighted'));
+                    bar.classList.add('hover-highlighted');
+                    return;
+                }
+
                 // Reset all bars
                 bars.forEach(b => b.classList.remove('highlighted'));
-                
-                // Highlight all bars up to and including the hovered one
                 for (let i = 0; i <= index; i++) {
                     bars[i].classList.add('highlighted');
                 }
             });
         });
-        
+
         container.addEventListener('mouseleave', () => {
-            // Remove all highlights when leaving the container
+            // Remove all highlights when leaving the container. A picked
+            // selection is real state rather than a hover preview, so only
+            // that gets painted back.
+            bars.forEach(b => b.classList.remove('hover-highlighted'));
+            if (picking()) {
+                this.paintResultSeasonBars(option);
+                return;
+            }
             bars.forEach(b => b.classList.remove('highlighted'));
         });
     },

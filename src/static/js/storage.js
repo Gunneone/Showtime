@@ -131,8 +131,17 @@ const DataStorage = {
     generateWatchedShowsHash(watchedShows) {
         if (!watchedShows || watchedShows.length === 0) return 'empty';
         
-        // Create a simple hash based on show IDs and seasons watched
-        const hashData = watchedShows.map(show => `${show.id}-${show.seasons_watched}`).join(',');
+        // Create a simple hash based on show IDs and seasons watched. The
+        // explicit season list is appended only when a show has one: without
+        // it seasons {4, 7} and {1, 2} would hash the same (both count 2) and
+        // a re-pick would serve stale cached stats, and with it unconditional
+        // every existing library's hash would change on deploy.
+        const hashData = watchedShows.map(show => {
+            const picked = Array.isArray(show.watched_seasons) && show.watched_seasons.length
+                ? `:${show.watched_seasons.join('.')}`
+                : '';
+            return `${show.id}-${show.seasons_watched}${picked}`;
+        }).join(',');
         return this.simpleHash(hashData);
     },
 

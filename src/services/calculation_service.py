@@ -1,6 +1,8 @@
 from collections import defaultdict
 from datetime import datetime
 
+from .season_selection import resolve_watched_seasons
+
 class CalculationService:
     """Service for calculating watch time statistics."""
     
@@ -14,10 +16,9 @@ class CalculationService:
         episode_runtimes = show.get('episode_runtimes', {})
         if episode_runtimes:
             total_time = 0
-            seasons_watched = show.get('seasons_watched', 0)
             default_runtime = show.get('episode_run_time', 45)
-            
-            for season_num in range(1, seasons_watched + 1):
+
+            for season_num in resolve_watched_seasons(show):
                 season_key = str(season_num)
                 if season_key in episode_runtimes:
                     # Use precise episode runtimes for this season
@@ -72,6 +73,10 @@ class CalculationService:
         # older records saved before released_seasons was tracked
         released_seasons = show.get('released_seasons', show.get('total_seasons', 1))
 
+        # A count comparison, deliberately, even for a selection with gaps:
+        # seasons_watched is always len(watched_seasons), so only a TMDB lag
+        # (seasons [1, 3] while released_seasons still says 2) can read as
+        # complete here, and that self-corrects on the next season refresh.
         return seasons_watched >= released_seasons
 
     def calculate_total_time(self, watched_shows):

@@ -30,6 +30,96 @@
     align-self: flex-start;
 }
 
+/* Pick mode: the strip stops meaning "seasons 1..N" and each bar toggles one
+   season, so an unpicked bar between picked ones has to read as a gap rather
+   than as the tail of a run. */
+/* Keeps the pick control on the strip's own line: a second row under every
+   search result would cost vertical space in the dropdown for everyone, and
+   the whole point is that the ordinary flow does not get heavier. */
+.season-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.season-pick-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.season-pick-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid rgba(99, 179, 237, 0.4);
+    border-radius: 6px;
+    background: var(--blue-primary-alpha-10);
+    color: var(--blue-primary);
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.season-pick-toggle:hover {
+    background: var(--blue-primary-alpha-30);
+}
+
+.season-pick-toggle[aria-pressed="true"] {
+    background: var(--blue-primary-alpha-60);
+    color: white;
+    border-color: var(--blue-primary);
+}
+
+.season-pick-done,
+.season-pick-add {
+    padding: 0.2rem 0.6rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--blue-primary);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.season-pick-done:hover,
+.season-pick-add:hover {
+    box-shadow: 0 2px 8px var(--blue-primary-alpha-30);
+}
+
+.season-pick-add:disabled {
+    opacity: 0.5;
+    cursor: default;
+    box-shadow: none;
+}
+
+/* The read-only strip beside a collapsed card's summary: the same segmented
+   shape as the editor, shrunk to a glyph, so a selection with gaps is legible
+   without opening anything. */
+.season-strip {
+    display: inline-flex;
+    gap: 1px;
+    margin: 0 0.2rem;
+    vertical-align: middle;
+}
+
+.season-strip-segment {
+    width: 4px;
+    height: 10px;
+    border-radius: 1px;
+    background: var(--blue-primary-alpha-20);
+}
+
+.season-strip-segment.watched {
+    background: var(--blue-primary);
+}
+
 
 .seasons-edit input {
     width: 60px;
