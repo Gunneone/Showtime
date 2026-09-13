@@ -6,6 +6,13 @@ configured for a test run. Kept out of ``tmdb_service`` because it is almost
 all fixture data.
 """
 
+from datetime import date, timedelta
+
+# A season that has not aired yet. Computed rather than written as a literal:
+# a hard-coded "future" date quietly rots into the past, and the fixture then
+# stops exercising the partially-released path it exists for.
+_UNAIRED = (date.today() + timedelta(days=365)).isoformat()
+
 
 def mock_shows():
     """The mock show catalogue shared by the search, popular, and
@@ -135,11 +142,11 @@ _MOCK_SEASON_AIR_DATES = {
     },
     4: {  # Stranger Things - some future seasons
         1: '2016-07-15', 2: '2017-10-27', 3: '2019-07-04', 4: '2022-05-27',
-        5: '2026-01-01'  # Future season
+        5: _UNAIRED  # Future season
     },
     5: {  # The Mandalorian - mix of released and future
         1: '2019-11-12', 2: '2020-10-30', 3: '2023-03-01',
-        4: '2026-06-01'  # Future season
+        4: _UNAIRED  # Future season
     }
 }
 
@@ -228,7 +235,10 @@ _MOCK_SHOW_DETAILS = {
             {'id': 10765, 'name': 'Sci-Fi & Fantasy'},
             {'id': 9648, 'name': 'Mystery'}
         ],
-        'status': 'Ended',
+        # Not 'Ended': the season-5 air date below is still in the future, and
+        # count_released_seasons short-circuits a finished show to "every
+        # season released", which would defeat the point of the fixture.
+        'status': 'Returning Series',
         'networks': [
             {'id': 4, 'name': 'Netflix'}
         ]
@@ -251,7 +261,8 @@ _MOCK_SHOW_DETAILS = {
             {'id': 18, 'name': 'Drama'},
             {'id': 10765, 'name': 'Sci-Fi & Fantasy'}
         ],
-        'status': 'Ended',
+        # Not 'Ended', for the same reason as Stranger Things above.
+        'status': 'Returning Series',
         'networks': [
             {'id': 5, 'name': 'Disney+'}
         ]
@@ -340,9 +351,38 @@ def _season_details(endpoint):
     }
 
 
+def _seasons_for(show_id, number_of_seasons, number_of_episodes):
+    """The per-season summary array TMDB returns on a show-details call.
+
+    Only ``air_date`` is load-bearing - it is what count_released_seasons()
+    reads to work out how much of a show has actually aired - but the rest is
+    filled in the way the real API does so nothing downstream has to special
+    case the mock.
+    """
+    air_dates = _MOCK_SEASON_AIR_DATES.get(show_id, {})
+    episodes = _MOCK_EPISODES.get(show_id, {})
+    if number_of_seasons > 0 and number_of_episodes > 0:
+        average_episodes = round(number_of_episodes / number_of_seasons)
+    else:
+        average_episodes = 10
+
+    return [
+        {
+            'season_number': season,
+            'name': f'Season {season}',
+            # Same default as _season_details() for a show the air-date table
+            # does not cover.
+            'air_date': air_dates.get(season, '2020-01-01'),
+            'episode_count': len(episodes.get(season, [])) or average_episodes,
+            'poster_path': None,
+        }
+        for season in range(1, number_of_seasons + 1)
+    ]
+
+
 def _show_details(endpoint):
     show_id = int(endpoint.split('/')[1])
-    return _MOCK_SHOW_DETAILS.get(show_id, {
+    details = _MOCK_SHOW_DETAILS.get(show_id, {
         'id': show_id,
         'name': f'Unknown Show {show_id}',
         'overview': 'This is a mock show for testing purposes.',
@@ -359,6 +399,17 @@ def _show_details(endpoint):
         'status': 'Ended',
         'networks': []
     })
+
+    # Attached here rather than written into every fixture entry, and onto a
+    # copy so the module-level fixture is never mutated across tests.
+    return {
+        **details,
+        'seasons': _seasons_for(
+            show_id,
+            details.get('number_of_seasons', 1),
+            details.get('number_of_episodes', 0),
+        ),
+    }
 
 
 def get_mock_data(endpoint, params=None):
