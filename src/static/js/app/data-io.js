@@ -161,7 +161,8 @@ Object.assign(App, {
             // Import the data immediately and display it
             if (importData.watchedShows) {
                 // Store the imported data immediately
-                const importedShows = importData.watchedShows;
+                const importedShows = importData.watchedShows
+                    .map(show => this.normalizeImportedShow(show));
                 DataStorage.setWatchedShows(importedShows);
                 this.state.watchedShows = importedShows;
             }
@@ -201,6 +202,40 @@ Object.assign(App, {
         });
     },
 
+    // A single show record from an import file
+    isValidImportedShow(show) {
+        if (!show || !show.id || !show.name || typeof show.seasons_watched !== 'number') {
+            return false;
+        }
+        // watched_seasons is optional: a file written before individual season
+        // picking existed simply means "seasons 1..seasons_watched".
+        if (show.watched_seasons === undefined || show.watched_seasons === null) {
+            return true;
+        }
+        return Array.isArray(show.watched_seasons)
+            && show.watched_seasons.every(season => Number.isInteger(season) && season >= 1);
+    },
+
+    // Bring an imported record back onto the invariant the app relies on:
+    // seasons_watched is the count, and a list is only stored when it has gaps.
+    // A hand-edited or truncated file can break that; the server re-derives
+    // everything on the next write, but the list renders before then.
+    normalizeImportedShow(show) {
+        if (!Array.isArray(show.watched_seasons)) return show;
+
+        const seasons = [...new Set(show.watched_seasons)].sort((a, b) => a - b);
+        const isPrefix = seasons.every((season, index) => season === index + 1);
+
+        if (!seasons.length || isPrefix) {
+            delete show.watched_seasons;
+            if (seasons.length) show.seasons_watched = seasons.length;
+        } else {
+            show.watched_seasons = seasons;
+            show.seasons_watched = seasons.length;
+        }
+        return show;
+    },
+
     // Validate imported data structure
     validateImportData(data) {
         if (!data || typeof data !== 'object') {
@@ -209,23 +244,12 @@ Object.assign(App, {
         
         // Check if it has the expected structure
         if (data.watchedShows && Array.isArray(data.watchedShows)) {
-            // Validate each show has required fields
-            for (const show of data.watchedShows) {
-                if (!show.id || !show.name || typeof show.seasons_watched !== 'number') {
-                    return false;
-                }
-            }
-            return true;
+            return data.watchedShows.every(show => this.isValidImportedShow(show));
         }
         
         // Also accept simple array of shows (backward compatibility)
         if (Array.isArray(data)) {
-            for (const show of data) {
-                if (!show.id || !show.name || typeof show.seasons_watched !== 'number') {
-                    return false;
-                }
-            }
-            return true;
+            return data.every(show => this.isValidImportedShow(show));
         }
         
         return false;

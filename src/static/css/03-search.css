@@ -313,6 +313,22 @@
     box-shadow: 0 2px 8px var(--blue-primary-alpha-30);
 }
 
+/* Pick mode: every bar stands on its own, so an unpicked one has to look
+   deliberately empty rather than merely "past the end of the run". */
+.season-selector-bars.pick-mode .season-bar:not(.highlighted):not(.hover-highlighted) {
+    background: transparent;
+    color: rgba(99, 179, 237, 0.55);
+    box-shadow: inset 0 0 0 1px rgba(99, 179, 237, 0.25);
+}
+
+/* Hovering a season that is already picked is a request to drop it, so it
+   dims instead of lighting up the way an unpicked one does. */
+.season-selector-bars.pick-mode .season-bar.highlighted:hover {
+    background: var(--blue-primary-alpha-30);
+    color: var(--blue-primary);
+    box-shadow: inset 0 0 0 1px var(--blue-primary);
+}
+
 /* Inset ring: an outset one would overlap the neighbouring bars in the strip */
 .season-selector-bars .season-bar:focus-visible {
     outline: 2px solid var(--blue-primary);

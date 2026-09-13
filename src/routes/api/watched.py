@@ -15,6 +15,41 @@ api_bp = api.api_bp
 MAX_SEASONS = helpers.MAX_SEASONS
 
 
+def _season_selection(data, show_details, default_count):
+    """Work out what a write means for a show's seasons.
+
+    Returns ``(seasons_watched, seasons, None)`` where ``seasons`` is an
+    explicit ascending list or ``None`` for the plain "seasons 1..N" shape,
+    or ``(None, None, response)`` with an error tuple.
+
+    An explicit list wins over any count sent alongside it, so
+    ``seasons_watched == len(watched_seasons)`` holds by construction rather
+    than by the client getting it right. A body that does not mention
+    ``watched_seasons`` at all means 1..N, which is what an older client sends
+    and why the caller must clear any list already on the record.
+    """
+    total_seasons = show_details.get('number_of_seasons') or MAX_SEASONS
+    seasons, error = helpers._watched_seasons(
+        data, max_season=min(MAX_SEASONS, total_seasons)
+    )
+    if error:
+        return None, None, error
+
+    if seasons is helpers.MISSING or seasons is None:
+        count = helpers._coerce_int(
+            data.get('seasons_watched', default_count),
+            minimum=0, maximum=MAX_SEASONS,
+        )
+        if count is None:
+            return None, None, (
+                jsonify({'error': 'seasons_watched must be a whole number'}),
+                400,
+            )
+        return count, None, None
+
+    return len(seasons), seasons, None
+
+
 @api_bp.route('/watched', methods=['GET'])
 def get_watched():
     """Get watched list from localStorage (via request body) or fallback to cookies for migration."""
@@ -90,17 +125,18 @@ def add_watched():
             metrics = get_metrics_service()
             metrics.record_event('shows_updated')
             metrics.record_engagement(request)
-            # Update existing show - recalculate runtime for new seasons count
-            seasons_watched = helpers._coerce_int(
-                data.get('seasons_watched', existing_show['seasons_watched']),
-                minimum=0, maximum=MAX_SEASONS,
+            # Update existing show - recalculate runtime for the new selection
+            seasons_watched, seasons, error = _season_selection(
+                data, show_details, existing_show['seasons_watched']
             )
-            if seasons_watched is None:
-                return jsonify({'error': 'seasons_watched must be a whole number'}), 400
+            if error:
+                return error
             existing_show['seasons_watched'] = seasons_watched
-            # Recalculate precise runtime and season details for the updated seasons count
+            helpers._store_watched_seasons(existing_show, seasons)
+            # Recalculate precise runtime and season details for the updated selection
             calculated_runtime, season_details_array = helpers.calculate_precise_show_runtime(
-                tmdb_service, show_id, seasons_watched, show_details
+                tmdb_service, show_id, seasons_watched, show_details,
+                season_numbers=seasons
             )
             existing_show['calculated_runtime_minutes'] = calculated_runtime
             existing_show['season_details'] = season_details_array
@@ -116,11 +152,9 @@ def add_watched():
             metrics.record_engagement(request)
 
             # Add new show with precise runtime calculation
-            seasons_watched = helpers._coerce_int(
-                data.get('seasons_watched', 1), minimum=0, maximum=MAX_SEASONS
-            )
-            if seasons_watched is None:
-                return jsonify({'error': 'seasons_watched must be a whole number'}), 400
+            seasons_watched, seasons, error = _season_selection(data, show_details, 1)
+            if error:
+                return error
 
             # Get default episode runtime
             episode_runtime = 45  # default
@@ -133,7 +167,8 @@ def add_watched():
 
             # Calculate precise runtime and season details for the seasons being watched
             calculated_runtime, season_details_array = helpers.calculate_precise_show_runtime(
-                tmdb_service, show_id, seasons_watched, show_details
+                tmdb_service, show_id, seasons_watched, show_details,
+                season_numbers=seasons
             )
 
             new_show = {
@@ -157,6 +192,9 @@ def add_watched():
                 # Store only network names as compact array to save space
                 'networks': [network['name'] for network in show_details.get('networks', [])]
             }
+            # Set after the literal so the key is simply absent for the common
+            # contiguous case, rather than a null in every record.
+            helpers._store_watched_seasons(new_show, seasons)
             watched_shows.append(new_show)
 
         # Return updated data for localStorage storage (no cookies)
@@ -207,21 +245,27 @@ def update_watched(show_id):
         if not show_to_update:
             return jsonify({'error': 'Show not found in watched list'}), 404
 
-        # Update the show data
-        if 'seasons_watched' in data:
-            new_seasons_watched = helpers._coerce_int(
-                data['seasons_watched'], minimum=0, maximum=MAX_SEASONS
-            )
-            if new_seasons_watched is None:
-                return jsonify({'error': 'seasons_watched must be a whole number'}), 400
-            show_to_update['seasons_watched'] = new_seasons_watched
-
-            # Recalculate precise runtime and season details for the new seasons count
+        # Update the show data. A body carrying only watched_seasons still
+        # counts as a season change, so gate on either field.
+        if 'seasons_watched' in data or 'watched_seasons' in data:
+            # Fetched first: the season list is bounded against this show's
+            # real season count, so the bound has to be known before parsing.
             tmdb_service = api.get_tmdb_service()
             show_details = tmdb_service.get_show_details(show_id)
+
+            new_seasons_watched, seasons, error = _season_selection(
+                data, show_details or {}, show_to_update['seasons_watched']
+            )
+            if error:
+                return error
+            show_to_update['seasons_watched'] = new_seasons_watched
+            helpers._store_watched_seasons(show_to_update, seasons)
+
+            # Recalculate precise runtime and season details for the new selection
             if show_details:
                 calculated_runtime, season_details_array = helpers.calculate_precise_show_runtime(
-                    tmdb_service, show_id, new_seasons_watched, show_details
+                    tmdb_service, show_id, new_seasons_watched, show_details,
+                    season_numbers=seasons
                 )
                 show_to_update['calculated_runtime_minutes'] = calculated_runtime
                 show_to_update['season_details'] = season_details_array

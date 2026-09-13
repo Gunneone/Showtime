@@ -4,6 +4,7 @@ from flask import jsonify
 from ...services.tmdb_service import TMDBService
 from ...services.calculation_service import CalculationService
 from ...services.recommendation_service import RecommendationService
+from ...services.season_selection import resolve_watched_seasons  # noqa: F401
 
 # Upper bound on how many seasons a single show may contribute. The longest
 # real TV runs sit well under this; the cap exists so a request body cannot
@@ -14,6 +15,12 @@ MAX_SEASONS = 100
 # Upper bound on the watched-shows list a single request body may carry. The
 # list is the browser's localStorage, so it is entirely client-supplied.
 MAX_WATCHED_SHOWS = 1000
+
+# Distinguishes "the client did not mention watched_seasons" from "the client
+# explicitly cleared it". The two mean different things on a write: the first
+# leaves an existing selection alone to be reset from the count, the second is
+# a deliberate return to the plain 1..N shape.
+MISSING = object()
 
 
 def _coerce_int(value, *, minimum=None, maximum=None):
@@ -62,6 +69,68 @@ def _watched_list(data, key='watched_shows'):
     return shows, None
 
 
+def _watched_seasons(data, key='watched_seasons', max_season=MAX_SEASONS):
+    """Pull an optional explicit watched-season list out of a request body.
+
+    Returns ``(seasons, None)`` on success, where ``seasons`` is one of:
+
+    * ``MISSING`` - the key was absent, so the caller keeps count-only
+      semantics and clears any stale list on the record.
+    * ``None`` - an explicit clear (``null`` or ``[]``).
+    * ``list[int]`` - ascending, deduplicated and bounded.
+
+    or ``(None, response)`` with a ready-to-return error tuple.
+
+    Malformed *types* are rejected; out-of-range *numbers* are dropped rather
+    than fatal, so a client holding a stale season count degrades instead of
+    failing the save.
+    """
+    if key not in data:
+        return MISSING, None
+
+    raw = data[key]
+    if raw is None:
+        return None, None
+    if not isinstance(raw, list):
+        return None, (
+            jsonify({'error': f'{key} must be a list of season numbers'}),
+            400,
+        )
+    if len(raw) > MAX_SEASONS:
+        return None, (
+            jsonify({'error': f'{key} is limited to {MAX_SEASONS} entries'}),
+            413,
+        )
+
+    seasons = set()
+    for item in raw:
+        # Deliberately uncapped: _coerce_int clamps rather than rejects, and
+        # clamping season 500 to 100 would invent a watched season.
+        season = _coerce_int(item)
+        if season is None:
+            return None, (
+                jsonify({'error': f'{key} must contain whole numbers'}),
+                400,
+            )
+        if 1 <= season <= max_season:
+            seasons.add(season)
+
+    return (sorted(seasons) or None), None
+
+
+def _store_watched_seasons(show, seasons):
+    """Persist an explicit season list on a record, or drop it when redundant.
+
+    A selection of exactly 1..N is what ``seasons_watched`` already says, so
+    the key is removed in that case. Contiguous libraries therefore serialise
+    exactly as they did before non-contiguous selections existed.
+    """
+    if seasons and list(seasons) != list(range(1, len(seasons) + 1)):
+        show['watched_seasons'] = list(seasons)
+    else:
+        show.pop('watched_seasons', None)
+
+
 def get_tmdb_service():
     """Get TMDB service instance."""
     from flask import current_app
@@ -83,16 +152,31 @@ def get_rec_service():
     return RecommendationService(tmdb_service=get_tmdb_service())
 
 
-def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched, show_details):
-    """Calculate precise runtime and collect per-season details (runtime + air date)."""
+def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched,
+                                   show_details, season_numbers=None):
+    """Calculate precise runtime and collect per-season details (runtime + air date).
+
+    ``season_numbers`` names the seasons explicitly, for a selection with gaps
+    in it. When omitted the historical "seasons 1..seasons_watched" meaning
+    applies.
+    """
     # Defensive clamp: the route handlers validate this, but this is the loop
-    # that would otherwise run unbounded on a hostile value.
-    seasons_watched = max(0, min(int(seasons_watched), MAX_SEASONS))
+    # that would otherwise run unbounded on a hostile value, with one uncached
+    # TMDB call per iteration.
+    if season_numbers is None:
+        seasons_watched = max(0, min(int(seasons_watched), MAX_SEASONS))
+        season_numbers = range(1, seasons_watched + 1)
+    else:
+        season_numbers = sorted({
+            int(number) for number in season_numbers
+            if 1 <= int(number) <= MAX_SEASONS
+        })[:MAX_SEASONS]
+
     total_runtime = 0
     season_details_array = []
     default_episode_runtime = show_details.get('episode_run_time', 45)
 
-    for season_num in range(1, seasons_watched + 1):
+    for season_num in season_numbers:
         try:
             # Get precise episode data for this season
             season_details = tmdb_service.get_season_details(show_id, season_num)
@@ -111,7 +195,9 @@ def calculate_precise_show_runtime(tmdb_service, show_id, seasons_watched, show_
                         season_runtime += default_episode_runtime
                 total_runtime += season_runtime
             else:
-                # Fallback: estimate based on total episodes/seasons ratio
+                # Fallback: estimate based on total episodes/seasons ratio.
+                # This is a per-season average, so it stays the right estimate
+                # for any season number, not just a season in a 1..N prefix.
                 total_episodes = show_details.get('number_of_episodes', 0)
                 total_seasons = show_details.get('number_of_seasons', 1)
 

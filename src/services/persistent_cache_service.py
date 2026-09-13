@@ -197,7 +197,7 @@ class PersistentCacheService:
                         (normalized_query, results_json, current_time)
                     )
                     conn.commit()
-            except (sqlite3.Error, json.JSONEncodeError) as e:
+            except (sqlite3.Error, TypeError) as e:
                 print(f"Error writing search cache: {e}")
     
     def get_season_data(self, show_id: int) -> Optional[Dict[str, Any]]:
@@ -262,7 +262,7 @@ class PersistentCacheService:
                         (show_id, season_data_json, current_time)
                     )
                     conn.commit()
-            except (sqlite3.Error, json.JSONEncodeError) as e:
+            except (sqlite3.Error, TypeError) as e:
                 print(f"Error writing season cache: {e}")
     
     def get_recommendations(self, show_id: int) -> Optional[List[Dict[str, Any]]]:

@@ -8,8 +8,10 @@
 const CELEBRATION_Z_INDEX = 1500;
 
 Object.assign(App, {
-    // Add show with specific number of seasons (for season selector bars)
-    async addShowWithSeasons(showId, seasonsWatched, showName) {
+    // Add show with specific number of seasons (for season selector bars).
+    // ``watchedSeasons`` names the seasons explicitly when the user picked
+    // them individually; without it the count means "seasons 1..N".
+    async addShowWithSeasons(showId, seasonsWatched, showName, watchedSeasons = null) {
         // Find the show among whatever the dropdown is currently offering
         const show = this.findResultShow(showId);
         if (!show) {
@@ -31,6 +33,9 @@ Object.assign(App, {
                 body: JSON.stringify({
                     id: show.id,
                     seasons_watched: seasonsWatched,
+                    // Always sent, so a plain add clears any selection the
+                    // record picked up earlier rather than silently keeping it.
+                    watched_seasons: watchedSeasons,
                     current_watched_shows: currentWatchedShows
                 })
             });

@@ -170,7 +170,12 @@ Object.assign(App, {
         const editSeasonBars = this.createEditSeasonSelectorBars(releasedSeasons, show, show.seasons_watched);
 
         const safeName = this.escapeHtml(show.name);
-        const seasonsSummary = `${show.seasons_watched} of ${releasedSeasons} season${releasedSeasons !== 1 ? 's' : ''} watched`;
+        const seasonsSummary = this.seasonsSummary(show);
+        const seasonsStrip = this.seasonsStripHtml(show);
+        const selection = this.resolveWatchedSeasons(show);
+        // A show with gaps can only be shown honestly in pick mode, so its
+        // editor is built that way rather than flipped after it opens.
+        const picking = this.hasSeasonGaps(show);
 
         div.innerHTML = `
             <button type="button" class="watched-show-remove" onclick="App.removeShow(${show.id})" aria-label="Remove ${safeName} from your watched list">
@@ -185,13 +190,26 @@ Object.assign(App, {
                 <div class="watched-show-info">
                     <h4>${safeName}</h4>
                     <div class="watched-show-seasons">
-                        <button type="button" class="seasons-display" onclick="App.editSeasons(${show.id})" aria-label="Edit seasons watched for ${safeName}. Currently ${seasonsSummary}.">
+                        <button type="button" class="seasons-display" onclick="App.editSeasons(${show.id})" aria-label="Edit seasons watched for ${safeName}. Currently ${this.seasonsSummary(show, true)}.">
                             <i class="fas fa-eye" aria-hidden="true"></i> ${seasonsSummary}
+                            ${seasonsStrip}
                             <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;" aria-hidden="true"></i>
                         </button>
-                        <div class="seasons-edit" id="seasonsEdit-${show.id}" data-selected-seasons="${show.seasons_watched}">
-                            <div class="season-selector-bars edit-season-bars" role="group" aria-label="Seasons watched for ${safeName}">
+                        <div class="seasons-edit" id="seasonsEdit-${show.id}" data-selected-seasons="${show.seasons_watched}" data-watched-seasons="${selection.join(',')}" data-pick-mode="${picking}">
+                            <div class="season-row">
+                            <div class="season-selector-bars edit-season-bars${picking ? ' pick-mode' : ''}" role="group" aria-label="Seasons watched for ${safeName}">
                                 ${editSeasonBars}
+                            </div>
+                            <div class="season-pick-controls">
+                                <button type="button" class="season-pick-toggle" aria-pressed="${picking}"
+                                        onclick="App.toggleEditPickMode(${show.id})"
+                                        title="Pick individual seasons"
+                                        aria-label="Pick individual seasons of ${safeName}">
+                                    <i class="fas fa-list-check" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="season-pick-done" ${picking ? '' : 'hidden'}
+                                        onclick="App.saveSeasons(${show.id})">Done</button>
+                            </div>
                             </div>
                         </div>
                     </div>
