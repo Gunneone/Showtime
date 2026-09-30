@@ -1,6 +1,6 @@
 # Images
 
-`favicon.ico`, `favicon.svg`, `no-poster.png`, `donut.svg` and `ufo.svg` are
+`no-poster.png`, `donut.svg` and `ufo.svg` are
 Showtime's own, released under the repository's MIT licence. The last two are
 original flat-style drawings used by on-page animations (see
 `static/js/easter-eggs.js`):
@@ -45,3 +45,16 @@ Unmodified, and served from this origin rather than hotlinked, for the same
 reason the JavaScript in `static/js/vendor` is: using Showtime should not
 disclose visitors to a third party. Used by an on-page animation (see
 `static/js/easter-eggs.js`).
+
+## icons.svg
+
+A sprite of [Tabler Icons](https://tabler.io/icons) (outline set), the icon set
+of the shared design system. Symbols are the unmodified icon paths with the
+bounding-box path removed; stroke and fill come from the `.g1-icon` class.
+
+* Source: `https://cdn.jsdelivr.net/npm/@tabler/icons@3.48.0/icons/outline/<name>.svg`
+* Licence: MIT (Copyright (c) 2020-2026 Paweł Kuna)
+* Retrieved: 2026-09-25
+
+To add an icon, fetch its outline SVG from the same URL and add a `<symbol>`
+with the icon's name as its `id`.

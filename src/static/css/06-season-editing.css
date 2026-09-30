@@ -56,7 +56,7 @@
     width: 26px;
     height: 22px;
     padding: 0;
-    border: 1px solid rgba(99, 179, 237, 0.4);
+    border: 1px solid color-mix(in srgb, var(--g1-primary) 40%, transparent);
     border-radius: 6px;
     background: var(--blue-primary-alpha-10);
     color: var(--blue-primary);
@@ -71,32 +71,14 @@
 
 .season-pick-toggle[aria-pressed="true"] {
     background: var(--blue-primary-alpha-60);
-    color: white;
+    color: var(--g1-on-primary);
     border-color: var(--blue-primary);
 }
 
-.season-pick-done,
-.season-pick-add {
-    padding: 0.2rem 0.6rem;
-    border: none;
-    border-radius: 6px;
-    background: var(--blue-primary);
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.season-pick-done:hover,
-.season-pick-add:hover {
-    box-shadow: 0 2px 8px var(--blue-primary-alpha-30);
-}
-
-.season-pick-add:disabled {
-    opacity: 0.5;
-    cursor: default;
-    box-shadow: none;
+/* Done / Add are small gunne.one buttons (g1-btn--sm); a little shorter here
+   so they line up with the season strip */
+.season-pick-controls .g1-btn {
+    min-height: 26px;
 }
 
 /* The read-only strip beside a collapsed card's summary: the same segmented
@@ -124,15 +106,15 @@
 .seasons-edit input {
     width: 60px;
     padding: 0.25rem 0.5rem;
-    border: 1px solid #4a5568;
+    border: 1px solid var(--g1-border-strong);
     border-radius: 4px;
     font-size: 0.8rem;
-    background: rgba(45, 55, 72, 0.9);
-    color: #e2e8f0;
+    background: var(--g1-surface);
+    color: var(--g1-text);
 }
 
 .seasons-total {
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     font-size: 0.8rem;
     font-weight: 500;
 }
@@ -140,35 +122,4 @@
 .seasons-edit input:focus {
     outline: none;
     border-color: var(--blue-primary);
-}
-
-.btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-}
-
-.btn-primary {
-    background: var(--blue-primary);
-    color: white;
-}
-
-.btn-secondary {
-    background: #4a5568;
-    color: #e2e8f0;
-}
-
-.btn-danger {
-    background: #e53e3e;
-    color: white;
-}
-
-.btn:hover {
 }

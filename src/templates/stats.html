@@ -1,46 +1,47 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
-{% block title %}Statistics - Showtime{% endblock %}
+{% block title %}Statistics · Showtime{% endblock %}
 
 {% block head %}
-<!-- Using fallback charts instead of Plotly due to CDN restrictions -->
+<!-- Charts are plain HTML, see js/stats/charts.js -->
 {% endblock %}
 
 {% block content %}
 <!-- Statistics Overview -->
 <section class="stats-overview">
-    <h2>Your Viewing Statistics</h2>
+    <h2>Your viewing statistics</h2>
     
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-clock" aria-hidden="true"></i></div>
+            <div class="stat-icon">{{ icon('clock') }}</div>
             <div class="stat-content">
                 <h3 id="totalTime">-</h3>
-                <p>Total Time</p>
+                <p>Total time</p>
             </div>
         </div>
         
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-tv" aria-hidden="true"></i></div>
+            <div class="stat-icon">{{ icon('device-tv') }}</div>
             <div class="stat-content">
                 <h3 id="totalShows">-</h3>
-                <p>Total Shows</p>
+                <p>Total shows</p>
             </div>
         </div>
         
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-layer-group" aria-hidden="true"></i></div>
+            <div class="stat-icon">{{ icon('stack-2') }}</div>
             <div class="stat-content">
                 <h3 id="totalSeasons">-</h3>
-                <p>Total Seasons</p>
+                <p>Total seasons</p>
             </div>
         </div>
         
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-list-ol" aria-hidden="true"></i></div>
+            <div class="stat-icon">{{ icon('list-numbers') }}</div>
             <div class="stat-content">
                 <h3 id="totalEpisodes">-</h3>
-                <p>Total Episodes</p>
+                <p>Total episodes</p>
             </div>
         </div>
     </div>
@@ -48,26 +49,26 @@
 
 <!-- Completion Statistics -->
 <section class="completion-stats">
-    <h3>Completion Progress</h3>
+    <h3>Completion progress</h3>
     <div class="completion-grid">
         <div class="completion-card">
             <div class="completion-info">
                 <h4 id="completedShows">-</h4>
-                <p>Completed Shows</p>
+                <p>Completed shows</p>
             </div>
         </div>
         
         <div class="completion-card">
             <div class="completion-info">
                 <h4 id="inProgressShows">-</h4>
-                <p>In Progress</p>
+                <p>In progress</p>
             </div>
         </div>
         
         <div class="completion-card">
             <div class="completion-info">
                 <h4 id="completionRate">-%</h4>
-                <p>Completion Rate</p>
+                <p>Completion rate</p>
             </div>
         </div>
     </div>
@@ -75,7 +76,7 @@
 
 <!-- Legacy Genre Breakdown (kept for fallback) -->
 <section class="genre-stats" style="display: none;">
-    <h3>Time by Genre</h3>
+    <h3>Time by genre</h3>
     <div id="genreBreakdown" class="genre-list">
         <!-- Genre breakdown will be populated here -->
     </div>
@@ -86,18 +87,18 @@
     
     <!-- Time by Publishing Year Line Chart -->
     <div class="chart-container">
-        <h4>Watch Time by Release Year</h4>
+        <h4>Watch time by release year</h4>
         <div id="yearlyChart" class="plotly-chart"></div>
     </div>
     
     <!-- Top Genres and Networks Side by Side -->
     <div class="chart-container horizontal-charts">
         <div class="chart-half">
-            <h4>Top Genres</h4>
+            <h4>Top genres</h4>
             <div id="topGenresChart" class="plotly-chart"></div>
         </div>
         <div class="chart-half">
-            <h4>Top Networks</h4>
+            <h4>Top networks</h4>
             <div id="topNetworksChart" class="plotly-chart"></div>
         </div>
     </div>
@@ -112,7 +113,7 @@
     
     <!-- Fun Time Conversions -->
     <div class="chart-container">
-        <h4>Instead of watching TV shows you could have...</h4>
+        <h4>Instead of watching TV shows you could have… <span class="g1-scribble">(but didn't)</span></h4>
         <div id="timeConversions" class="time-conversions-grid">
             <!-- Fun conversions will be populated here -->
         </div>
@@ -121,7 +122,7 @@
 
 <!-- Legacy Breakdown (kept for fallback) -->
 <section class="yearly-stats" style="display: none;">
-    <h3>Time by Show Release Year</h3>
+    <h3>Time by show release year</h3>
     <div id="yearlyBreakdown" class="yearly-list">
         <!-- Yearly breakdown will be populated here -->
     </div>
@@ -129,16 +130,16 @@
 
 <!-- Loading State -->
 <div id="statsLoading" class="loading-stats">
-    <div class="spinner"></div>
-    <p>Loading your statistics...</p>
+    <div class="spinner" aria-hidden="true"></div>
+    <p>Loading your statistics…</p>
 </div>
 
 <!-- Empty State -->
 <div id="statsEmpty" class="stats-empty hidden">
-    <div class="empty-icon"><i class="fas fa-chart-bar" aria-hidden="true"></i></div>
-    <h3>No statistics yet!</h3>
-    <p>Start tracking some shows to see your viewing statistics.</p>
-    <a href="{{ url_for('main.index') }}" class="btn btn-primary">Add Your First Show</a>
+    <div class="empty-icon">{{ icon('chart-bar') }}</div>
+    <h3>No statistics yet</h3>
+    <p>Track a show to see your viewing statistics.</p>
+    <a href="{{ url_for('main.index') }}" class="g1-btn g1-btn--primary">Add your first show</a>
 </div>
 {% endblock %}
 

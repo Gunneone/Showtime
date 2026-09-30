@@ -4,7 +4,7 @@ const DataStorage = {
     WATCHED_SHOWS_KEY: 'showtime_shows',
     SORT_PREFERENCE_KEY: 'showtime_sort_preference',
     STATS_CACHE_KEY: 'showtime_stats_cache',
-    STATS_VERSION: '1.0', // Version for cache invalidation
+    STATS_VERSION: '2.0', // Version for cache invalidation (2.0: Tabler icon names)
 
     // Get watched shows from localStorage
     getWatchedShows() {

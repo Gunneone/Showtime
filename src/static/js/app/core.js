@@ -256,6 +256,14 @@ const App = {
 
     // Minimum query length before a search is worth running
     MIN_QUERY_LENGTH: 2,
+
+    // Markup for a decorative Tabler icon from the app's sprite
+    // (static/images/icons.svg); the counterpart of the icon() template macro.
+    // The attributes are a fallback for when gunne.css is unavailable.
+    icon(name, extraClass = '') {
+        const cls = extraClass ? `g1-icon ${extraClass}` : 'g1-icon';
+        return `<svg class="${cls}" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="/static/images/icons.svg#${name}"></use></svg>`;
+    },
 };
 
 window.App = App;

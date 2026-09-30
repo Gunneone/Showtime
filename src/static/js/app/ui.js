@@ -7,7 +7,7 @@ Object.assign(App, {
         const show = this.state.watchedShows.find(s => s.id === showId);
         if (!show) return;
 
-        if (!confirm(`Are you sure you want to remove "${show.name}" from your watched list?`)) {
+        if (!confirm(`Remove "${show.name}" from your shows?`)) {
             return;
         }
 
@@ -38,11 +38,11 @@ Object.assign(App, {
                 DataStorage.setWatchedShows(data.updated_watched_shows);
             }
 
-            this.showToast(`Removed "${show.name}" from your watched list`);
+            this.showToast(`Removed "${show.name}" from your shows`);
             this.loadWatchedShows(true);
         } catch (error) {
             console.error('Error removing show:', error);
-            this.showToast('Failed to remove show. Please try again.', 'error');
+            this.showToast('Couldn\'t remove the show. Check your connection and try again.', 'error');
         } finally {
             this.hideLoading();
         }
@@ -114,7 +114,7 @@ Object.assign(App, {
 
     // Confirm and remove all data
     confirmRemoveAllData() {
-        const confirmMessage = "⚠️ WARNING: This will permanently delete all your watched shows data.\n\nThis action cannot be undone. Are you sure you want to continue?";
+        const confirmMessage = "Remove all your shows?\n\nThis deletes your whole watch history from this browser and can't be undone. Export your data first if you want a backup.";
         
         if (confirm(confirmMessage)) {
             this.removeAllData();
@@ -153,11 +153,11 @@ Object.assign(App, {
                 this.elements.sortSelect.value = 'watchtime-desc';
             }
             
-            this.showToast('All data has been removed successfully', 'success');
+            this.showToast('All data removed', 'success');
             
         } catch (error) {
             console.error('Error removing all data:', error);
-            this.showToast('Failed to remove data. Please try again.', 'error');
+            this.showToast('Couldn\'t remove your data. Reload the page and try again.', 'error');
         } finally {
             this.hideLoading();
         }
@@ -179,14 +179,14 @@ Object.assign(App, {
             const shareSpan = this.elements.shareBtn.querySelector('span');
             if (shareSpan) {
                 if (isMobile) {
-                    // Change "Share Result" to "Share" on mobile
-                    if (shareSpan.textContent === 'Share Result') {
+                    // Change "Share result" to "Share" on mobile
+                    if (shareSpan.textContent === 'Share result') {
                         shareSpan.textContent = 'Share';
                     }
                 } else {
-                    // Change "Share" back to "Share Result" on desktop
+                    // Change "Share" back to "Share result" on desktop
                     if (shareSpan.textContent === 'Share') {
-                        shareSpan.textContent = 'Share Result';
+                        shareSpan.textContent = 'Share result';
                     }
                 }
             }
@@ -231,7 +231,7 @@ Object.assign(App, {
 
         // The header is fixed, so scrolling the card flush to the viewport top
         // would tuck its title underneath it
-        const header = document.querySelector('.header');
+        const header = document.querySelector('.g1-header');
         const headerOffset = header ? header.getBoundingClientRect().height + 12 : 0;
 
         const scroll = () => {

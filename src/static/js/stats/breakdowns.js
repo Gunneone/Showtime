@@ -1,4 +1,4 @@
-// Showtime - awards, conversions, breakdown lists, tooltips
+// Showtime - awards, conversions, breakdown lists, time formatting
 // Extends the StatsApp object defined in stats/core.js.
 
 Object.assign(StatsApp, {
@@ -8,32 +8,32 @@ Object.assign(StatsApp, {
         container.innerHTML = '';
 
         if (!awards) {
-            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No awards data available</p>';
+            this.chartMessage(container, 'No awards yet.');
             return;
         }
 
         const awardCards = [
             {
-                icon: 'fas fa-calendar-alt',
-                title: 'Oldest Show',
+                icon: 'calendar',
+                title: 'Oldest show',
                 show: awards.oldest_show,
                 getValue: (show) => show ? `${show.name} (${show.year})` : 'No data'
             },
             {
-                icon: 'fas fa-list-ol',
-                title: 'Most Episodes',
+                icon: 'list-numbers',
+                title: 'Most episodes',
                 show: awards.most_episodes_show,
                 getValue: (show) => show ? `${show.name} (${show.episodes} episodes)` : 'No data'
             },
             {
-                icon: 'fas fa-clock',
-                title: 'Most Watch Time',
+                icon: 'clock',
+                title: 'Most watch time',
                 show: awards.most_watch_time_show,
                 getValue: (show) => show ? `${show.name} (${show.watch_time_formatted})` : 'No data'
             },
             {
-                icon: 'fas fa-eye-slash',
-                title: 'Most Obscure',
+                icon: 'eye-off',
+                title: 'Most obscure',
                 show: awards.most_obscure_show,
                 getValue: (show) => show ? `${show.name} (${show.popularity.toFixed(1)} popularity)` : 'No data'
             }
@@ -42,26 +42,24 @@ Object.assign(StatsApp, {
         awardCards.forEach(award => {
             const card = document.createElement('div');
             card.className = 'award-card';
-            
-            // Add backdrop image if available
-            const backdropStyle = award.show && award.show.backdrop_path 
-                ? `background-image: linear-gradient(rgba(26, 32, 44, 0.8), rgba(26, 32, 44, 0.8)), url(${award.show.backdrop_path}); background-size: cover; background-position: center;`
-                : '';
-            
+
             card.innerHTML = `
                 <div class="award-icon">
-                    <i class="${award.icon}" aria-hidden="true"></i>
+                    ${App.icon(award.icon)}
                 </div>
                 <div class="award-content">
-                    <h5 class="award-title">${award.title}</h5>
+                    <span class="g1-badge g1-badge--primary award-title">${award.title}</span>
                     <p class="award-value">${App.escapeHtml(award.getValue(award.show))}</p>
                 </div>
             `;
-            
-            if (backdropStyle) {
-                card.style.cssText += backdropStyle;
+
+            // The show's backdrop behind a veil of the card colour, so the
+            // text stays readable in light and dark mode
+            if (award.show && award.show.backdrop_path) {
+                card.classList.add('has-backdrop');
+                card.style.setProperty('--backdrop', `url("${encodeURI(award.show.backdrop_path)}")`);
             }
-            
+
             container.appendChild(card);
         });
     },
@@ -72,7 +70,7 @@ Object.assign(StatsApp, {
         container.innerHTML = '';
 
         if (!conversions || conversions.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #cbd5e0; padding: 2rem;">No conversion data available</p>';
+            this.chartMessage(container, 'Nothing to compare yet.');
             return;
         }
 
@@ -81,10 +79,10 @@ Object.assign(StatsApp, {
             card.className = 'conversion-card';
             card.innerHTML = `
                 <div class="conversion-icon">
-                    <i class="${conversion.icon}" aria-hidden="true"></i>
+                    ${App.icon(conversion.icon)}
                 </div>
-                <div class="conversion-activity">${conversion.description}</div>
-                <div class="conversion-value">${conversion.value} <span class="times-text">${conversion.times_text}</span></div>
+                <div class="conversion-activity">${App.escapeHtml(conversion.description)}</div>
+                <div class="conversion-value">${App.escapeHtml(conversion.value)} <span class="times-text">${App.escapeHtml(conversion.times_text)}</span></div>
             `;
             container.appendChild(card);
         });
@@ -155,42 +153,6 @@ Object.assign(StatsApp, {
         const remainingHours = hours % 24;
         
         return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
-    },
-
-    // Show custom tooltip
-    showTooltip(event, tooltipId, content) {
-        const tooltip = document.getElementById(tooltipId);
-        if (tooltip) {
-            tooltip.innerHTML = content;
-            tooltip.style.opacity = '1';
-            this.moveTooltip(event, tooltipId);
-        }
-    },
-
-    // Hide custom tooltip
-    hideTooltip(tooltipId) {
-        const tooltip = document.getElementById(tooltipId);
-        if (tooltip) {
-            tooltip.style.opacity = '0';
-        }
-    },
-
-    // Move tooltip with mouse (closer to pointer)
-    moveTooltip(event, tooltipId) {
-        const tooltip = document.getElementById(tooltipId);
-        if (tooltip) {
-            // Find the positioned container (the chart's relative positioned parent)
-            const positionedContainer = tooltip.offsetParent || tooltip.parentElement;
-            if (positionedContainer) {
-                const rect = positionedContainer.getBoundingClientRect();
-                const x = event.clientX - rect.left;
-                const y = event.clientY - rect.top;
-                
-                // Position tooltip close to the mouse pointer
-                tooltip.style.left = (x + 10) + 'px';  // Small offset to avoid covering cursor
-                tooltip.style.top = (y - 30) + 'px';   // Position above the cursor
-            }
-        }
     },
 
     // Format time for hover tooltips (compact format: 28d 8h)

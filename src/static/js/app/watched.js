@@ -15,7 +15,7 @@ Object.assign(App, {
         // Find the show among whatever the dropdown is currently offering
         const show = this.findResultShow(showId);
         if (!show) {
-            this.showToast('Show not found. Please try again.', 'error');
+            this.showToast('That show is no longer in the results. Search for it again.', 'error');
             return;
         }
 
@@ -51,7 +51,7 @@ Object.assign(App, {
                 DataStorage.setWatchedShows(data.updated_watched_shows);
             }
 
-            this.showCelebrationToast(`Added "${showName}" with ${seasonsWatched} season${seasonsWatched !== 1 ? 's' : ''} to your watched list!`);
+            this.showCelebrationToast(`Added "${showName}" with ${seasonsWatched} season${seasonsWatched !== 1 ? 's' : ''} to your shows`);
             this.markCelebrationShow(show.id);
             this.loadWatchedShows(true);
             this.hideSearchResults();
@@ -68,7 +68,7 @@ Object.assign(App, {
             this.scrollToTopCard();
         } catch (error) {
             console.error('Error adding show:', error);
-            this.showToast('Failed to add show. Please try again.', 'error');
+            this.showToast('Couldn\'t add the show. Check your connection and try again.', 'error');
         } finally {
             this.hideLoading();
         }

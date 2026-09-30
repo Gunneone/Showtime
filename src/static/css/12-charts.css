@@ -5,7 +5,7 @@
 
 .charts-section h3 {
     margin-bottom: 2rem;
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     text-align: center;
     font-size: 1.8rem;
 }
@@ -27,14 +27,14 @@
 }
 
 .chart-half h4 {
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     margin-bottom: 1.5rem;
     text-align: left;
     font-size: 1.2rem;
 }
 
 .chart-container h4 {
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     margin-bottom: 1.5rem;
     text-align: left;
     font-size: 1.2rem;
@@ -56,12 +56,20 @@
 }
 
 .award-card {
-    background: rgba(42, 48, 62, 0.9);
+    background: var(--g1-surface);
     border-radius: 12px;
     padding: 1.5rem;
     text-align: center;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--st-shadow);
     border: 1px solid var(--blue-primary-alpha-30);
+}
+
+.award-card.has-backdrop {
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--g1-surface) 82%, transparent), color-mix(in srgb, var(--g1-surface) 82%, transparent)),
+        var(--backdrop);
+    background-size: cover;
+    background-position: center;
 }
 
 .award-icon {
@@ -71,15 +79,12 @@
 }
 
 .award-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--blue-primary);
-    margin: 0 0 0.5rem 0;
+    margin-bottom: 0.6rem;
 }
 
 .award-value {
     font-size: 1rem;
-    color: #e2e8f0;
+    color: var(--g1-text);
     margin: 0;
     line-height: 1.4;
 }
@@ -93,11 +98,11 @@
 }
 
 .conversion-card {
-    background: rgba(42, 48, 62, 0.9);
+    background: var(--g1-surface);
     border-radius: 12px;
     padding: 1.5rem;
     text-align: center;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--st-shadow);
     border: 1px solid var(--blue-primary-alpha-30);
 }
 
@@ -111,15 +116,15 @@
 .conversion-value {
     font-size: 1.8rem;
     font-weight: bold;
-    color: #e2e8f0;
+    color: var(--g1-text);
 }
 
 .times-text {
-    color: #e2e8f0;
+    color: var(--g1-text);
 }
 
 .conversion-description {
-    color: #cbd5e0;
+    color: var(--g1-text-muted);
     font-size: 0.9rem;
     line-height: 1.4;
     margin-bottom: 0.5rem;
@@ -127,20 +132,110 @@
 }
 
 .conversion-activity {
-    color: #e2e8f0;
+    color: var(--g1-text);
     font-size: 1rem;
     font-weight: 500;
     margin-bottom: 1rem;
     line-height: 1.3;
 }
 
-/* Dark theme for Plotly charts */
-.js-plotly-plot .plotly .modebar {
-    background: rgba(45, 55, 72, 0.9) !important;
+/* Bar charts (js/stats/charts.js) */
+.chart-message {
+    text-align: center;
+    color: var(--g1-text-muted);
+    padding: 2rem;
 }
 
-.js-plotly-plot .plotly .modebar-btn {
-    color: #e2e8f0 !important;
+.year-chart {
+    position: relative;
+    padding: 1rem;
+}
+
+.year-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 200px;
+    padding: 20px 0;
+}
+
+.year-bar {
+    flex: 1;
+    height: var(--h);
+    background: var(--blue-primary);
+    border-radius: 4px 4px 0 0;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+.year-bar:hover {
+    background: var(--g1-primary-hover);
+}
+
+.year-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 0 20px;
+    color: var(--g1-text-muted);
+    font-family: var(--g1-font-mono);
+    font-size: 0.8rem;
+}
+
+.chart-tooltip {
+    position: absolute;
+    z-index: 1000;
+    padding: 8px 12px;
+    background: var(--g1-surface);
+    border: 1px solid var(--blue-primary);
+    border-radius: 6px;
+    color: var(--g1-text);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.chart-tooltip.visible {
+    opacity: 1;
+}
+
+/* Ranked horizontal bars (genres, networks): label, bar, time */
+.rank-chart {
+    display: grid;
+    grid-template-columns: minmax(5rem, max-content) 1fr auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 1rem;
+}
+
+.rank-label {
+    max-width: 12rem;
+    overflow: hidden;
+    color: var(--g1-text-muted);
+    font-size: 0.9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rank-track {
+    height: 24px;
+}
+
+.rank-fill {
+    display: block;
+    width: var(--w);
+    height: 100%;
+    background: var(--blue-primary);
+    border-radius: 4px;
+}
+
+.rank-value {
+    color: var(--g1-text-muted);
+    font-family: var(--g1-font-mono);
+    font-size: 0.8rem;
+    text-align: right;
 }
 
 /* Responsive adjustments for charts */

@@ -171,7 +171,7 @@ const StatsApp = {
         sections.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
-                element.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Loading...</div>';
+                element.innerHTML = `<p class="chart-message">${App.icon('loader-2', 'spin')} Loading…</p>`;
             }
         });
     },
@@ -186,7 +186,7 @@ const StatsApp = {
         sections.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
-                element.innerHTML = '<p style="text-align: center; color: #cbd5e0;">Unable to load data</p>';
+                element.innerHTML = '<p class="chart-message">Couldn\'t load this. Reload the page to try again.</p>';
             }
         });
     },

@@ -283,10 +283,10 @@ Object.assign(App, {
                 console.error('Search error:', error);
 
                 const serverError = data && data.error;
-                let errorMessage = 'Search failed. Please try again.';
+                let errorMessage = 'Search failed. Check your connection and try again.';
                 if (serverError) {
                     errorMessage = serverError.includes('API key')
-                        ? 'TMDB API key is not configured properly. Please contact the administrator.'
+                        ? 'Search is unavailable: the TMDB API key is not configured on the server.'
                         : `Search failed: ${serverError}`;
                 }
 
@@ -314,7 +314,7 @@ Object.assign(App, {
 
     // Show loading state in search results
     showSearchLoading(message = 'Searching...') {
-        this.elements.searchResults.innerHTML = `<div class="search-loading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> ${this.escapeHtml(message)}</div>`;
+        this.elements.searchResults.innerHTML = `<div class="search-loading">${this.icon('loader-2', 'spin')} ${this.escapeHtml(message)}</div>`;
         this.elements.searchResults.classList.remove('hidden');
         this.setResultsExpanded(true);
         this.setListboxActive(false);
@@ -325,7 +325,7 @@ Object.assign(App, {
     showSearchError(message) {
         this.elements.searchResults.innerHTML = `
             <div class="search-no-results">
-                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                ${this.icon('alert-triangle')}
                 <p>${this.escapeHtml(message)}</p>
             </div>
         `;
@@ -467,7 +467,7 @@ Object.assign(App, {
             moreDiv.setAttribute('role', 'option');
             moreDiv.setAttribute('tabindex', '-1');
             moreDiv.setAttribute('aria-label', 'Load more suggestions');
-            moreDiv.innerHTML = '<span class="load-more-btn"><i class="fas fa-plus" aria-hidden="true"></i> load more</span>';
+            moreDiv.innerHTML = `<span class="g1-btn g1-btn--sm load-more-btn">${this.icon('plus')} Load more</span>`;
             moreDiv.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const fromKeyboard = e.detail === 0;

@@ -1,62 +1,63 @@
-/* Reset and base styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* Reset and base styles. gunne.css (linked first in base.html) brings the
+   fonts, the page background and the header/footer; this file maps
+   Showtime's own palette onto its light/dark tokens (see DESIGN.md). */
+
+/* In the `base` layer, below gunne.css's own `g1` layer, so the reset never
+   strips the padding of the shared header, footer and buttons */
+@layer base {
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 }
 
 :root {
-    /* Blue accent color palette */
-    --blue-primary: #63b3ed;
-    --blue-secondary: #667eea;
-    --blue-dark: #3182ce;
-    --blue-darker: #2c5282;
-    
+    /* Blue accent colour palette, following the light/dark theme */
+    --blue-primary: var(--g1-primary);
+    --blue-secondary: var(--g1-link);
+    --blue-dark: var(--g1-primary);
+    --blue-darker: var(--g1-primary-hover);
+
     /* Blue with opacity variants */
-    --blue-primary-alpha-20: rgba(99, 179, 237, 0.2);
-    --blue-primary-alpha-10: rgba(99, 179, 237, 0.1);
-    --blue-primary-alpha-30: rgba(99, 179, 237, 0.3);
-    --blue-primary-alpha-60: rgba(99, 179, 237, 0.6);
-    --blue-secondary-alpha-30: rgba(102, 126, 234, 0.3);
-    --blue-secondary-alpha-40: rgba(102, 126, 234, 0.4);
-    --blue-dark-alpha-30: rgba(49, 130, 206, 0.3);
+    --blue-primary-alpha-20: color-mix(in srgb, var(--g1-primary) 20%, transparent);
+    --blue-primary-alpha-10: color-mix(in srgb, var(--g1-primary) 10%, transparent);
+    --blue-primary-alpha-30: color-mix(in srgb, var(--g1-primary) 30%, transparent);
+    --blue-primary-alpha-60: color-mix(in srgb, var(--g1-primary) 60%, transparent);
+    --blue-secondary-alpha-30: color-mix(in srgb, var(--g1-link) 30%, transparent);
+    --blue-secondary-alpha-40: color-mix(in srgb, var(--g1-link) 40%, transparent);
+    --blue-dark-alpha-30: color-mix(in srgb, var(--g1-primary) 30%, transparent);
+
+    /* Showtime keeps its original, wider page; the shared header follows */
+    --g1-width-wide: 1300px;
+
+    /* Soft card shadow: barely there in light mode, deeper in dark */
+    --st-shadow: 0 4px 16px light-dark(rgb(20 24 33 / 0.06), rgb(0 0 0 / 0.25));
 }
 
-html {
-    background: #1a202c;
-}
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    line-height: 1.6;
-    color: #e2e8f0;
-    background: #1a202c;
-    min-height: 100vh;
-}
-
-/* Global subtle scrollbar styling for dark theme */
+/* Subtle scrollbars that follow the theme */
 *::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 *::-webkit-scrollbar-track {
-    background: rgba(45, 55, 72, 0.3);
+    background: transparent;
     border-radius: 4px;
 }
 
 *::-webkit-scrollbar-thumb {
-    background: rgba(99, 179, 237, 0.3);
+    background: var(--blue-primary-alpha-30);
     border-radius: 4px;
     transition: background 0.3s ease;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-    background: rgba(99, 179, 237, 0.5);
+    background: color-mix(in srgb, var(--g1-primary) 50%, transparent);
 }
 
 *::-webkit-scrollbar-corner {
-    background: rgba(45, 55, 72, 0.3);
+    background: transparent;
 }
 
 .container {
@@ -65,53 +66,29 @@ body {
     padding: 0 20px;
 }
 
-/* Header */
-.header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: rgba(26, 32, 44, 0.95);
-    backdrop-filter: blur(10px);
-    color: white;
-    padding: 1rem 0;
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    z-index: 1000;
+/* Tabler icons (see _icons.html / App.icon) sit where Font Awesome glyphs
+   used to: the big decorative ones are sized by their container's font-size */
+.stat-icon .g1-icon,
+.award-icon .g1-icon,
+.conversion-icon .g1-icon,
+.empty-icon .g1-icon,
+.admin-login-icon .g1-icon {
+    width: 1em;
+    height: 1em;
+    stroke-width: 1.5;
 }
 
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.seasons-edit-icon {
+    width: 0.9em;
+    height: 0.9em;
+    opacity: 0.7;
 }
 
-.logo a {
-    color: white;
-    text-decoration: none;
-    font-size: 1.8rem;
-    font-weight: bold;
-}
-
-.nav {
-    display: flex;
-    gap: 2rem;
-}
-
-.nav-link {
-    color: white;
-    text-decoration: none;
-    font-weight: 500;
-    transition: opacity 0.3s;
-}
-
-.nav-link:hover {
-    opacity: 0.8;
+.g1-icon.spin {
+    animation: spin 1s linear infinite;
 }
 
 /* Main content */
 .main {
-    min-height: calc(100vh - 200px);
     padding: 2rem 0;
-    padding-top: 5rem; /* Add space for fixed header */
 }

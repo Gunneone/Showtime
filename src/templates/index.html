@@ -1,19 +1,18 @@
 {% extends "base.html" %}
-
-{% block title %}Showtime - Track Your TV Time{% endblock %}
+{% from "_icons.html" import icon %}
 
 {% block content %}
 <!-- Watch Time Display -->
 <section class="watch-time-section">
     <div class="watch-time-card">
-        <h2 class="watch-time-title">Total Time Watched</h2>
+        <h2 class="watch-time-title">Total time watched</h2>
         <div class="watch-time-display" id="totalWatchTime">
-            <span class="time-value">Loading...</span>
+            <span class="time-value">–</span>
         </div>
-        <p class="watch-time-subtitle">Time well spent! <i class="fas fa-film" aria-hidden="true"></i></p>
-        <button type="button" class="share-btn" id="shareBtn" title="Share your watch time">
-            <i class="fas fa-share-alt" aria-hidden="true"></i>
-            <span>Share Result</span>
+        <p class="watch-time-subtitle"><span class="g1-scribble">(time well spent)</span></p>
+        <button type="button" class="g1-btn share-btn" id="shareBtn" title="Share your watch time">
+            {{ icon('share') }}
+            <span>Share result</span>
         </button>
     </div>
 </section>
@@ -26,7 +25,7 @@
             <input
                 type="text"
                 id="searchInput"
-                placeholder="Search for a TV show..."
+                placeholder="Breaking Bad"
                 class="search-input"
                 role="combobox"
                 aria-expanded="false"
@@ -47,14 +46,14 @@
 <section class="watched-section">
     <div class="watched-container">
         <div class="watched-header">
-            <h3>Your TV Shows</h3>
+            <h3>Your TV shows</h3>
             <div class="sort-controls" id="sortControls" style="display: none;">
-                <label for="sortSelect">Sort by:</label>
+                <label for="sortSelect">Sort by</label>
                 <select id="sortSelect" class="sort-select">
-                    <option value="watchtime-desc">Watch Time</option>
+                    <option value="watchtime-desc">Watch time</option>
                     <option value="alphabet-asc">Alphabetical</option>
-                    <option value="releasedate-asc">Release Date</option>
-                    <option value="added-desc">When Added</option>
+                    <option value="releasedate-asc">Release date</option>
+                    <option value="added-desc">When added</option>
                 </select>
             </div>
         </div>
@@ -64,9 +63,9 @@
         
         <!-- Empty State -->
         <div id="emptyState" class="empty-state hidden">
-            <div class="empty-icon"><i class="fas fa-tv" aria-hidden="true"></i></div>
-            <h4>No shows tracked yet!</h4>
-            <p>Start by searching for a TV show above and adding it to your watched list.</p>
+            <div class="empty-icon">{{ icon('device-tv') }}</div>
+            <h4>No shows yet <span class="g1-scribble">(your couch misses you)</span></h4>
+            <p>Search for a TV show above and pick how many seasons you've seen.</p>
         </div>
     </div>
 </section>
@@ -76,18 +75,18 @@
     <div class="container">
         <div class="remove-all-container">
             <div class="data-management-buttons">
-                <button type="button" class="btn btn-primary export-btn" id="exportBtn">
-                    <i class="fas fa-download" aria-hidden="true"></i> Export Data
+                <button type="button" class="g1-btn export-btn" id="exportBtn">
+                    {{ icon('download') }} Export data
                 </button>
-                <button type="button" class="btn btn-primary import-btn" id="importBtn">
-                    <i class="fas fa-upload" aria-hidden="true"></i> Import Data
+                <button type="button" class="g1-btn import-btn" id="importBtn">
+                    {{ icon('upload') }} Import data
                 </button>
                 <input type="file" id="importFileInput" accept=".json" style="display: none;" aria-label="Choose a JSON file to import">
-                <button type="button" class="btn btn-info refresh-seasons-btn" id="refreshSeasonsBtn">
-                    <i class="fas fa-sync-alt" aria-hidden="true"></i> Refresh Seasons
+                <button type="button" class="g1-btn refresh-seasons-btn" id="refreshSeasonsBtn">
+                    {{ icon('refresh') }} Refresh seasons
                 </button>
-                <button type="button" class="btn btn-danger remove-all-btn" id="removeAllBtn">
-                    <i class="fas fa-trash" aria-hidden="true"></i> Remove All Data
+                <button type="button" class="g1-btn btn-danger remove-all-btn" id="removeAllBtn">
+                    {{ icon('trash') }} Remove all data
                 </button>
             </div>
         </div>
@@ -97,7 +96,7 @@
 <!-- Loading Spinner -->
 <div id="loadingSpinner" class="loading-spinner hidden" role="status" aria-live="polite">
     <div class="spinner" aria-hidden="true"></div>
-    <p>Loading...</p>
+    <p>Loading…</p>
 </div>
 
 <!-- Toast Notifications. Each toast carries its own role (status / alert) so

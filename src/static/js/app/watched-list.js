@@ -178,8 +178,8 @@ Object.assign(App, {
         const picking = this.hasSeasonGaps(show);
 
         div.innerHTML = `
-            <button type="button" class="watched-show-remove" onclick="App.removeShow(${show.id})" aria-label="Remove ${safeName} from your watched list">
-                <i class="fas fa-times" aria-hidden="true"></i>
+            <button type="button" class="watched-show-remove" onclick="App.removeShow(${show.id})" aria-label="Remove ${safeName} from your shows">
+                ${this.icon('x')}
             </button>
             <div class="watched-show-poster">
                 <img src="${this.escapeHtml(posterUrl)}" alt="${safeName}"
@@ -191,9 +191,9 @@ Object.assign(App, {
                     <h4>${safeName}</h4>
                     <div class="watched-show-seasons">
                         <button type="button" class="seasons-display" onclick="App.editSeasons(${show.id})" aria-label="Edit seasons watched for ${safeName}. Currently ${this.seasonsSummary(show, true)}.">
-                            <i class="fas fa-eye" aria-hidden="true"></i> ${seasonsSummary}
+                            ${this.icon('eye')} ${seasonsSummary}
                             ${seasonsStrip}
-                            <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;" aria-hidden="true"></i>
+                            ${this.icon('pencil', 'seasons-edit-icon')}
                         </button>
                         <div class="seasons-edit" id="seasonsEdit-${show.id}" data-selected-seasons="${show.seasons_watched}" data-watched-seasons="${selection.join(',')}" data-pick-mode="${picking}">
                             <div class="season-row">
@@ -205,16 +205,16 @@ Object.assign(App, {
                                         onclick="App.toggleEditPickMode(${show.id})"
                                         title="Pick individual seasons"
                                         aria-label="Pick individual seasons of ${safeName}">
-                                    <i class="fas fa-list-check" aria-hidden="true"></i>
+                                    ${this.icon('list-check')}
                                 </button>
-                                <button type="button" class="season-pick-done" ${picking ? '' : 'hidden'}
+                                <button type="button" class="g1-btn g1-btn--sm g1-btn--primary season-pick-done" ${picking ? '' : 'hidden'}
                                         onclick="App.saveSeasons(${show.id})">Done</button>
                             </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="watched-show-time"><i class="fas fa-clock" aria-hidden="true"></i> ${watchTime}</div>
+                <div class="watched-show-time">${this.icon('clock')} ${watchTime}</div>
             </div>
         `;
 

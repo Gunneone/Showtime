@@ -24,6 +24,36 @@ module it lands in.
 No bundler: a new JS or CSS module needs a `<script>` / `<link>` in `base.html`,
 which lists them all in load order.
 
+## Design system
+
+Showtime is part of the gunne.one family. **Read `DESIGN.md` before touching
+templates, CSS or markup-building JS.** Its "Shared vs. your own" section is the
+line to hold: the shared header and footer, page background, `--g1-*` colour tokens
+(light and dark), Plex fonts and Tabler icons are fixed; the rest is Showtime's own.
+
+What Showtime takes from gunne.one beyond that, and what it keeps (decided with
+the owner; don't drift either way without asking):
+
+- **Same as gunne.one:** buttons are `g1-btn` with gunne.one roles (data buttons
+  and Share are default, Remove all is a default button with danger-coloured text and edge, never a ghost, blue
+  `--primary` only for a view's one main action; Done/Add/Load more are
+  `g1-btn--sm`). Toasts are flat like `g1-callout`. Inline links use gunne.css's
+  default style. Award titles are `g1-badge g1-badge--primary`.
+- **Showtime's own:** rounded cards with soft shadows and a blue-tinted border
+  (never chamfered), rounded search box and select, the rounded season strip,
+  pick toggle and × button, big numbers as they are (no mono labels, no
+  `g1-stats`), no eyebrows, rounded blue chart bars, and only a few scribbles.
+  Highlights are blue (the palette in `css/01-base.css` maps onto the tokens);
+  no red. The mark (`brand/showtime-mark-v2.svg` in the gunne.one repo) is a
+  blue TV with orange clock hands.
+
+`gunne.css` and `theme.js` are linked from `G1_DS_URL` (default
+`https://gunne.one/ds/v1`). Locally, `.env` points it at the homepage: its
+container (`http://localhost:8088/ds/v1`) or its dev server (port 5001);
+`docker-compose.yml` passes it through to the Showtime container. Icons come from
+the app's own sprite `src/static/images/icons.svg` (the `icon()` macro in
+templates, `App.icon()` in JS).
+
 ## The top-level README
 
 `README.md` must **never** mention the easter eggs, and must **never** carry
