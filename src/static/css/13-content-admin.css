@@ -8,18 +8,18 @@
 }
 
 .content-page h2 {
-    color: #e2e8f0;
+    color: var(--g1-text);
     margin-bottom: 0.75rem;
 }
 
 .content-lead {
-    color: #cbd5e0;
+    color: var(--g1-text-muted);
     font-size: 1.1rem;
     margin-bottom: 2rem;
 }
 
 .content-section {
-    background: rgba(42, 48, 62, 0.9);
+    background: var(--g1-surface);
     border: 1px solid var(--blue-primary-alpha-30);
     border-radius: 12px;
     padding: 1.5rem;
@@ -32,13 +32,13 @@
     margin-bottom: 0.75rem;
 }
 
-.content-section h3 i {
+.content-section h3 .g1-icon {
     margin-right: 0.5rem;
 }
 
 .content-section p,
 .content-section li {
-    color: #cbd5e0;
+    color: var(--g1-text-muted);
     margin-bottom: 0.75rem;
 }
 
@@ -53,18 +53,18 @@
 }
 
 .content-section strong {
-    color: #e2e8f0;
+    color: var(--g1-text);
 }
 
 .content-section code {
-    background: rgba(26, 32, 44, 0.8);
+    background: var(--g1-surface-2);
     border-radius: 4px;
     padding: 0.1rem 0.4rem;
     font-size: 0.9em;
 }
 
 .content-footnote {
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     font-size: 0.9rem;
     text-align: center;
     margin-top: 1.5rem;
@@ -79,7 +79,7 @@
 }
 
 .admin-login-card {
-    background: rgba(42, 48, 62, 0.9);
+    background: var(--g1-surface);
     border: 1px solid var(--blue-primary-alpha-30);
     border-radius: 12px;
     padding: 2rem;
@@ -95,28 +95,28 @@
 }
 
 .admin-login-card h2 {
-    color: #e2e8f0;
+    color: var(--g1-text);
     font-size: 1.3rem;
     margin-bottom: 0.5rem;
 }
 
 .admin-login-card p {
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     margin-bottom: 1.25rem;
 }
 
 .admin-login-error {
-    color: #fc8181;
+    color: var(--g1-danger);
 }
 
 .admin-login-input {
     width: 100%;
     padding: 0.75rem;
     margin-bottom: 1rem;
-    background: rgba(26, 32, 44, 0.9);
+    background: var(--g1-surface-2);
     border: 1px solid var(--blue-primary-alpha-30);
     border-radius: 8px;
-    color: #e2e8f0;
+    color: var(--g1-text);
     font-size: 1rem;
 }
 
@@ -129,7 +129,7 @@
 
 .admin-range,
 .admin-subnote {
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     font-size: 0.9rem;
     margin-bottom: 1rem;
 }
@@ -139,14 +139,14 @@
 }
 
 .admin-heading {
-    color: #e2e8f0;
+    color: var(--g1-text);
     margin: 2rem 0 0.5rem;
 }
 
 .admin-note {
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     font-size: 0.9rem;
-    background: rgba(42, 48, 62, 0.6);
+    background: var(--g1-surface-2);
     border-left: 3px solid var(--blue-primary);
     border-radius: 6px;
     padding: 0.75rem 1rem;
@@ -154,13 +154,13 @@
 }
 
 .admin-error {
-    color: #fc8181;
+    color: var(--g1-danger);
     text-align: center;
     padding: 2rem 0;
 }
 
 .admin-empty {
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     font-style: italic;
 }
 
@@ -171,7 +171,7 @@
 }
 
 .admin-tile {
-    background: rgba(42, 48, 62, 0.9);
+    background: var(--g1-surface);
     border: 1px solid var(--blue-primary-alpha-20);
     border-radius: 10px;
     padding: 1rem;
@@ -181,11 +181,11 @@
 .admin-tile strong {
     display: block;
     font-size: 1.5rem;
-    color: #e2e8f0;
+    color: var(--g1-text);
 }
 
 .admin-tile span {
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     font-size: 0.85rem;
 }
 
@@ -202,7 +202,7 @@
 }
 
 .admin-bar-label {
-    color: #a0aec0;
+    color: var(--g1-text-muted);
     font-size: 0.8rem;
     font-variant-numeric: tabular-nums;
     flex: 0 0 5.5rem;
@@ -210,7 +210,7 @@
 
 .admin-bar-track {
     flex: 1 1 auto;
-    background: rgba(26, 32, 44, 0.9);
+    background: var(--g1-surface-2);
     border-radius: 4px;
     height: 14px;
     overflow: hidden;
@@ -224,7 +224,7 @@
 }
 
 .admin-bar-value {
-    color: #e2e8f0;
+    color: var(--g1-text);
     font-size: 0.85rem;
     font-variant-numeric: tabular-nums;
     flex: 0 0 3rem;
@@ -254,13 +254,13 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(99, 179, 237, 0.12);
-    color: #cbd5e0;
+    border-bottom: 1px solid var(--g1-border);
+    color: var(--g1-text-muted);
 }
 
 .admin-list li::before {
     content: counter(admin-rank) ".";
-    color: #718096;
+    color: var(--g1-text-subtle);
     flex: 0 0 1.5rem;
     font-variant-numeric: tabular-nums;
 }

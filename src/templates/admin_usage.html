@@ -1,13 +1,14 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
-{% block title %}Usage - Showtime{% endblock %}
+{% block title %}Usage · Showtime{% endblock %}
 
 {% block content %}
 <section class="stats-overview">
     <h2>Usage &middot; last {{ overview.days if overview else 30 }} days</h2>
 
     {% if error %}
-    <p class="admin-error" role="alert"><i class="fas fa-circle-exclamation"></i> {{ error }}</p>
+    <p class="admin-error" role="alert">{{ icon('alert-circle') }} {{ error }}</p>
     {% else %}
 
     <p class="admin-range">
@@ -16,28 +17,28 @@
 
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-user"></i></div>
+            <div class="stat-icon">{{ icon('user') }}</div>
             <div class="stat-content">
                 <h3>{{ overview.visitors_today }}</h3>
                 <p>Visitors today</p>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-icon">{{ icon('users') }}</div>
             <div class="stat-content">
                 <h3>{{ overview.avg_daily_visitors }}</h3>
                 <p>Avg / active day</p>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-arrow-trend-up"></i></div>
+            <div class="stat-icon">{{ icon('trending-up') }}</div>
             <div class="stat-content">
                 <h3>{{ overview.peak_daily_visitors }}</h3>
                 <p>Busiest day</p>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon"><i class="fas fa-plus"></i></div>
+            <div class="stat-icon">{{ icon('plus') }}</div>
             <div class="stat-content">
                 <h3>{{ overview.totals.shows_added }}</h3>
                 <p>Shows added</p>
@@ -46,7 +47,7 @@
     </div>
 
     <p class="admin-note">
-        <i class="fas fa-circle-info"></i>
+        {{ icon('info-circle') }}
         A <strong>visitor</strong> is someone tracking at least one show &mdash; a
         page load on its own is not counted, which keeps crawlers and the
         healthcheck out of the numbers. There is also no monthly total by
@@ -137,7 +138,7 @@
     {% endif %}
 
     <form method="post" action="{{ url_for('main.admin_logout') }}" class="admin-logout">
-        <button type="submit" class="btn btn-secondary">Sign out</button>
+        <button type="submit" class="g1-btn">Sign out</button>
     </form>
 </section>
 {% endblock %}

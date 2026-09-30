@@ -26,6 +26,11 @@ class Config:
     TMDB_BASE_URL = 'https://api.themoviedb.org/3'
     TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500'
 
+    # The shared gunne.one design system (gunne.css, theme.js, fonts, brand
+    # marks, see DESIGN.md). For local development point it at the homepage
+    # dev server: G1_DS_URL=http://localhost:5001/ds/v1
+    G1_DS_URL = (os.environ.get('G1_DS_URL') or 'https://gunne.one/ds/v1').rstrip('/')
+
     # Aggregate usage metrics. Kept out of cache.db so it can be mounted on a
     # persistent volume without dragging the disposable TMDB cache along.
     METRICS_DB_PATH = os.environ.get('METRICS_DB_PATH') or 'metrics.db'

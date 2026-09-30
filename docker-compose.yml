@@ -11,6 +11,9 @@ services:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-your-default-secret-key-change-in-production}
       - TMDB_API_KEY=${TMDB_API_KEY}
+      # Shared gunne.one design system. The browser fetches it, so a local value
+      # is a URL as seen from the host (e.g. the homepage container on 8088).
+      - G1_DS_URL=${G1_DS_URL:-https://gunne.one/ds/v1}
       # Gunicorn: threaded workers for this IO-bound TMDB proxy. gthread keeps
       # a slow upstream from blocking a whole worker without gevent's SSL
       # monkey-patching. Sized for a 4 vCore / 4 GB host.

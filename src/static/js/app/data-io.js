@@ -41,7 +41,7 @@ Object.assign(App, {
 
                 if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
                     await navigator.share(shareData);
-                    this.showToast('Shared successfully!');
+                    this.showToast('Shared');
                     return;
                 }
             }
@@ -51,7 +51,7 @@ Object.assign(App, {
             
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(clipboardText);
-                this.showToast('Copied to clipboard!');
+                this.showToast('Copied to clipboard');
             } else {
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
@@ -65,16 +65,16 @@ Object.assign(App, {
                 
                 try {
                     document.execCommand('copy');
-                    this.showToast('Copied to clipboard!');
+                    this.showToast('Copied to clipboard');
                 } catch (err) {
-                    this.showToast('Unable to copy. Please copy manually.', 'error');
+                    this.showToast('Couldn\'t copy automatically. Select the text and copy it yourself.', 'error');
                 }
                 
                 document.body.removeChild(textArea);
             }
         } catch (error) {
             console.error('Error sharing:', error);
-            this.showToast('Failed to share. Please try again.', 'error');
+            this.showToast('Couldn\'t share. Try again, or copy the text instead.', 'error');
         }
     },
 
@@ -110,11 +110,11 @@ Object.assign(App, {
             // Clean up
             URL.revokeObjectURL(url);
             
-            this.showToast('Data exported successfully!', 'success');
+            this.showToast('Export saved', 'success');
             
         } catch (error) {
             console.error('Error exporting data:', error);
-            this.showToast('Failed to export data. Please try again.', 'error');
+            this.showToast('Couldn\'t export your data. Try again.', 'error');
         }
     },
 
@@ -126,7 +126,7 @@ Object.assign(App, {
         }
 
         if (!file.name.endsWith('.json')) {
-            this.showToast('Please select a valid JSON file', 'error');
+            this.showToast('That isn\'t a JSON file. Choose a Showtime export (.json).', 'error');
             return;
         }
 
@@ -146,7 +146,7 @@ Object.assign(App, {
             
             // Validate data structure
             if (!this.validateImportData(importData)) {
-                throw new Error('Invalid data format. Please ensure you\'re importing a valid Showtime backup file.');
+                throw new Error('That file isn\'t a Showtime export. Choose a file saved with Export data.');
             }
             
             // Confirm import with user
@@ -175,7 +175,7 @@ Object.assign(App, {
             // Clear file input
             this.elements.importFileInput.value = '';
             
-            this.showToast(`Successfully imported ${showsCount} shows!`, 'success');
+            this.showToast(`Imported ${showsCount} shows`, 'success');
             
             // Hide loading overlay immediately after import is complete
             this.hideLoading();
@@ -187,7 +187,7 @@ Object.assign(App, {
             
         } catch (error) {
             console.error('Error importing data:', error);
-            this.showToast(error.message || 'Failed to import data. Please try again.', 'error');
+            this.showToast(error.message || 'Couldn\'t import the file. Check it is a Showtime export and try again.', 'error');
             this.hideLoading();
         }
     },
@@ -265,7 +265,7 @@ Object.assign(App, {
         }
 
         // Show start message only
-        this.showToast('Checking for new seasons...', 'info');
+        this.showToast('Checking for new seasons…', 'info');
 
         try {
             const response = await fetch('/api/refresh-seasons', {
@@ -313,7 +313,7 @@ Object.assign(App, {
                     // Reload the watched shows display
                     this.loadWatchedShows();
                     
-                    this.showToast('New seasons found and updated!', 'success');
+                    this.showToast('New seasons found and added', 'success');
                 } else {
                     this.showToast('All shows are up to date', 'info');
                 }
@@ -323,7 +323,7 @@ Object.assign(App, {
 
         } catch (error) {
             console.error('Error refreshing seasons:', error);
-            this.showToast('Failed to refresh season counts. Please try again.', 'error');
+            this.showToast('Couldn\'t refresh season counts. Check your connection and try again.', 'error');
         }
         // Note: No loading overlay, no hideLoading() call - keeps UI usable
     }

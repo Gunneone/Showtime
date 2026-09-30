@@ -46,6 +46,11 @@ def create_app():
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp, url_prefix='/api')
 
+    @app.context_processor
+    def design_system():
+        """Base URL of the shared design system, as `g1` in every template."""
+        return {'g1': app.config['G1_DS_URL']}
+
     @app.after_request
     def record_page_view(response):
         """Count page views and daily visitors.

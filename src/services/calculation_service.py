@@ -128,7 +128,7 @@ class CalculationService:
         chess_times = total_minutes / 1
         value = self._format_conversion_number(chess_times)
         conversions.append({
-            'icon': 'fas fa-chess-pawn',
+            'icon': 'chess',
             'value': value,
             'description': 'played a round of hyperbullet chess',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
@@ -138,7 +138,7 @@ class CalculationService:
         teen_spirit_times = total_minutes / 5.02
         value = self._format_conversion_number(teen_spirit_times)
         conversions.append({
-            'icon': 'fas fa-music',
+            'icon': 'music',
             'value': value,
             'description': 'listened to "Smells Like Teen Spirit"',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
@@ -148,7 +148,7 @@ class CalculationService:
         walk_times = total_minutes / 30
         value = self._format_conversion_number(walk_times)
         conversions.append({
-            'icon': 'fas fa-walking',
+            'icon': 'walk',
             'value': value,
             'description': 'taken a 30-minute walk',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
@@ -158,7 +158,7 @@ class CalculationService:
         flight_times = total_minutes / 150
         value = self._format_conversion_number(flight_times)
         conversions.append({
-            'icon': 'fas fa-plane',
+            'icon': 'plane',
             'value': value,
             'description': 'taken a flight between NY and Chicago',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
@@ -168,7 +168,7 @@ class CalculationService:
         lotr_times = total_minutes / 715
         value = self._format_conversion_number(lotr_times)
         conversions.append({
-            'icon': 'fas fa-ring',
+            'icon': 'sword',
             'value': value,
             'description': 'watched extended LotR trilogy',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
@@ -178,7 +178,7 @@ class CalculationService:
         hp_times = total_minutes / 4380
         value = self._format_conversion_number(hp_times)
         conversions.append({
-            'icon': 'fas fa-book',
+            'icon': 'book',
             'value': value,
             'description': 'read the entire Harry Potter series',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
@@ -188,7 +188,7 @@ class CalculationService:
         trans_siberian_times = total_minutes / 10080
         value = self._format_conversion_number(trans_siberian_times)
         conversions.append({
-            'icon': 'fas fa-train',
+            'icon': 'train',
             'value': value,
             'description': 'completed trips on the Trans-Siberian Railway',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
@@ -198,7 +198,7 @@ class CalculationService:
         language_times = total_minutes / 40500
         value = self._format_conversion_number(language_times)
         conversions.append({
-            'icon': 'fas fa-language',
+            'icon': 'language',
             'value': value,
             'description': 'learned a language',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'
@@ -208,7 +208,7 @@ class CalculationService:
         pregnancy_times = total_minutes / 388800
         value = self._format_conversion_number(pregnancy_times)
         conversions.append({
-            'icon': 'fas fa-baby',
+            'icon': 'baby-carriage',
             'value': value,
             'description': 'carried out a baby',
             'times_text': 'times' if float(value.replace(',', '')) != 1 else 'time'

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
-{% block title %}Privacy - Showtime{% endblock %}
+{% block title %}Privacy · Showtime{% endblock %}
 
 {% block content %}
 <article class="content-page">
@@ -12,7 +13,7 @@
     </p>
 
     <section class="content-section">
-        <h3><i class="fas fa-hard-drive"></i> Your shows stay in your browser</h3>
+        <h3>{{ icon('browser') }} Your shows stay in your browser</h3>
         <p>
             The list of shows you track is saved in your own browser's local
             storage. It is never stored on the server, and there is no account
@@ -23,7 +24,7 @@
     </section>
 
     <section class="content-section">
-        <h3><i class="fas fa-arrows-rotate"></i> What the server sees</h3>
+        <h3>{{ icon('refresh') }} What the server sees</h3>
         <p>
             To work out runtimes and build your statistics, your browser sends
             the logged shows to the server, which looks up episode lengths, does the
@@ -43,13 +44,21 @@
     </section>
 
     <section class="content-section">
-        <h3><i class="fas fa-cookie-bite"></i> Cookies (there aren't any)</h3>
+        <h3>{{ icon('cookie') }} Cookies (just one, and only if you ask)</h3>
         <p>
-            <strong>Showtime sets no cookies.</strong>
+            <strong>Showtime sets no tracking cookies.</strong>
             No consent banner, no &ldquo;we value your privacy&rdquo; pop-up
             concealing four hundred advertising partners behind a
             &ldquo;legitimate interest&rdquo; toggle. There is genuinely
             nothing to consent to.
+        </p>
+        <p>
+            The one exception is your light or dark mode choice. Click the
+            theme toggle and a <code>g1-theme</code> cookie on
+            <code>gunne.one</code> remembers it, so every gunne.one app opens in
+            the same theme. It holds <code>light</code> or <code>dark</code> and
+            nothing else. Until you click the toggle, Showtime simply follows
+            your system setting.
         </p>
         <p>
             You don't have to take my word for it. Open your browser's developer tools and
@@ -58,7 +67,7 @@
     </section>
 
     <section class="content-section">
-        <h3><i class="fas fa-chart-simple"></i> The usage counts we do keep</h3>
+        <h3>{{ icon('chart-bar') }} The usage counts we do keep</h3>
         <p>
             I keep a small pile of totals, so I can tell whether anyone is
             actually out there: visits per day, how many shows get added,
@@ -84,7 +93,7 @@
     </section>
 
     <section class="content-section">
-        <h3><i class="fas fa-user-shield"></i> No third-party tracking</h3>
+        <h3>{{ icon('user-shield') }} No third-party tracking</h3>
         <p>
             No analytics services, no advertising networks, no tracking pixels,
             no social media widgets. Nothing about you is sold, shared or
@@ -94,7 +103,7 @@
         <p>Your browser does load a couple of files from other hosts:</p>
         <ul>
             <li><strong>themoviedb.org</strong> &mdash; show artwork and metadata</li>
-            <li><strong>cdnjs.cloudflare.com</strong> &mdash; the Font Awesome icon set</li>
+            <li><strong>gunne.one</strong> &mdash; the stylesheet, fonts, logos and theme script shared by the gunne.one apps</li>
         </ul>
         <p>
             Those hosts see the request your browser makes for the file, as
@@ -105,7 +114,7 @@
     </section>
 
     <section class="content-section">
-        <h3><i class="fas fa-ban"></i> Opting out</h3>
+        <h3>{{ icon('ban') }} Opting out</h3>
         <p>
             If your browser sends a <code>Do Not Track</code> or
             <code>Global Privacy Control</code> signal, you are left out of the

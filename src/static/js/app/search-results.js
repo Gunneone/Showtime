@@ -17,8 +17,8 @@ Object.assign(App, {
         if (!allResults || allResults.length === 0) {
             this.elements.searchResults.innerHTML = `
                 <div class="search-no-results">
-                    <i class="fas fa-search" aria-hidden="true"></i>
-                    <p>No shows found. Try a different search term.</p>
+                    ${this.icon('search')}
+                    <p>No shows found. Check the spelling or try a shorter title.</p>
                 </div>
             `;
             this.setListboxActive(false);
@@ -96,9 +96,9 @@ Object.assign(App, {
                                     title="Pick individual seasons"
                                     aria-label="Pick individual seasons of ${safeName}"
                                     data-show-id="${show.id}">
-                                <i class="fas fa-list-check" aria-hidden="true"></i>
+                                ${this.icon('list-check')}
                             </button>
-                            <button type="button" class="season-pick-add" hidden
+                            <button type="button" class="g1-btn g1-btn--sm g1-btn--primary season-pick-add" hidden
                                     data-show-id="${show.id}">Add</button>
                         </div>
         ` : '';
@@ -273,8 +273,8 @@ Object.assign(App, {
         loadMoreDiv.setAttribute('tabindex', '-1');
         loadMoreDiv.setAttribute('aria-label', 'Load more results');
         loadMoreDiv.innerHTML = `
-            <span class="load-more-btn">
-                <i class="fas fa-plus" aria-hidden="true"></i> load more
+            <span class="g1-btn g1-btn--sm load-more-btn">
+                ${this.icon('plus')} Load more
             </span>
         `;
         loadMoreDiv.addEventListener('click', (e) => this.loadMoreSearchResults(e));
@@ -314,7 +314,7 @@ Object.assign(App, {
                 this.state.currentSearch.results = results.concat(data.results || []);
             } catch (error) {
                 console.error('Load more error:', error);
-                this.showToast('Could not load more results. Please try again.', 'error');
+                this.showToast('Couldn\'t load more results. Check your connection and try again.', 'error');
                 this.addLoadMoreButton(results, false);
                 return;
             }

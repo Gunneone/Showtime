@@ -5,19 +5,19 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(26, 32, 44, 0.9);
+    background: color-mix(in srgb, var(--g1-bg) 90%, transparent);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 2000;
-    color: #e2e8f0;
+    color: var(--g1-text);
 }
 
 .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid #4a5568;
+    border: 4px solid var(--g1-border);
     border-top: 4px solid var(--blue-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -32,36 +32,43 @@
 /* Toast notifications */
 .toast-container {
     position: fixed;
-    top: 80px; /* Position below fixed header */
+    top: calc(var(--g1-header-h) + 16px); /* below the sticky header */
     right: 20px;
     z-index: 3000;
 }
 
+/* Toasts look like gunne.one's g1-callout: flat and square, with a 3px bar in
+   the status colour. A 1px border keeps a floating one off the background. */
 .toast {
-    background: #2d3748;
-    color: #e2e8f0;
-    border-radius: 8px;
-    padding: 1rem;
+    --toast-bar: var(--g1-success);
+    background: var(--g1-surface-2);
+    color: var(--g1-text);
+    border: 1px solid var(--g1-border);
+    border-left: 3px solid var(--toast-bar);
+    padding: 0.75rem 1rem;
     margin-bottom: 0.5rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    border-left: 4px solid var(--blue-primary);
-    animation: slideIn 0.3s ease-out;
+    font-size: var(--g1-text-sm);
+    animation: slideIn var(--g1-dur) var(--g1-ease);
     /* A long show title must not grow the toast across the whole screen */
     max-width: min(360px, calc(100vw - 40px));
     overflow-wrap: anywhere;
 }
 
-.toast.error {
-    border-left-color: #e53e3e;
+.toast.info {
+    --toast-bar: var(--g1-info);
 }
 
 .toast.warning {
-    border-left-color: #d69e2e;
+    --toast-bar: var(--g1-warning);
+}
+
+.toast.error {
+    --toast-bar: var(--g1-danger);
 }
 
 @keyframes slideIn {
     from {
-        transform: translateX(100%);
+        transform: translateX(24px);
         opacity: 0;
     }
     to {
@@ -73,7 +80,7 @@
 /* Bottom-anchored variant, see 11-responsive.css */
 @keyframes slideUp {
     from {
-        transform: translateY(120%);
+        transform: translateY(24px);
         opacity: 0;
     }
     to {

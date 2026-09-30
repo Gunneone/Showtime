@@ -1,11 +1,30 @@
+{% from "_icons.html" import icon %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-g1-app="showtime">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Showtime - Track Your TV Time{% endblock %}</title>
-    
-    <!-- CSS - split into ordered partials; the cascade depends on this order -->
+    <!-- No-flash theme: apply the stored or OS theme before anything paints -->
+    <script>
+        (function () {
+            try {
+                var m = document.cookie.match(/(?:^|;\s*)g1-theme=(light|dark)/);
+                var t = m ? m[1] : localStorage.getItem('g1-theme');
+                if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {}
+        })();
+    </script>
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e1116">
+    <title>{% block title %}Showtime · how much of your life went into TV{% endblock %}</title>
+
+    <!-- Shared design system first, so the app CSS below wins -->
+    <link rel="preload" href="{{ g1 }}/fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ g1 }}/gunne.css">
+    <script defer src="{{ g1 }}/theme.js"></script>
+
+    <!-- App CSS - split into ordered partials; the cascade depends on this order -->
     {% for sheet in [
         '01-base', '02-watch-time', '03-search', '04-watched-shows',
         '05-easter-eggs', '06-season-editing', '07-share-and-data',
@@ -14,50 +33,59 @@
     ] %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/' ~ sheet ~ '.css') }}">
     {% endfor %}
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
-    
+
+    <link rel="icon" type="image/svg+xml" href="{{ g1 }}/brand/showtime-mark-v2.svg">
+
     <!-- canvas-confetti -->
     <script src="{{ url_for('static', filename='js/confetti.browser.min.js') }}"></script>
-    
+
     {% block head %}{% endblock %}
 </head>
-<body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <h1 class="logo">
-                    <a href="{{ url_for('main.index') }}" aria-label="Showtime home">
-                        <i class="fas fa-tv" aria-hidden="true"></i>&nbsp;&nbsp;<span class="logo-text">Showtime</span>
-                    </a>
-                </h1>
-                <nav class="nav">
-                    <a href="{{ url_for('main.index') }}" class="nav-link">Home</a>
-                    <a href="{{ url_for('main.stats') }}" class="nav-link">Statistics</a>
-                </nav>
+<body class="g1-page">
+    <a class="g1-skip-link" href="#main">Skip to content</a>
+
+    <header class="g1-header">
+        <div class="g1-container g1-container--wide g1-header__inner">
+            <a class="g1-brand" href="{{ url_for('main.index') }}">
+                <img class="g1-brand__mark" src="{{ g1 }}/brand/showtime-mark-v2.svg" alt="" width="28" height="28">
+                <span>Showtime</span>
+            </a>
+            <nav class="g1-nav" aria-label="Main">
+                <a href="{{ url_for('main.index') }}"{% if request.endpoint == 'main.index' %} aria-current="page"{% endif %}>Shows</a>
+                <a href="{{ url_for('main.stats') }}"{% if request.endpoint == 'main.stats' %} aria-current="page"{% endif %}>Stats</a>
+            </nav>
+            <div class="g1-header__actions">
+                <button type="button" class="g1-btn g1-btn--ghost g1-btn--icon" data-g1-theme-toggle aria-label="Toggle dark mode">
+                    {{ icon('moon', 'g1-when-light') }}
+                    {{ icon('sun', 'g1-when-dark') }}
+                </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="main">
-        <div class="container">
+    <main id="main" class="main">
+        <div class="g1-container g1-container--wide">
             {% block content %}{% endblock %}
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <p>&copy; 2025 Showtime. Made with ❤️ for TV lovers.</p>
-                <p>Data provided by <a href="https://www.themoviedb.org" target="_blank" rel="noopener">The Movie Database</a></p>
-                <p><a href="{{ url_for('main.privacy') }}">Privacy</a></p>
+    <footer class="g1-footer">
+        <div class="g1-container g1-container--wide">
+            <div class="g1-footer__inner">
+                <nav class="g1-footer__links" aria-label="Footer">
+                    <a href="{{ url_for('main.privacy') }}">Privacy</a>
+                    <a href="https://github.com/Gunneone/Showtime" target="_blank" rel="noopener noreferrer">Source</a>
+                    <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer">Data from TMDB</a>
+                </nav>
+                <div class="g1-footer__social">
+                    <a href="https://github.com/gunneone" target="_blank" rel="noopener noreferrer" aria-label="GitHub">{{ icon('brand-github') }}</a>
+                    <a href="https://linkedin.com/in/gunneone" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">{{ icon('brand-linkedin') }}</a>
+                    <a href="https://t.me/gunneone" target="_blank" rel="noopener noreferrer" aria-label="Telegram">{{ icon('brand-telegram') }}</a>
+                </div>
+            </div>
+            <div class="g1-footer__meta">
+                <a class="g1-family" href="https://gunne.one"><img src="{{ g1 }}/brand/g1-mark-48.png" alt="" width="16" height="16">a gunne.one project</a>
+                <span>your shows stay in your browser</span>
             </div>
         </div>
     </footer>

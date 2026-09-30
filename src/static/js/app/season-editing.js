@@ -158,9 +158,9 @@ Object.assign(App, {
             if (seasonsDisplay) {
                 const summary = this.seasonsSummary(updatedShow);
                 seasonsDisplay.innerHTML = `
-                    <i class="fas fa-eye" aria-hidden="true"></i> ${summary}
+                    ${this.icon('eye')} ${summary}
                     ${this.seasonsStripHtml(updatedShow)}
-                    <i class="fas fa-edit" style="font-size: 0.8em; opacity: 0.7;" aria-hidden="true"></i>
+                    ${this.icon('pencil', 'seasons-edit-icon')}
                 `;
                 const name = seasonsDisplay.closest('.watched-show')?.querySelector('h4')?.textContent || '';
                 seasonsDisplay.setAttribute(
@@ -398,7 +398,7 @@ Object.assign(App, {
         const maxSeasons = show ? (show.total_seasons || 1) : 1;
         
         if (selectedSeasons < 0) {
-            this.showToast('Please select at least 0 seasons', 'error');
+            this.showToast('Seasons can\'t be negative', 'error');
             return;
         }
         
@@ -436,7 +436,7 @@ Object.assign(App, {
                 DataStorage.setWatchedShows(data.updated_watched_shows);
             }
 
-            this.showCelebrationToast(`Updated "${show ? show.name : 'show'}"!`);
+            this.showCelebrationToast(`Updated "${show ? show.name : 'show'}"`);
             this.markCelebrationShow(showId);
             this.loadWatchedShows(true);
 
@@ -458,7 +458,7 @@ Object.assign(App, {
             this.scrollToTopCard();
         } catch (error) {
             console.error('Error updating show:', error);
-            this.showToast('Failed to update show. Please try again.', 'error');
+            this.showToast('Couldn\'t update the show. Check your connection and try again.', 'error');
             this.cancelEditSeasons(showId);
         } finally {
             this.hideLoading();
